@@ -7,7 +7,9 @@
         public double Value { get; private set; }
         public EdgeType Type { get; private set; }
 
-        public Edge(string source, string target, double value, EdgeType type)
+        public Edge(
+            string source, string target,
+            double value, EdgeType type)
         {
             Source = source;
             Target = target;

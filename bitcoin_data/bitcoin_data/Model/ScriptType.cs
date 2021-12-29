@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace bitcoin_data.Model
+﻿namespace bitcoin_data.Model
 {
-    // DO NOT RENAME THESE, EXCEPT FOR UNKNOW, SINCE 
+    // DO NOT RENAME THESE, EXCEPT FOR UNKNOWN, SINCE 
     // ALL THE KEYS CORRESPOND TO THE `type` ATTRIBUTE
     // IN BITCOIN TRANSACTIONS.
+    // ENUM TYPES ARE CASE-INSENSITIVE.
 
     internal enum ScriptType
     {
+        PubKey,
+
         PubKeyHash,
 
         /// <summary>
@@ -19,6 +16,15 @@ namespace bitcoin_data.Model
         /// <see cref="https://bitcoin.stackexchange.com/a/9703/129532"/>
         /// </summary>
         ScriptHash,
+
+        /// <summary>
+        /// Native Segwit version of a pay-to-public-key-hash.
+        /// </summary>
+        witness_v0_keyhash,
+        
+        witness_v0_scripthash,
+        witness_v1_taproot,
+        multisig,
 
         /// <summary>
         /// A script with this is often used to 

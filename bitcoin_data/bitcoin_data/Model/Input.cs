@@ -8,7 +8,7 @@ namespace bitcoin_data.Model
         public string Coinbase { get; set; } = string.Empty;
 
         [JsonPropertyName("txid")]
-        public string? TransactionId { get; set; }
+        public string? TxId { get; set; }
 
         [JsonPropertyName("vout")]
         public int? OutputIndex { get; set; }
@@ -17,7 +17,7 @@ namespace bitcoin_data.Model
         public ScriptSig? ScriptSig { get; set; }
 
         [JsonPropertyName("txinwitness")]
-        public List<string>? TransactionInputWitness { get; set; }
+        public List<string>? TxInputWitness { get; set; }
 
         [JsonPropertyName("sequence")]
         public long Sequence { get; set; }

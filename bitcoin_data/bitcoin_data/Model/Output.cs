@@ -24,11 +24,14 @@ namespace bitcoin_data.Model
         [JsonPropertyName("scriptPubKey")]
         public ScriptPubKey? ScriptPubKey { get; set; }
 
-        public string GetAddress()
+        public bool TryGetAddress(out string address)
         {
             if (ScriptPubKey != null)
-                return ScriptPubKey.GetAddress();
-            throw new NotImplementedException();
+                address = ScriptPubKey.GetAddress();
+            else
+                throw new NotImplementedException();
+
+            return !string.IsNullOrEmpty(address);
         }
 
         public ScriptType GetScriptType()
@@ -38,5 +41,37 @@ namespace bitcoin_data.Model
             else
                 throw new NotImplementedException();
         }
+
+        /// <summary>
+        /// Some outputs in a Bitcoin transaction do not
+        /// transfer any bitcoin (i.e., "value": 0.00000000).
+        /// This property is False, if this output is of
+        /// such type of outputs, otherwise, it is True.
+        /// </summary>
+        public bool IsValueTransfer
+        {
+            get
+            {
+                if (_isValueTransfer == null)
+                {
+                    /*
+                    if (output.GetScriptType() is
+                        ScriptType.Unknown or ScriptType.NullData)
+                        continue;*/
+
+                    // Ideally the above should be sufficient, but
+                    // for dev purposes, we use the following.
+                    _isValueTransfer = GetScriptType() switch
+                    {
+                        ScriptType.NullData => false,
+                        ScriptType.Unknown => throw new NotImplementedException(),
+                        _ => true, // all other cases.
+                    };
+                }
+
+                return (bool)_isValueTransfer;
+            }
+        }
+        private bool? _isValueTransfer = null;
     }
 }

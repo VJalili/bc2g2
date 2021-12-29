@@ -1,4 +1,5 @@
 ﻿using bitcoin_data.Exceptions;
+using bitcoin_data.Graph;
 using bitcoin_data.Model;
 using System.Text.Json;
 
@@ -12,6 +13,7 @@ namespace bitcoin_data
         public Uri BaseUri { set; get; } = new Uri("http://127.0.0.1:8332/rest/");
 
         private readonly HttpClient _client;
+        private const string coinbaseTxLabel = "Coinbase";
 
         public BitcoinAgent()
         {
@@ -39,6 +41,21 @@ namespace bitcoin_data
                 {
                     return false;
                 }
+            }
+        }
+
+        public async Task<ChainInfo> GetChainInfoAsync()
+        {
+            try
+            {
+                var stream = await SendGet($"chaininfo.json");
+                return
+                    await JsonSerializer.DeserializeAsync<ChainInfo>(stream)
+                    ?? throw new Exception("Error reading chain info.");
+            }
+            catch (Exception e) when (e is not ClientInaccessible)
+            {
+                throw new Exception($"Error getting chain info.");
             }
         }
 
@@ -73,75 +90,66 @@ namespace bitcoin_data
                 ?? throw new Exception("Invalid transaction.");
         }
 
-        public bool TryGetMinerRewardAddress(Block block, out string address)
+        public async Task<BlockGraph> GetGraph(Block block)
         {
-            address = string.Empty;
-            foreach(var tx in block.Transactions)
+            var blockGraph = new BlockGraph();
+
+            /// Why using "mediantime" and not "time"? see the following BIP:
+            /// https://github.com/bitcoin/bips/blob/master/bip-0113.mediawiki
+            uint timestamp = block.MedianTime;
+
+            /// By definition, each block has a generative block that is the 
+            /// reward of the miner. Hence, this should never raise an 
+            /// exception if the block is not corrupt.
+            var coinbaseTx = block.Transactions.First(x => x.IsCoinbase);
+            var coinbaseTxGraph = new CoinbaseTransactionGraph(coinbaseTxLabel, coinbaseTx.Outputs.Count);
+            var rewardAddresses = new List<string>();
+            foreach (var output in coinbaseTx.Outputs.Where(x => x.IsValueTransfer))
             {
-                foreach(var input in tx.Inputs)
-                {
-                    if (!string.IsNullOrEmpty(input.Coinbase))
-                        {
-                        
-                    }
-                }
+                if (!output.TryGetAddress(out string address))
+                    continue;
+                rewardAddresses.Add(address);
+                coinbaseTxGraph.AddTarget(address, output.Value);
             }
+            blockGraph.AddGraph(coinbaseTxGraph);
 
-
-            return false;
-        }
-
-        public async Task<Graph> GetGraph(Transaction transaction)
-        {
-            var graph = new Graph(transaction.Inputs.Count, transaction.Outputs.Count);
-            foreach (var input in transaction.Inputs)
+            foreach (var tx in block.Transactions.Where(x => !x.IsCoinbase))
             {
-                if (!string.IsNullOrEmpty(input.Coinbase))
+                var txGraph = new TransactionGraph(tx.Inputs.Count, tx.Outputs.Count, rewardAddresses);
+                foreach (var input in tx.Inputs)
                 {
-                    graph.AddSource("Coinbase", -1);
-                }
-                else if (input.TransactionId != null)
-                {
-                    // Extended transaction: details of the transaction are retrieved from the bitcoin client.
-                    var exTx = await GetTransaction(input.TransactionId);
-                    var vout = exTx.Outputs.First(x => x.Index == input.OutputIndex);
-                    if (vout != null)
-                        graph.AddSource(vout.GetAddress(), vout.Value);
+                    if (input.TxId != null)
+                    {
+                        // Extended transaction: details of the transaction are retrieved from the bitcoin client.
+                        var exTx = await GetTransaction(input.TxId);
+                        var vout = exTx.Outputs.First(x => x.Index == input.OutputIndex);
+                        if (vout == null)
+                            // TODO: check when this can be null, or if it would ever happen.
+                            throw new NotImplementedException();
+
+                        var s = vout.TryGetAddress(out string address);
+                        if(s == false)
+                        {
+
+                        }
+                        txGraph.AddSource(address, vout.Value);
+                    }
                     else
                     {
-                        // TODO: check when either can be null.
+                        // TODO: check if this is ever possible.
                         throw new NotImplementedException();
                     }
                 }
-                else
-                {
-                    // TODO: check if this is ever possible.
-                    throw new NotImplementedException();
-                }
-            }
 
-            foreach(var output in transaction.Outputs)
-            {
-                /*
-                if (output.GetScriptType() is
-                    ScriptType.Unknown or ScriptType.NullData)
-                    continue;*/
+                foreach (var output in tx.Outputs.Where(x => x.IsValueTransfer))
+                    if (output.TryGetAddress(out string address))
+                        txGraph.AddTarget(address, output.Value);
 
-                // Ideally the above should be sufficient, but
-                // for dev purposes, we use the following.
-                if (output.GetScriptType() is ScriptType.NullData)
-                    continue;
-                if(output.GetScriptType() is ScriptType.Unknown)
-                    throw new NotImplementedException();
-
-
-                graph.AddTarget(output.GetAddress(), output.Value);
+                blockGraph.AddGraph(txGraph);
             }
 
             // TODO: exclude change transaction.
-
-            graph.UpdateEdges();
-            return graph;
+            return blockGraph;
         }
 
         private async Task<Stream> GetResource(string endpoint, string hash)

@@ -23,13 +23,13 @@ namespace bitcoin_data.Model
         public string Merkleroot { set; get; } = string.Empty;
 
         [JsonPropertyName("time")]
-        public int Time { set; get; }
+        public uint Time { set; get; }
 
         [JsonPropertyName("mediantime")]
-        public int MedianTime { set; get; }
+        public uint MedianTime { set; get; }
 
         [JsonPropertyName("nonce")]
-        public int Nonce { set; get; }
+        public ulong Nonce { set; get; }
 
         [JsonPropertyName("bits")]
         public string Bits { set; get; } = string.Empty;

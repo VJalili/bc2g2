@@ -30,5 +30,18 @@ namespace bitcoin_data.Model
 
         [JsonPropertyName("vout")]
         public List<Output> Outputs { set; get; } = new List<Output>();
+
+        public bool IsCoinbase
+        {
+            get
+            {
+                if (_isCoinbase == null)
+                    _isCoinbase = Inputs.Any(
+                        x => !string.IsNullOrEmpty(x.Coinbase));
+
+                return (bool)_isCoinbase;
+            }
+        }
+        private bool? _isCoinbase = null;
     }
 }
