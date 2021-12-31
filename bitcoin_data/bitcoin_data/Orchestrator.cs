@@ -1,11 +1,6 @@
 ﻿using bitcoin_data.Exceptions;
 using bitcoin_data.Model;
 using bitcoin_data.Serializers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace bitcoin_data
 {
@@ -22,32 +17,40 @@ namespace bitcoin_data
 
         private readonly string _outputDir;
 
-        public Orchestrator(string outputDir)
+        private readonly HttpClient _client;
+
+        public Orchestrator(string outputDir, HttpClient client)
         {
             _outputDir = outputDir;
+            Directory.CreateDirectory(_outputDir);
+
             AddressIdFilename = Path.Combine(
                 _outputDir, AddressIdFilename);
             StatusFilename = Path.Combine(
                 _outputDir, StatusFilename);
+
+            _client = client;
         }
 
-        public async Task Run()
+        public async Task RunAsync(int? from = null, int? to = null)
         {
             CanWriteToOutputDir();
             var status = await LoadStatus();
-            var agent = new BitcoinAgent();
+            var agent = new BitcoinAgent(_client);
 
             if (!agent.IsConnected)
                 throw new ClientInaccessible();
 
             var chaininfo = await AssertChain(agent);
 
-            if (chaininfo.Blocks > status.LastBlockHeight)
+            from ??= status.LastBlockHeight + 1;
+            to ??= chaininfo.Blocks;
+            if (to > from)
                 await TraverseBlocks(
                     agent,
                     status,
-                    status.LastBlockHeight + 1,
-                    chaininfo.Blocks);
+                    (int)from,
+                    (int)to);
         }
 
         private void CanWriteToOutputDir()

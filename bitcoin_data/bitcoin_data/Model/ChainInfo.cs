@@ -2,7 +2,7 @@
 
 namespace bitcoin_data.Model
 {
-    internal class ChainInfo
+    public class ChainInfo
     {
         [JsonPropertyName("chain")]
         public string Chain { get; set; } = string.Empty;

@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace bitcoin_data
 {
-    internal class BitcoinAgent
+    public class BitcoinAgent
     {
         /// <summary>
         /// Sets and gets the REST API endpoint of the Bitcoin client.
@@ -15,12 +15,9 @@ namespace bitcoin_data
         private readonly HttpClient _client;
         private const string coinbaseTxLabel = "Coinbase";
 
-        public BitcoinAgent()
+        public BitcoinAgent(HttpClient client)
         {
-            _client = new HttpClient();
-            _client.DefaultRequestHeaders.Accept.Clear();
-            _client.DefaultRequestHeaders.UserAgent.Clear();
-            _client.DefaultRequestHeaders.Add("User-Agent", "BitcoinAgent");
+            _client = client;
         }
 
         /// <summary>
@@ -84,6 +81,39 @@ namespace bitcoin_data
 
         public async Task<Transaction> GetTransaction(string hash)
         {
+            /*
+            try
+            {
+                
+                var baseUri = new System.Uri("http://127.0.0.1:8332/rest/");
+                var endpoint = "tx/d1beb926923a47c1f9e9cbb7a2bb4f4bf71160c14728e8c24ef20ea37b19c107.json";
+                //var x = _client.GetStreamAsync(new System.Uri(baseUri, endpoint)).Result;
+                //var x = SendGet(endpoint).Result;
+                var x = GetResource("tx", "d1beb926923a47c1f9e9cbb7a2bb4f4bf71160c14728e8c24ef20ea37b19c107").Result;
+                var t = JsonSerializer.DeserializeAsync<Transaction>(x).Result;
+
+                var x1 = GetResource("tx", hash).Result;
+                var reader = new StreamReader(x1);
+                var y = reader.ReadToEnd();
+                
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            try
+            {
+                var x2 = GetResource("tx", hash).Result;
+                var y2 = JsonSerializer.DeserializeAsync<Transaction>(x2).Result;
+            }
+            catch (Exception ex)
+            {
+
+            }*/
+
+
+
             return 
                 await JsonSerializer.DeserializeAsync<Transaction>(
                     await GetResource("tx", hash)) 
@@ -175,27 +205,6 @@ namespace bitcoin_data
             {
                 throw new ClientInaccessible();
             }
-
-            
-            /*
-            try
-            {
-                //var response = await _client.GetAsync(_url + "block/000000000000000000056306b6cce2288a61fcfd302714bdbcd4d1d0449db3d9.json");
-                //response.EnsureSuccessStatusCode();
-                //var res = await response.Content.ReadAsStringAsync();
-
-                // or:
-                //var resbody = await _client.GetStringAsync(_url + "block/000000000000000000056306b6cce2288a61fcfd302714bdbcd4d1d0449db3d9.json");
-
-                return _client.GetStreamAsync(new Uri(BaseUri, endpoint));
-                //"block/000000000000000000056306b6cce2288a61fcfd302714bdbcd4d1d0449db3d9.json");
-                var block = await JsonSerializer.DeserializeAsync<Block>(await stream);
-
-            }
-            catch (Exception ex)
-            {
-
-            }*/
         }
     }
 }

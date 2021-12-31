@@ -11,7 +11,7 @@
     /// 
     /// Read: https://developer.bitcoin.org/devguide/transactions.html
     /// </summary>
-    internal enum TransactionType
+    public enum TransactionType
     {
         /// <summary>
         /// Pay-to-Public-Key-Hash:

@@ -2,7 +2,7 @@
 
 namespace bitcoin_data.Model
 {
-    internal class Input
+    public class Input
     {
         [JsonPropertyName("coinbase")]
         public string Coinbase { get; set; } = string.Empty;

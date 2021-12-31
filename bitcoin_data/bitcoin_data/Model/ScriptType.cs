@@ -5,7 +5,7 @@
     // IN BITCOIN TRANSACTIONS.
     // ENUM TYPES ARE CASE-INSENSITIVE.
 
-    internal enum ScriptType
+    public enum ScriptType
     {
         PubKey,
 

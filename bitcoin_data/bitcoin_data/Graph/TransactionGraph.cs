@@ -2,13 +2,13 @@
 
 namespace bitcoin_data.Graph
 {
-    internal class AddressMetadata
+    public class AddressMetadata
     {
         public double Value { get; set; } = 0.0;
         public bool IsAddressKnown { get; set; } = true;
     }
 
-    internal class TransactionGraph : BaseGraph
+    public class TransactionGraph : BaseGraph
     {
         // To be consistent with Bitcoin client. 
         public const int FractionalDigitsCount = 8;        

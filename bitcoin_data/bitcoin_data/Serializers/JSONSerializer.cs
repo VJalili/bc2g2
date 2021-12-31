@@ -2,7 +2,7 @@
 
 namespace bitcoin_data.Serializers
 {
-    internal class JsonSerializer<T>
+    public class JsonSerializer<T>
         where T : new()
     {
         private static readonly JsonSerializerOptions _options = new()

@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 
 namespace bitcoin_data.Graph
 {
-    internal class BaseGraph
+    public class BaseGraph
     {
         // Note that exposing as `readonly` does not prevent anyone from casting it 
         // to the original type and making changes. For a 'true' readonly type, 

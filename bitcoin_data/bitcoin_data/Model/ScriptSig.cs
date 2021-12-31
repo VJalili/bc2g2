@@ -2,7 +2,7 @@
 
 namespace bitcoin_data.Model
 {
-    internal class ScriptSig
+    public class ScriptSig
     {
         [JsonPropertyName("asm")]
         public string Asm { get; set; } = string.Empty;

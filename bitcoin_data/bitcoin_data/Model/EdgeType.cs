@@ -1,6 +1,6 @@
 ﻿namespace bitcoin_data.Model
 {
-    internal enum EdgeType
+    public enum EdgeType
     {
         Transfer,
         Generation,

@@ -2,7 +2,7 @@
 
 namespace bitcoin_data.Model
 {
-    internal class ScriptPubKey : BasePaymentType
+    public class ScriptPubKey : BasePaymentType
     {
         [JsonPropertyName("asm")]
         public string Asm { get; set; } = string.Empty;

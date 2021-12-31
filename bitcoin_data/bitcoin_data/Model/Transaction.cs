@@ -2,7 +2,7 @@
 
 namespace bitcoin_data.Model
 {
-    internal class Transaction
+    public class Transaction
     {
         [JsonPropertyName("txid")]
         public string Txid { set; get; } = string.Empty;

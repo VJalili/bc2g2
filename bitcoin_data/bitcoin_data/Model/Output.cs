@@ -11,7 +11,7 @@
 
 namespace bitcoin_data.Model
 {
-    internal class Output
+    public class Output
     {
         [JsonPropertyName("value")]
         public double Value { get; set; }

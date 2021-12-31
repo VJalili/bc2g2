@@ -2,7 +2,7 @@
 
 namespace bitcoin_data.Graph
 {
-    internal class CoinbaseTransactionGraph : BaseGraph
+    public class CoinbaseTransactionGraph : BaseGraph
     {
         private readonly string _coinbaseTxLabel;
         private readonly Dictionary<string, double> _targets;

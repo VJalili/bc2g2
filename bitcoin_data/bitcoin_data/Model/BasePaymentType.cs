@@ -1,6 +1,6 @@
 ﻿namespace bitcoin_data.Model
 {
-    internal abstract class BasePaymentType
+    public abstract class BasePaymentType
     {
         public abstract ScriptType ScriptType { get; }
 

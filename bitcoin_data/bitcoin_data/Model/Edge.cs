@@ -1,6 +1,6 @@
 ﻿namespace bitcoin_data.Model
 {
-    internal class Edge
+    public class Edge
     {
         public string Source { get; private set; }
         public string Target { get; private set; }

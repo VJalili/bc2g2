@@ -2,7 +2,7 @@
 
 namespace bitcoin_data.Graph
 {
-    internal class BlockGraph : BaseGraph
+    public class BlockGraph : BaseGraph
     {
         public void AddGraph(CoinbaseTransactionGraph coinbaseTxGraph)
         {
