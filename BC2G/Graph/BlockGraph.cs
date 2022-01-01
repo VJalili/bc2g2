@@ -1,6 +1,6 @@
 ﻿namespace BC2G.Graph
 {
-    public class BlockGraph : BaseGraph
+    public class BlockGraph : GraphBase
     {
         public void AddGraph(CoinbaseTransactionGraph coinbaseTxGraph)
         {

@@ -1,9 +1,14 @@
 ﻿namespace BC2G.Serializers
 {
-    internal class AddressToIdMapper : Dictionary<string, int>
+    public class AddressToIdMapper : Dictionary<string, int>
     {
         private readonly string _filename;
         private const string _delimiter = "\t";
+
+        public AddressToIdMapper()
+        {
+            _filename = string.Empty;
+        }
 
         public AddressToIdMapper(string filename)
         {

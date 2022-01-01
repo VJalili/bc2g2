@@ -9,7 +9,7 @@ namespace BC2G
         /// <summary>
         /// Should be Fully quantifying path
         /// </summary>
-        public string AddressIdFilename { set; get; } = "address_id.csv";
+        public static string AddressIdFilename { set; get; } = "address_id.csv";
         /// <summary>
         /// Should be fully quantifying path
         /// </summary>
@@ -105,7 +105,7 @@ namespace BC2G
                 var block = await agent.GetBlock(blockHash);
                 var graph = await agent.GetGraph(block);
                 var serializer = new CSVSerializer(AddressIdFilename);
-                serializer.Serialize(graph,  Path.Combine(_outputDir, $"{height}"));
+                serializer.Serialize(graph, Path.Combine(_outputDir, $"{height}"));
                 status.LastBlockHeight += 1;
                 await JsonSerializer<Status>.SerializeAsync(status, StatusFilename);
             }

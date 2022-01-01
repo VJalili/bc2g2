@@ -13,7 +13,6 @@ namespace BC2G
         public Uri BaseUri { set; get; } = new Uri("http://127.0.0.1:8332/rest/");
 
         private readonly HttpClient _client;
-        private const string coinbaseTxLabel = "Coinbase";
 
         public BitcoinAgent(HttpClient client)
         {
@@ -99,7 +98,7 @@ namespace BC2G
             /// reward of the miner. Hence, this should never raise an 
             /// exception if the block is not corrupt.
             var coinbaseTx = block.Transactions.First(x => x.IsCoinbase);
-            var coinbaseTxGraph = new CoinbaseTransactionGraph(coinbaseTxLabel, coinbaseTx.Outputs.Count);
+            var coinbaseTxGraph = new CoinbaseTransactionGraph(coinbaseTx.Outputs.Count);
             var rewardAddresses = new List<string>();
             foreach (var output in coinbaseTx.Outputs.Where(x => x.IsValueTransfer))
             {
