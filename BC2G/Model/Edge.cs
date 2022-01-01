@@ -40,8 +40,17 @@ namespace BC2G.Model
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(
-                Source, Target, Value, Type);
+            // implemented based on https://stackoverflow.com/a/263416/947889
+            unchecked // Overflow is fine, just wrap
+            {
+                int hash = 17;
+                // Suitable nullity checks etc, of course :)
+                hash = hash * 29 + Source.GetHashCode();
+                hash = hash * 29 + Target.GetHashCode();
+                hash = hash * 29 + Value.GetHashCode();
+                hash = hash * 29 + Type.GetHashCode();
+                return hash;
+            }
         }
     }
 }
