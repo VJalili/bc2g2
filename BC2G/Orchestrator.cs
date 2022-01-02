@@ -9,7 +9,7 @@ namespace BC2G
         /// <summary>
         /// Should be Fully quantifying path
         /// </summary>
-        public static string AddressIdFilename { set; get; } = "address_id.csv";
+        public string AddressIdFilename { set; get; } = "address_id.csv";
         /// <summary>
         /// Should be fully quantifying path
         /// </summary>

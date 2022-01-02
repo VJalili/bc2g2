@@ -18,7 +18,7 @@ namespace BC2G.Graph
         {
             get
             {
-                return new ReadOnlyCollection<Edge>(_edges.Keys.ToList());
+                return new ReadOnlyCollection<Edge>(_edges.Values.ToList());
             }
         }
         public ReadOnlyCollection<string> Nodes
@@ -29,20 +29,22 @@ namespace BC2G.Graph
             }
         }
 
-        private readonly ConcurrentDictionary<Edge, byte> _edges = new();
+        private readonly ConcurrentDictionary<int, Edge> _edges = new();
         private readonly ConcurrentDictionary<string, byte> _nodes = new();
 
         public void AddEdge(Edge edge)
         {
-            // The values are not used, disregard them.
-            // C# does not have a ConcurrentHashSet, and 
-            // the closest (and optimal one) is ConcurrentDictionary,
-            // hence a ConcurrenctDictionary is used without 
-            // needing its value.
-            if (!_edges.TryAdd(edge, 0))
-            {
-                // testing only
-            }
+            /// Note that the hashkey is invariant to the edge value.
+            /// If this is changed, the `Equals` method needs to be
+            /// updated accordingly.
+            _edges.AddOrUpdate(
+                edge.GetHashCode(true), edge,
+                (key, oldValue) => new Edge(
+                    edge.Source,
+                    edge.Target,
+                    edge.Value + oldValue.Value,
+                    edge.Type));
+
             _nodes.TryAdd(edge.Source, 0);
             _nodes.TryAdd(edge.Target, 0);
         }
@@ -55,8 +57,6 @@ namespace BC2G.Graph
 
         public bool Equals(GraphBase? other)
         {
-            // TODO: Can this method be optimized? 
-
             if (other == null)
                 return false;
 
@@ -78,19 +78,16 @@ namespace BC2G.Graph
             if (!equal)
                 return false;
 
-            // Maybe a better way is to order the list 
-            // of edges and compare similar to the 
-            // nodes, but that may require more comparisons.
-            var dict = new Dictionary<int, byte>(_edges.Count);
-            foreach (var edge in _edges)
-                dict.Add(edge.Key.GetHashCode(), 0);
-
-            // why GetHashCode on a instance need a reference to self!?
+            var hashes = new HashSet<int>(_edges.Keys);
             foreach (var edge in otherEdges)
-                if (!dict.Remove(edge.GetHashCode()))
+                /// Note that this hash method does not include
+                /// edge value in the computation of hash key;
+                /// this is in accordance with home with _edges.Keys
+                /// are generated in the AddEdge method.
+                if (!hashes.Remove(edge.GetHashCode(true)))
                     return false;
 
-            if (dict.Count > 0)
+            if (hashes.Count > 0)
                 return false;
 
             return true;
