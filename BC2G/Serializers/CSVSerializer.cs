@@ -3,9 +3,13 @@ using System.Text;
 
 namespace BC2G.Serializers
 {
-    public class CSVSerializer : SerializerBase
+    public class CSVSerializer : SerializerBase, IDisposable
     {
         private const string _delimiter = ",";
+        private const string _tmpFilenamePostfix = ".tmp";
+        private bool disposed = false;
+
+        private readonly List<string> _createdFiles = new();
 
         public CSVSerializer() { }
 
@@ -15,8 +19,14 @@ namespace BC2G.Serializers
 
         public override void Serialize(GraphBase g, string baseFilename)
         {
-            WriteNodes(g, baseFilename + "_nodes.csv");
-            WriteEdges(g, baseFilename + "_edges.csv");
+            var nodesFilename = baseFilename + "_nodes.csv" + _tmpFilenamePostfix;
+            var edgeFilename = baseFilename + "_edges.csv" + _tmpFilenamePostfix;
+
+            WriteNodes(g, nodesFilename);
+            WriteEdges(g, edgeFilename);
+
+            _createdFiles.Add(nodesFilename);
+            _createdFiles.Add(edgeFilename);
         }
 
         public override GraphBase Deserialize(string path, int blockHeight)
@@ -101,6 +111,34 @@ namespace BC2G.Serializers
             }
 
             return g;
+        }
+
+        // The IDisposable interface is implemented following .NET docs:
+        // https://docs.microsoft.com/en-us/dotnet/api/system.idisposable?view=net-6.0
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    /// rename temporary files because the 
+                    /// method is executed successfully.
+                    /// Rename pattern:
+                    ///     from: abc.csv.tmp
+                    ///       to: abc.csv
+                    foreach (var filename in _createdFiles)
+                        File.Move(
+                            filename,
+                            filename[..filename.LastIndexOf(_tmpFilenamePostfix)]);
+                }
+
+                disposed = true;
+            }
         }
     }
 }
