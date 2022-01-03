@@ -13,19 +13,19 @@ namespace BC2G.Serializers
             base(addressToIdMappingsFilename)
         { }
 
-        public override void Serialize(BlockGraph g, string baseFilename)
+        public override void Serialize(GraphBase g, string baseFilename)
         {
             WriteNodes(g, baseFilename + "_nodes.csv");
             WriteEdges(g, baseFilename + "_edges.csv");
         }
 
-        public override BlockGraph Deserialize(string path, int blockHeight)
+        public override GraphBase Deserialize(string path, int blockHeight)
         {
             var nodeIds = ReadNodes(Path.Combine(path, $"{blockHeight}_nodes.csv"));
             return ReadEdges(Path.Combine(path, $"{blockHeight}_edges.csv"), nodeIds);
         }
 
-        private void WriteNodes(BlockGraph g, string filename)
+        private void WriteNodes(GraphBase g, string filename)
         {
             var csvBuilder = new StringBuilder();
             csvBuilder.AppendLine(
@@ -60,7 +60,7 @@ namespace BC2G.Serializers
             return nodeIds;
         }
 
-        private void WriteEdges(BlockGraph g, string filename)
+        private void WriteEdges(GraphBase g, string filename)
         {
             var csvBuilder = new StringBuilder();
             csvBuilder.AppendLine(
@@ -82,9 +82,9 @@ namespace BC2G.Serializers
             File.WriteAllText(filename, csvBuilder.ToString());
         }
 
-        private static BlockGraph ReadEdges(string filename, Dictionary<string, string> nodeIds)
+        private static GraphBase ReadEdges(string filename, Dictionary<string, string> nodeIds)
         {
-            var g = new BlockGraph();
+            var g = new GraphBase();
 
             using var reader = new StreamReader(filename);
             string? line;

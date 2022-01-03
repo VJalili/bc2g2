@@ -1,9 +1,6 @@
-﻿using System.Collections;
-using System.Diagnostics.CodeAnalysis;
-
-namespace BC2G.Model
+﻿namespace BC2G.Model
 {
-    public class Edge //: IEqualityComparer<Edge> //IEqualityComparer
+    public class Edge
     {
         public string Source { get; }
         public string Target { get; }
@@ -19,36 +16,6 @@ namespace BC2G.Model
             Value = value;
             Type = type;
         }
-
-        /*
-        public bool Equals(Edge? x, Edge? y)
-        {
-            if(x.Source == "1FHm36socRDaGCpo1rapD91nxKpGoTiAYE" &&
-                x.Target == "1CjPR7Z5ZSyWk6WtXvSFgkptmpoi4UM9BC" && 
-                x.Value == 0.0005)
-            {
-                var a = x.GetHashCode();
-                var b = y.GetHashCode();
-                var c = x.GetHashCode() == y.GetHashCode();
-                var d = 10;
-            }
-
-
-            if (x == null && y != null)
-                return false;
-            if (x != null && y == null)
-                return false;
-            if (x == null && y == null)
-                return true; // is this condition possible?
-
-            return x.GetHashCode() == y.GetHashCode();
-        }
-
-
-        public int GetHashCode([DisallowNull] Edge obj)
-        {
-            return obj == null ? 0 : obj.GetHashCode();
-        }*/
 
         public int GetHashCode(bool ignoreValue)
         {

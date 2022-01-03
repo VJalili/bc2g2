@@ -16,8 +16,8 @@ namespace BC2G.Serializers
             Mapper = new AddressToIdMapper(addressToIdMappingsFilename);
         }
 
-        public abstract void Serialize(BlockGraph g, string baseFilename);
+        public abstract void Serialize(GraphBase g, string baseFilename);
 
-        public abstract BlockGraph Deserialize(string path, int blockHeight);
+        public abstract GraphBase Deserialize(string path, int blockHeight);
     }
 }
