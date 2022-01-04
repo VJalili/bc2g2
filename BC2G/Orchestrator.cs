@@ -99,6 +99,7 @@ namespace BC2G
 
         private async Task TraverseBlocks(BitcoinAgent agent, Status status, int from, int to)
         {
+            using var mapper = new AddressToIdMapper(AddressIdFilename);
             for (int height = from; height < to; height++)
             {
                 var blockHash = await agent.GetBlockHash(height);
@@ -106,7 +107,7 @@ namespace BC2G
                 var graph = await agent.GetGraph(block);
                 // the serializers is embeded in a `using` statement,
                 // in order to ensure `Dispose` is called.
-                using (var serializer = new CSVSerializer(AddressIdFilename))
+                using (var serializer = new CSVSerializer(mapper))
                     serializer.Serialize(graph, Path.Combine(_outputDir, $"{height}"));
                 status.LastBlockHeight += 1;
                 await JsonSerializer<Status>.SerializeAsync(status, StatusFilename);

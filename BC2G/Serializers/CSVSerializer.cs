@@ -9,13 +9,16 @@ namespace BC2G.Serializers
         private const string _tmpFilenamePostfix = ".tmp";
         private bool disposed = false;
 
+        private readonly string _mapperFilename = string.Empty;
         private readonly List<string> _createdFiles = new();
+        private readonly AddressToIdMapper _mapper = new();
 
         public CSVSerializer() { }
 
-        public CSVSerializer(string addressToIdMappingsFilename) :
-            base(addressToIdMappingsFilename)
-        { }
+        public CSVSerializer(AddressToIdMapper mapper)
+        {
+            _mapper = mapper;
+        }
 
         public override void Serialize(GraphBase g, string baseFilename)
         {
@@ -47,7 +50,7 @@ namespace BC2G.Serializers
             foreach (var node in g.Nodes)
                 csvBuilder.AppendLine(string.Join(_delimiter, new string[]
                 {
-                    Mapper.GetId(node).ToString(),
+                    _mapper.GetId(node).ToString(),
                     node
                 }));
 
@@ -59,11 +62,10 @@ namespace BC2G.Serializers
             var nodeIds = new Dictionary<string, string>();
             using var reader = new StreamReader(filename);
             string? line;
-            string[] x;
             reader.ReadLine(); // skip the header.
             while ((line = reader.ReadLine()) != null)
             {
-                x = line.Split(_delimiter);
+                var x = line.Split(_delimiter);
                 nodeIds.Add(x[0], x[1]);
             }
 
@@ -83,8 +85,8 @@ namespace BC2G.Serializers
                 csvBuilder.AppendLine(
                     string.Join(_delimiter, new string[]
                     {
-                        Mapper.GetId(edge.Source).ToString(),
-                        Mapper.GetId(edge.Target).ToString(),
+                        _mapper.GetId(edge.Source).ToString(),
+                        _mapper.GetId(edge.Target).ToString(),
                         edge.Value.ToString(),
                         ((byte)edge.Type).ToString()
                     }));
@@ -120,13 +122,14 @@ namespace BC2G.Serializers
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!disposed)
             {
                 if (disposing)
                 {
-                    /// rename temporary files because the 
+                    /// rename temporary files since the 
                     /// method is executed successfully.
                     /// Rename pattern:
                     ///     from: abc.csv.tmp
