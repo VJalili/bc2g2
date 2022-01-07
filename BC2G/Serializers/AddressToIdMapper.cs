@@ -65,7 +65,7 @@ namespace BC2G.Serializers
                     {
                         var tmpMF = _filename + _tmpFilenamePostfix;
                         Serialize(tmpMF);
-                        File.Move(tmpMF, _filename);
+                        File.Move(tmpMF, _filename, true);
                     }
                 }
             }
