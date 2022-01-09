@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json.Serialization;
 
 // In bitcoin instead of "sending money to an address", 
 // you lock a value behind a script, who ever can satisfy 
@@ -73,5 +74,19 @@ namespace BC2G.Model
             }
         }
         private bool? _isValueTransfer = null;
+
+        public string ToBase64String()
+        {
+            using (var stream = new MemoryStream())
+            {
+                using(var writer = new BinaryWriter(stream))
+                {
+                    writer.Write(Value);
+                    writer.Write(Index);
+                    
+                }
+                return Convert.ToBase64String(stream.ToArray());
+            }
+        }
     }
 }
