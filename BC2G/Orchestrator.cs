@@ -10,6 +10,7 @@ namespace BC2G
         /// Should be Fully quantifying path
         /// </summary>
         public string AddressIdFilename { set; get; } = "address_id.csv";
+        public string AddressResolverFilename { set; get; } = "address_resolving_table.csv";
         /// <summary>
         /// Should be fully quantifying path
         /// </summary>
@@ -26,6 +27,8 @@ namespace BC2G
 
             AddressIdFilename = Path.Combine(
                 _outputDir, AddressIdFilename);
+            AddressResolverFilename = Path.Combine(
+                _outputDir, AddressResolverFilename);
             StatusFilename = Path.Combine(
                 _outputDir, StatusFilename);
 
@@ -100,6 +103,7 @@ namespace BC2G
         private async Task TraverseBlocks(BitcoinAgent agent, Status status, int from, int to)
         {
             using var mapper = new AddressToIdMapper(AddressIdFilename);
+            using var addressResolver = new AddressResolver(AddressResolverFilename);
             for (int height = from; height < to; height++)
             {
                 var blockHash = await agent.GetBlockHash(height);
