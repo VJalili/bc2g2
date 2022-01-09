@@ -12,7 +12,7 @@ using System.Text.Json.Serialization;
 
 namespace BC2G.Model
 {
-    public class Output
+    public class Output : IBase64Serializable
     {
         [JsonPropertyName("value")]
         public double Value { get; set; }
@@ -77,16 +77,20 @@ namespace BC2G.Model
 
         public string ToBase64String()
         {
-            using (var stream = new MemoryStream())
+            using var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream))
             {
-                using(var writer = new BinaryWriter(stream))
-                {
-                    writer.Write(Value);
-                    writer.Write(Index);
-                    
-                }
-                return Convert.ToBase64String(stream.ToArray());
+                writer.Write(Value);
+                writer.Write(Index);
+                if (ScriptPubKey != null)
+                    writer.Write(ScriptPubKey.ToBase64String());
             }
+            return Convert.ToBase64String(stream.ToArray());
+        }
+
+        public void FromBase64String(string base64String)
+        {
+            throw new NotImplementedException();
         }
     }
 }

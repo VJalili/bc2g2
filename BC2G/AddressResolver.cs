@@ -8,7 +8,7 @@ namespace BC2G
         private const char _delimiter = '\t';
         private readonly string _filename = string.Empty;
 
-        private ConcurrentDictionary<string, string> _addresses = new();
+        private ConcurrentDictionary<string, int> _addresses = new();
 
         public AddressResolver(string filename)
         {
@@ -18,23 +18,24 @@ namespace BC2G
             Deserialize();
         }
 
-
-        public string Resolve(Output output)
+        public int Resolve(Output output)
         {
-            _addresses.TryGetValue()
+            var base64Encoding = output.ToBase64String();
+            if (_addresses.TryGetValue(base64Encoding, out var id))
+                return id;
+            _addresses.TryAdd(base64Encoding, _addresses.Count);
+            return _addresses[base64Encoding];
         }
 
         private void Deserialize()
         {
-            _addresses = new ConcurrentDictionary<string, string>();
-            using (var reader = new StreamReader(_filename))
+            _addresses = new ConcurrentDictionary<string, int>();
+            using var reader = new StreamReader(_filename);
+            string? line;
+            while ((line = reader.ReadLine()) != null)
             {
-                string? line;
-                while((line = reader.ReadLine()) != null)
-                {
-                    var sLine = line.Split(_delimiter);
-                    _addresses.TryAdd(sLine[0], sLine[1]);
-                }
+                var sLine = line.Split(_delimiter);
+                _addresses.TryAdd(sLine[1], int.Parse(sLine[0]));
             }
         }
     }
