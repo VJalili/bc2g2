@@ -10,7 +10,6 @@ namespace BC2G
         /// Should be Fully quantifying path
         /// </summary>
         public string AddressIdFilename { set; get; } = "address_id.csv";
-        public string AddressResolverFilename { set; get; } = "address_resolving_table.csv";
         /// <summary>
         /// Should be fully quantifying path
         /// </summary>
@@ -27,8 +26,6 @@ namespace BC2G
 
             AddressIdFilename = Path.Combine(
                 _outputDir, AddressIdFilename);
-            AddressResolverFilename = Path.Combine(
-                _outputDir, AddressResolverFilename);
             StatusFilename = Path.Combine(
                 _outputDir, StatusFilename);
 
@@ -85,7 +82,7 @@ namespace BC2G
             return status;
         }
 
-        private async Task<ChainInfo> AssertChain(BitcoinAgent agent)
+        private static async Task<ChainInfo> AssertChain(BitcoinAgent agent)
         {
             var chaininfo = await agent.GetChainInfoAsync();
             if (string.IsNullOrEmpty(chaininfo.Chain))
@@ -103,17 +100,16 @@ namespace BC2G
         private async Task TraverseBlocks(BitcoinAgent agent, Status status, int from, int to)
         {
             using var mapper = new AddressToIdMapper(AddressIdFilename);
-            //using var addressResolver = new AddressResolver(AddressResolverFilename);
             for (int height = from; height < to; height++)
             {
                 var blockHash = await agent.GetBlockHash(height);
                 var block = await agent.GetBlock(blockHash);
                 var graph = await agent.GetGraph(block);
                 // the serializers is embeded in a `using` statement,
-                // in order to ensure `Dispose` is called.
+                // in order to ensure its `Dispose` method is called.
                 using (var serializer = new CSVSerializer(mapper))
                     serializer.Serialize(graph, Path.Combine(_outputDir, $"{height}"));
-                status.LastBlockHeight += 1;
+                status.LastBlockHeight = height;
                 await JsonSerializer<Status>.SerializeAsync(status, StatusFilename);
             }
         }
