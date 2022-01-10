@@ -180,8 +180,6 @@ namespace BC2G.Graph
             if (ReferenceEquals(this, other))
                 return true;
 
-            var xyz = _nodes.Except(other._nodes).ToList();
-            var zyx = other._nodes.Except(_nodes).ToList();
             var otherNodes = other.Nodes;
             if (_nodes.Count != otherNodes.Count)
                 return false;
