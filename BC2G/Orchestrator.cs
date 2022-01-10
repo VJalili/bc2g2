@@ -103,7 +103,7 @@ namespace BC2G
         private async Task TraverseBlocks(BitcoinAgent agent, Status status, int from, int to)
         {
             using var mapper = new AddressToIdMapper(AddressIdFilename);
-            using var addressResolver = new AddressResolver(AddressResolverFilename);
+            //using var addressResolver = new AddressResolver(AddressResolverFilename);
             for (int height = from; height < to; height++)
             {
                 var blockHash = await agent.GetBlockHash(height);

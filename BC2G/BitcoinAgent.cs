@@ -80,9 +80,9 @@ namespace BC2G
 
         public async Task<Transaction> GetTransaction(string hash)
         {
-            return 
+            return
                 await JsonSerializer.DeserializeAsync<Transaction>(
-                    await GetResource("tx", hash)) 
+                    await GetResource("tx", hash))
                 ?? throw new Exception("Invalid transaction.");
         }
 
@@ -124,10 +124,6 @@ namespace BC2G
                             throw new NotImplementedException();
 
                         vout.TryGetAddress(out string address);
-                        if(string.IsNullOrEmpty(address))
-                        {
-
-                        }
                         g.AddSource(address, vout.Value);
                     }
                     else
@@ -140,9 +136,6 @@ namespace BC2G
                 foreach (var output in tx.Outputs.Where(x => x.IsValueTransfer))
                 {
                     output.TryGetAddress(out string address);
-                    if (string.IsNullOrEmpty(address))
-                    { 
-                    }
                     g.AddTarget(address, output.Value);
                 }
 
