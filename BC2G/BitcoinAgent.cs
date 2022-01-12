@@ -142,7 +142,6 @@ namespace BC2G
                 g.UpdateGraph(rewardAddresses);
             }
 
-            // TODO: exclude change transaction.
             return g;
         }
 

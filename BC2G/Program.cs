@@ -25,10 +25,6 @@ catch (Exception ex)
 {
     Console.Error.WriteLine(ex.Message);
 }
-finally
-{
-    tokenSource.Dispose();
-}
 
 static void ProcessExit(
     object? sender, EventArgs e,
