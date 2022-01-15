@@ -104,6 +104,7 @@ namespace BC2G
                 output.TryGetAddress(out string address);
                 address = g.AddTarget(address, output.Value);
                 rewardAddresses.Add(address);
+                txCache.Add(coinbaseTx.Txid, output.Index, address, output.Value);
             }
 
             g.UpdateGraph();
@@ -127,7 +128,6 @@ namespace BC2G
 
                             vout.TryGetAddress(out address);
                             value = vout.Value;
-                            txCache.Add(input.TxId, input.OutputIndex, address, value);
                         }
 
                         g.AddSource(address, value);
@@ -143,6 +143,7 @@ namespace BC2G
                 {
                     output.TryGetAddress(out string address);
                     g.AddTarget(address, output.Value);
+                    txCache.Add(tx.Txid, output.Index, address, output.Value);
                 }
 
                 g.UpdateGraph(rewardAddresses);
