@@ -144,7 +144,7 @@ namespace BC2G
                 // the serializers is embeded in a `using` statement,
                 // in order to ensure its `Dispose` method is called.
                 using (var serializer = new CSVSerializer(mapper, blockStats))
-                    serializer.Serialize(graph, Path.Combine(_outputDir, $"{height}"));
+                    serializer.Serialize(graph, Path.Combine(_outputDir, "individual_blocks", $"{height}"));
                 status.LastBlockHeight = height;
                 await JsonSerializer<Status>.SerializeAsync(status, StatusFilename);
 
