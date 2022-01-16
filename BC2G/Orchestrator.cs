@@ -53,15 +53,15 @@ namespace BC2G
             if (cancellationToken.IsCancellationRequested)
                 return;
 
-            from ??= status.LastBlockHeight + 1;
+            from ??= status.LastProcessedBlock + 1;
             to ??= chaininfo.Blocks;
             if (to > from)
+            {
+                status.StartBlock = (int)from;
+                status.EndBlock = (int)to;
                 await TraverseBlocksAsync(
-                    agent,
-                    status,
-                    (int)from,
-                    (int)to,
-                    cancellationToken);
+                    agent, status, cancellationToken);
+            }
         }
 
         private void CanWriteToOutputDir()
@@ -110,7 +110,6 @@ namespace BC2G
 
         private async Task TraverseBlocksAsync(
             BitcoinAgent agent, Status status,
-            int from, int to,
             CancellationToken cancellationToken)
         {
             var graphsBuffer = new ConcurrentQueue<GraphBase>();
@@ -121,7 +120,8 @@ namespace BC2G
 
             using var mapper = new AddressToIdMapper(AddressIdFilename);
             using var txCache = new TxCache(_outputDir);
-            for (int height = from; height < to; height++)
+            using var serializer = new CSVSerializer(mapper);
+            for (int height = status.StartBlock; height < status.EndBlock; height++)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
@@ -145,11 +145,8 @@ namespace BC2G
 
                 graphsBuffer.Enqueue(graph);
 
-                // the serializers is embeded in a `using` statement,
-                // in order to ensure its `Dispose` method is called.
-                using (var serializer = new CSVSerializer(mapper, blockStats))
-                    serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"));
-                status.LastBlockHeight = height;
+                serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"), blockStats);
+                status.LastProcessedBlock = height;
                 await JsonSerializer<Status>.SerializeAsync(status, StatusFilename);
 
                 stopwatch.Stop();
@@ -159,8 +156,7 @@ namespace BC2G
                 Console.WriteLine($"Block {height} processed.");
             }
 
-            using var s = new CSVSerializer();
-            s.Serialize(graphsBuffer, Path.Combine(_outputDir, "edges.csv"));
+            serializer.Serialize(graphsBuffer, Path.Combine(_outputDir, "edges.csv"));
 
             BlocksStatisticsSerializer.Serialize(
                 BlocksStatistics,
