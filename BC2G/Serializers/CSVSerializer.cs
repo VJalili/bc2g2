@@ -15,6 +15,7 @@ namespace BC2G.Serializers
         private readonly List<string> _createdFiles = new();
         private readonly AddressToIdMapper _mapper = new();
         private readonly BlockStatistics _stats;
+        private readonly string _outputDir;
 
         public CSVSerializer() { }
 

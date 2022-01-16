@@ -115,6 +115,10 @@ namespace BC2G
         {
             var graphsBuffer = new ConcurrentQueue<GraphBase>();
 
+            var individualBlocksDir = Path.Combine(_outputDir, "individual_blocks");
+            if (!Directory.Exists(individualBlocksDir))
+                Directory.CreateDirectory(individualBlocksDir);
+
             using var mapper = new AddressToIdMapper(AddressIdFilename);
             using var txCache = new TxCache(_outputDir);
             for (int height = from; height < to; height++)
@@ -144,7 +148,7 @@ namespace BC2G
                 // the serializers is embeded in a `using` statement,
                 // in order to ensure its `Dispose` method is called.
                 using (var serializer = new CSVSerializer(mapper, blockStats))
-                    serializer.Serialize(graph, Path.Combine(_outputDir, "individual_blocks", $"{height}"));
+                    serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"));
                 status.LastBlockHeight = height;
                 await JsonSerializer<Status>.SerializeAsync(status, StatusFilename);
 
