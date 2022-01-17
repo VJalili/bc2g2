@@ -9,17 +9,27 @@ namespace BC2G.Logging
 {
     public class ChainTraverseProgressBar
     {
+        private readonly Queue<int> _availableRows = new();
+        private readonly Dictionary<int, int> _idRowMapping = new();
+        private object _locker = new object();
+
+        private int startRow = 1;
+
+        public Dictionary<int, List<string>> tempRecord = new();
+        public Dictionary<int, List<string>> tempMessages = new();
+
+
+
         private ConcurrentDictionary<int, int> _threadId2ConsoleLine = new();
 
         private ConcurrentDictionary<int, int> _threads = new();
 
         private ConcurrentQueue<int> availableRows = new ConcurrentQueue<int>();
 
-        private static object _locker = new object();
+        //private object _locker = new object();
 
         public void Update(int threadId, string status)
         {
-
             /*
             int currentLineCursor = 0;//Console.CursorTop;
             Console.SetCursorPosition(0, 0);// Console.CursorTop);
@@ -84,6 +94,37 @@ namespace BC2G.Logging
                 Console.CursorTop = r;
                 Console.CursorLeft = 0;
                 Console.WriteLine(status);
+            }
+        }
+
+        public void Update(int id, string message, BlockTraverseState state)
+        {
+            lock (_locker)
+            {
+                if (_idRowMapping.TryGetValue(id, out int row))
+                {
+                    if (state == BlockTraverseState.Succeeded)
+                    {
+                        _idRowMapping.Remove(id);
+                        _availableRows.Enqueue(row);
+                    }
+                }
+                else
+                {
+                    if (!_availableRows.TryDequeue(out row))
+                        row = _idRowMapping.Count + startRow;
+
+                    _idRowMapping.Add(id, row);
+                }
+
+                if(state == BlockTraverseState.Aborted)
+                    Console.ForegroundColor = ConsoleColor.Red;
+
+                Console.CursorVisible = false;
+                Console.CursorLeft = 0;
+                Console.CursorTop = row;
+                Console.Write(message + new string(' ', Console.WindowWidth - message.Length));
+                Console.ResetColor();
             }
         }
     }
