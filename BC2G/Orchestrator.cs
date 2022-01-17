@@ -9,7 +9,7 @@ using System.Globalization;
 
 namespace BC2G
 {
-    public class Orchestrator
+    public class Orchestrator : IDisposable
     {
         public string AddressIdFilename { get; }
         public string StatusFilename { get; }
@@ -26,6 +26,8 @@ namespace BC2G
         private readonly string _loggerRepository;
         private const string _defaultLoggerRepoName = "EventsLog";
         private readonly string _loggerTimeStampFormat = "yyyyMMdd_HHmmssfffffff";
+
+        private bool disposed = false;
 
         public Orchestrator(
             string outputDir, HttpClient client, 
@@ -219,6 +221,17 @@ namespace BC2G
             using var mapper = new AddressToIdMapper(AddressIdFilename);
             using var txCache = new TxCache(_outputDir);
             using var serializer = new CSVSerializer(mapper);
+
+            /*
+            var myList = new List<string>(new string[10000]);
+            Parallel.ForEach(myList, item => {
+                _logger.LogTraverse(
+                    Thread.CurrentThread.ManagedThreadId, 
+                    new Random().Next(0, 1000).ToString());
+                Thread.Sleep(1000);
+                _logger.LogTraverse(Thread.CurrentThread.ManagedThreadId, "end");
+            });*/
+
             for (int height = status.StartBlock; height < status.EndBlock; height++)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -226,7 +239,7 @@ namespace BC2G
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
 
-                Console.WriteLine($"Processing block {height}");
+                _logger.Log($"\rProcessing block {height}", newLine: false);
                 var blockStats = new BlockStatistics(height);
                 var blockHash = await agent.GetBlockHash(height);
 
@@ -250,8 +263,9 @@ namespace BC2G
                 stopwatch.Stop();
                 blockStats.Runtime = stopwatch.Elapsed;
                 BlocksStatistics.Enqueue(blockStats);
+                _logger.LogTraverse(0, "", blockStats.Runtime.TotalSeconds);
 
-                Console.WriteLine($"Block {height} processed.");
+                //Console.WriteLine($"Block {height} processed.");
             }
 
             serializer.Serialize(graphsBuffer, Path.Combine(_outputDir, "edges.csv"));
@@ -259,6 +273,25 @@ namespace BC2G
             BlocksStatisticsSerializer.Serialize(
                 BlocksStatistics,
                 Path.Combine(_outputDir, "blocks_stats.tsv"));
+        }
+
+        // The IDisposable interface is implemented following .NET docs:
+        // https://docs.microsoft.com/en-us/dotnet/api/system.idisposable?view=net-6.0
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                    _logger.Dispose();
+
+                disposed = true;
+            }
         }
     }
 }
