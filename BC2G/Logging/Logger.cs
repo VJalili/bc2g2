@@ -79,11 +79,27 @@ namespace BC2G.Logging
             log.Info(message);
         }
 
-        public void LogTraverse(int threadId, string status, double runtime)
+        public Dictionary<int, List<string>> TempGetState()
+        {
+            return _progressBar.tempRecord;
+        }
+        public Dictionary<int, List<string>> TempGetMessages()
+        {
+            return _progressBar.tempMessages;
+        }
+
+        public void LogTraverse(int block, double runtime)
         {
             _runtimeMovingAverage.Add(runtime);
-            Console.Write($"\t{_runtimeMovingAverage.Speed}");
-            //_progressBar.Update(threadId, status);
+            Console.Write($"\r{block}\t{_runtimeMovingAverage.Speed}");
+        }
+
+
+        public void LogTraverse(int threadId, string status, double runtime, BlockTraverseState state)
+        {
+            _runtimeMovingAverage.Add(runtime);
+            //Console.Write($"\t{_runtimeMovingAverage.Speed}");
+            _progressBar.Update(threadId, status, state);
         }
 
         public void LogException(Exception e)
