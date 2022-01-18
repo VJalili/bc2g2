@@ -13,7 +13,7 @@ namespace BC2G.Logging
         private readonly Dictionary<int, int> _idRowMapping = new();
         private object _locker = new object();
 
-        private int startRow = 1;
+        private int startRow = 2;
 
         public Dictionary<int, List<string>> tempRecord = new();
         public Dictionary<int, List<string>> tempMessages = new();

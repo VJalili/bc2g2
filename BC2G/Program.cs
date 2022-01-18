@@ -19,8 +19,8 @@ client.DefaultRequestHeaders.Add("User-Agent", "BitcoinAgent");
 
 try
 {
-    var orchestrator = new Orchestrator(@"C:\Users\Vahid\Desktop\test2\", client);
-    var success = await orchestrator.RunAsync(cancellationToken);
+    var orchestrator = new Orchestrator(@"C:\Users\Vahid\Desktop\test4\", client);
+    var success = await orchestrator.RunAsync(cancellationToken, 719000, 719010);
     if (!success)
         Environment.ExitCode = 1;
 }

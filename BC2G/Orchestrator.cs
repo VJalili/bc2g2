@@ -30,16 +30,16 @@ namespace BC2G
         private bool disposed = false;
 
         public Orchestrator(
-            string outputDir, HttpClient client, 
-            string statusFilename = "status.json", 
+            string outputDir, HttpClient client,
+            string statusFilename = "status.json",
             string addressIdFilename = "address_id.csv")
         {
             _outputDir = outputDir;
 
-            _loggerRepository = 
-                _defaultLoggerRepoName + "_" + 
+            _loggerRepository =
+                _defaultLoggerRepoName + "_" +
                 DateTime.Now.ToString(
-                    _loggerTimeStampFormat, 
+                    _loggerTimeStampFormat,
                     CultureInfo.InvariantCulture);
             LogFile = Path.Join(_outputDir, _loggerRepository + ".txt");
 
@@ -110,7 +110,45 @@ namespace BC2G
                 File.Delete(tmpFile);
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception e)
+            {
+                Logger.LogExceptionStatic(
+                    $"Require write access to the path {_outputDir}: " +
+                    $"{e.Message}");
+
+                return false;
+            }
+        }
+
+        private bool TrySetupLogger()
+        {
+            try
+            {
+                _logger = new Logger(
+                    LogFile, _loggerRepository, Guid.NewGuid().ToString(),
+                    _outputDir, "2GB");
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logger.LogExceptionStatic($"Logger setup failed: {e.Message}");
+                return false;
+            }
+        }
+
+        private bool EnsureOutputDirectory()
+        {
+            try
+            {
+                Directory.CreateDirectory(_outputDir);
+
+                var tmpFile = Path.Combine(_outputDir, "tmp_access_test");
+                File.Create(tmpFile).Dispose();
+                File.Delete(tmpFile);
+                return true;
+            }
+            catch (Exception e)
             {
                 Logger.LogExceptionStatic(
                     $"Require write access to the path {_outputDir}: " +
@@ -142,7 +180,7 @@ namespace BC2G
             status = new();
 
             try
-            {   
+            {
                 status = JsonSerializer<Status>.DeserializeAsync(StatusFilename).Result;
                 return true;
             }
@@ -150,6 +188,62 @@ namespace BC2G
             {
                 Logger.LogExceptionStatic(
                     $"Failed loading status from `{StatusFilename}`: {e.Message}");
+                return false;
+            }
+        }
+
+        private bool TryGetBitCoinAgent(out BitcoinAgent agent)
+        {
+            // Cannot convert null literal to non-nullable reference type.
+            #pragma warning disable CS8625
+            agent = null;
+            #pragma warning restore CS8625
+
+            try
+            {
+                agent = new BitcoinAgent(_client, _logger);
+                if (!agent.IsConnected)
+                    throw new ClientInaccessible();
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.LogException(
+                    $"Failed to create/access BitcoinAgent: " +
+                    $"{e.Message}");
+                return false;
+            }
+        }
+
+        private bool AssertChain(BitcoinAgent agent, out ChainInfo chainInfo)
+        {
+            chainInfo = new ChainInfo();
+
+            try
+            {
+                chainInfo = agent.GetChainInfoAsync().Result;
+                if (string.IsNullOrEmpty(chainInfo.Chain))
+                {
+                    _logger.LogException(
+                        "Received empty string as chain name " +
+                        "from the chaininfo endpoint.");
+                    return false;
+                }
+
+                if (chainInfo.Chain != "main")
+                {
+                    _logger.LogException(
+                        $"Required to be on the `main` chain, " +
+                        $"but the bitcoin client is on the " +
+                        $"`{chainInfo.Chain}` chain.");
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                _logger.LogException($"Failed getting chain info: {e.Message}");
                 return false;
             }
         }
@@ -231,7 +325,7 @@ namespace BC2G
                 state.Stop();
                 _logger.LogTraverse(threadID, "aborting", 0, BlockTraverseState.Aborted);
             };*/
-            
+
             /*
             var myList = new List<string>(new string[0]);
             Parallel.ForEach(myList, (item, state) => {
@@ -348,7 +442,7 @@ namespace BC2G
 
                 serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"), blockStats);
                 status.LastProcessedBlock = height;
-                
+
 
                 stopwatch.Stop();
                 blockStats.Runtime = stopwatch.Elapsed;
@@ -374,12 +468,12 @@ namespace BC2G
             // be in cache yet, hence, BitCoinAgent will need to query
             // Bitcoin client for those transactions, which is considerably
             // slower than using the built-in cache. Partitioner can be
-            // adjusted to assign threads as thread_1:0, thread_2:1, 
+            // adjusted to assign threads as thread_1:0, thread_2:1,
             // thread_1:2, thread_2:3, and so on. This might suffer less
             // than the previous partitioning, and a good techniuqe to
             // implement it is TPL. However, it needs to be tested
             // if/how-much performance optimization it delivers and if
-            // it balaces with complications of implementing it. 
+            // it balaces with complications of implementing it.
 
             for (int height = status.FromInclusive; height < status.ToExclusive; height++)
             {
