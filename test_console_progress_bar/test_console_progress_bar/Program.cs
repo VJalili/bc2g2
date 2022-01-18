@@ -2,6 +2,24 @@
 using System.Collections.Concurrent;
 
 
+var activeRequests = 10;
+var max = 5;
+while(activeRequests > max)
+{
+
+}
+
+
+Queue<int> _availableRows = new();
+var sss = _availableRows.TryDequeue(out int abc);
+
+var msg = new string[] { "aaa", "bbb", "ccc", "end" };
+var bar = new ProgressBar();
+for(int i = 0; i< 100; i++)
+{
+    bar.Add(new Random().Next(10), msg[new Random().Next(4)]);
+}
+
 var run = new MovingAverage(5);
 for (int i = 0; i < 100; i++)
 {
@@ -36,6 +54,39 @@ for (int i=0; i< 100000; i++)
 var x = 10;
 
 
+class ProgressBar
+{
+    private readonly Queue<int> _availableRows = new();
+    private readonly Dictionary<int, int> _idRowMapping = new();
+    private object _locker = new object();
+
+    public void Add(int id, string message)
+    {
+        lock (_locker)
+        {
+            if (_idRowMapping.TryGetValue(id, out int row))
+            {
+                if (message == "end")
+                {
+                    _idRowMapping.Remove(id);
+                    _availableRows.Enqueue(row);
+                }
+            }
+            else
+            {
+                if (!_availableRows.TryDequeue(out row))
+                    row = _idRowMapping.Count;
+
+                _idRowMapping.Add(id, row);
+            }
+
+            Console.CursorVisible = false;
+            Console.CursorLeft = 0;
+            Console.CursorTop = row;
+            Console.Write(message);
+        }
+    }
+}
 
 class MovingAverage
 {
