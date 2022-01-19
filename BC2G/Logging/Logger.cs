@@ -20,17 +20,12 @@ namespace BC2G.Logging
 
         private bool disposed = false;
 
-        private const int maxRuntimes = 5;
-        private ConcurrentQueue<int> _runtimes = new();
 
         private int _addedLines = 0;
 
         private string[] _messages;
 
         public int CursorTop { get; set; }
-
-        // TODO: any more efficient approach?
-        //private readonly BlockingCollection<string> msgQueue = new();
 
         public Logger(
             string logFilename, string repository,
