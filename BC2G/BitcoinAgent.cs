@@ -138,20 +138,17 @@ namespace BC2G
             g.Merge(txGraph);
             //g.UpdateGraph(timestamp);
 
-            //double txCount = block.Transactions.Count;
-            //int pTxCount = 1;
+            double txCount = block.Transactions.Count;
+            int pTxCount = 1;
 
             await Parallel.ForEachAsync(
                 block.Transactions.Where(x => !x.IsCoinbase),
                 async (tx, state) =>
                 {
-                    
                     //var threadID = Environment.CurrentManagedThreadId;
-                    //_logger.LogTraverse(threadID, $"Thread {threadID}\tstarted", BlockTraverseState.Started);
                     await RunParallel(tx, g, txCache, cancellationToken);
-                    //Interlocked.Increment(ref pTxCount);
-                    //_logger.LogTransaction($"%{Math.Round(pTxCount / txCount, 2)}");
-                    // _logger.LogTraverse(threadID, $"Thread {threadID}\tfinished", BlockTraverseState.Succeeded);
+                    Interlocked.Increment(ref pTxCount);
+                    _logger.LogTransaction((pTxCount / txCount).ToString("P2"));
                 });
 
             return g;

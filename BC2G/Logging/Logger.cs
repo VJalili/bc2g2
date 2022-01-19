@@ -25,6 +25,8 @@ namespace BC2G.Logging
 
         private int _addedLines = 0;
 
+        private string[] _messages;
+
         public int CursorTop { get; set; }
 
         // TODO: any more efficient approach?
@@ -70,6 +72,16 @@ namespace BC2G.Logging
             hierarchy.Configured = true;
             log = LogManager.GetLogger(_repository, _name);
 
+            _messages = new string[]
+            {
+                "Cancelling",
+                "Getting block hash\t",
+                "Getting block\t",
+                "Procesing Transactions",
+                "Serializing\t"
+            };
+            
+
             log.Info("NOTE THAT THE LOG PATTERN IS: <Date> <#Thread> <Level> <Message>");
             Log($"Export Directory: {exportPath}", ConsoleColor.DarkGray);
         }
@@ -103,7 +115,7 @@ namespace BC2G.Logging
                 AsyncConsole.WriteAsync(new string(' ', Console.WindowWidth - 1) + "\r", 0, line);
             _addedLines = 0;
 
-            AsyncConsole.WriteAsync($"\r{blockHeight}\t ({_runtimeMovingAverage.Speed}B/sec)");
+            AsyncConsole.WriteAsync($"\r{blockHeight}\t ({_runtimeMovingAverage.Speed} B/sec)");
         }
 
         public void LogFinishProcessingBlock(int blockHeight, double runtime)
@@ -116,38 +128,21 @@ namespace BC2G.Logging
         public void LogStatusProcessingBlock(BlockProcessStatus status, bool started = true, double runtime = 0)
         {
             _addedLines++;
-            if (started)
-            {
-                var msg = "\n  └  ";
-                switch (status)
-                {
-                    case BlockProcessStatus.GetBlockHash:
-                        msg += "Getting block hash\t";
-                        break;
-                    case BlockProcessStatus.GetBlock:
-                        msg += "Getting block\t";
-                        break;
-                    case BlockProcessStatus.ProcessTransactions:
-                        msg += "Procesing Transactions";
-                        break;
-                    case BlockProcessStatus.Serialize:
-                        msg += "Serializing\t";
-                        break;
-                }
-                AsyncConsole.WriteAsync(msg + "\t... ");
-                //msgQueue.Add(msg + "\t... ");
-            }
+            if (status == BlockProcessStatus.ProcessTransactions && !started)
+                AsyncConsole.WriteAsync("\r  └  " + _messages[(byte)status] +
+                    "\t... " + $"Done ({Math.Round(runtime, 2)} sec)");
+            else if (started)
+                AsyncConsole.WriteAsync(
+                    "\n  └  " + _messages[(byte)status] +
+                    "\t... ");
             else
-            {
                 AsyncConsole.WriteAsync($"Done ({Math.Round(runtime, 2)} sec)");
-                //msgQueue.Add($"Done ({Math.Round(runtime, 2)} sec)");
-            }
         }
 
         public void LogTransaction(string msg)
         {
-            _addedLines++;
-            
+            msg = "\r  └  " + _messages[(byte)BlockProcessStatus.ProcessTransactions] + "\t... " + msg;
+            AsyncConsole.WriteAsync(msg);
         }
 
         public void LogTraverse(int block, double runtime)
