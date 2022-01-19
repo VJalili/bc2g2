@@ -23,10 +23,12 @@ namespace BC2G.Logging
         private const int maxRuntimes = 5;
         private ConcurrentQueue<int> _runtimes = new();
 
+        private int _addedLines = 0;
+
         public int CursorTop { get; set; }
 
         // TODO: any more efficient approach?
-        private readonly BlockingCollection<string> msgQueue = new();
+        //private readonly BlockingCollection<string> msgQueue = new();
 
         public Logger(
             string logFilename, string repository,
@@ -68,19 +70,6 @@ namespace BC2G.Logging
             hierarchy.Configured = true;
             log = LogManager.GetLogger(_repository, _name);
 
-
-            var thread = new Thread(() =>
-            {
-                while (true)
-                {
-                    Console.CursorTop = CursorTop;
-                    Console.Write(msgQueue.Take());
-                }
-            });
-            thread.IsBackground = true;
-            thread.Start();
-
-
             log.Info("NOTE THAT THE LOG PATTERN IS: <Date> <#Thread> <Level> <Message>");
             Log($"Export Directory: {exportPath}", ConsoleColor.DarkGray);
         }
@@ -106,7 +95,61 @@ namespace BC2G.Logging
             return _progressBar.tempMessages;
         }
 
-        
+
+        public void LogStartProcessingBlock(int blockHeight)
+        {
+            Console.CursorVisible = false;
+            for (int line = CursorTop + _addedLines; line >= CursorTop; line--)
+                AsyncConsole.WriteAsync(new string(' ', Console.WindowWidth - 1) + "\r", 0, line);
+            _addedLines = 0;
+
+            AsyncConsole.WriteAsync($"\r{blockHeight}\t ({_runtimeMovingAverage.Speed}B/sec)");
+        }
+
+        public void LogFinishProcessingBlock(int blockHeight, double runtime)
+        {
+            _addedLines++;
+            _runtimeMovingAverage.Add(runtime);
+            AsyncConsole.WriteAsync($"\n  *  Successfully finished processing block in {Math.Round(runtime, 2)} seconds.");
+        }
+
+        public void LogStatusProcessingBlock(BlockProcessStatus status, bool started = true, double runtime = 0)
+        {
+            _addedLines++;
+            if (started)
+            {
+                var msg = "\n  └  ";
+                switch (status)
+                {
+                    case BlockProcessStatus.GetBlockHash:
+                        msg += "Getting block hash\t";
+                        break;
+                    case BlockProcessStatus.GetBlock:
+                        msg += "Getting block\t";
+                        break;
+                    case BlockProcessStatus.ProcessTransactions:
+                        msg += "Procesing Transactions";
+                        break;
+                    case BlockProcessStatus.Serialize:
+                        msg += "Serializing\t";
+                        break;
+                }
+                AsyncConsole.WriteAsync(msg + "\t... ");
+                //msgQueue.Add(msg + "\t... ");
+            }
+            else
+            {
+                AsyncConsole.WriteAsync($"Done ({Math.Round(runtime, 2)} sec)");
+                //msgQueue.Add($"Done ({Math.Round(runtime, 2)} sec)");
+            }
+        }
+
+        public void LogTransaction(string msg)
+        {
+            _addedLines++;
+            
+        }
+
         public void LogTraverse(int block, double runtime)
         {
             _runtimeMovingAverage.Add(runtime);
@@ -118,7 +161,7 @@ namespace BC2G.Logging
             if (runtime != -1)
                 _runtimeMovingAverage.Add(runtime);
 
-            msgQueue.Add($"\r{height}\t (Rate: {_runtimeMovingAverage.Speed}B/sec)");
+            //msgQueue.Add($"\r{height}\t (Rate: {_runtimeMovingAverage.Speed}B/sec)");
             //Console.Write($"\r{height}\t (Rate: {_runtimeMovingAverage.Speed}B/sec)");
         }
 
