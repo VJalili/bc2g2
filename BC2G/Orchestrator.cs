@@ -137,44 +137,6 @@ namespace BC2G
             }
         }
 
-        private bool EnsureOutputDirectory()
-        {
-            try
-            {
-                Directory.CreateDirectory(_outputDir);
-
-                var tmpFile = Path.Combine(_outputDir, "tmp_access_test");
-                File.Create(tmpFile).Dispose();
-                File.Delete(tmpFile);
-                return true;
-            }
-            catch (Exception e)
-            {
-                Logger.LogExceptionStatic(
-                    $"Require write access to the path {_outputDir}: " +
-                    $"{ex.Message}");
-
-                return false;
-            }
-        }
-
-        private bool TrySetupLogger()
-        {
-            try
-            {
-                _logger = new Logger(
-                    LogFile, _loggerRepository, Guid.NewGuid().ToString(),
-                    _outputDir, "2GB");
-
-                return true;
-            }
-            catch (Exception e)
-            {
-                Logger.LogExceptionStatic($"Logger setup failed: {e.Message}");
-                return false;
-            }
-        }
-
         private bool TryLoadStatus(out Status status)
         {
             status = new();
@@ -202,62 +164,6 @@ namespace BC2G
             try
             {
                 agent = new BitcoinAgent(_client, _logger);
-                if (!agent.IsConnected)
-                    throw new ClientInaccessible();
-                return true;
-            }
-            catch (Exception e)
-            {
-                _logger.LogException(
-                    $"Failed to create/access BitcoinAgent: " +
-                    $"{e.Message}");
-                return false;
-            }
-        }
-
-        private bool AssertChain(BitcoinAgent agent, out ChainInfo chainInfo)
-        {
-            chainInfo = new ChainInfo();
-
-            try
-            {
-                chainInfo = agent.GetChainInfoAsync().Result;
-                if (string.IsNullOrEmpty(chainInfo.Chain))
-                {
-                    _logger.LogException(
-                        "Received empty string as chain name " +
-                        "from the chaininfo endpoint.");
-                    return false;
-                }
-
-                if (chainInfo.Chain != "main")
-                {
-                    _logger.LogException(
-                        $"Required to be on the `main` chain, " +
-                        $"but the bitcoin client is on the " +
-                        $"`{chainInfo.Chain}` chain.");
-                    return false;
-                }
-
-                return true;
-            }
-            catch (Exception e)
-            {
-                _logger.LogException($"Failed getting chain info: {e.Message}");
-                return false;
-            }
-        }
-
-        private bool TryGetBitCoinAgent(out BitcoinAgent agent)
-        {
-            // Cannot convert null literal to non-nullable reference type.
-            #pragma warning disable CS8625
-            agent = null;
-            #pragma warning restore CS8625
-
-            try
-            {
-                agent = new BitcoinAgent(_client);
                 if (!agent.IsConnected)
                     throw new ClientInaccessible();
                 return true;
