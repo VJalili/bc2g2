@@ -23,6 +23,8 @@ namespace BC2G.Logging
         private const int maxRuntimes = 5;
         private ConcurrentQueue<int> _runtimes = new();
 
+        public int CursorTop { get; set; }
+
         // TODO: any more efficient approach?
         private readonly BlockingCollection<string> msgQueue = new();
 
@@ -71,7 +73,7 @@ namespace BC2G.Logging
             {
                 while (true)
                 {
-                    Console.CursorTop = 1;
+                    Console.CursorTop = CursorTop;
                     Console.Write(msgQueue.Take());
                 }
             });
@@ -104,6 +106,7 @@ namespace BC2G.Logging
             return _progressBar.tempMessages;
         }
 
+        
         public void LogTraverse(int block, double runtime)
         {
             _runtimeMovingAverage.Add(runtime);
@@ -124,7 +127,7 @@ namespace BC2G.Logging
         {
             //_runtimeMovingAverage.Add(runtime);
             //Console.Write($"\t{_runtimeMovingAverage.Speed}");
-            _progressBar.Update(threadId, status, state);
+            _progressBar.Update(threadId, status, state, CursorTop + 1);
         }
 
         public void LogException(Exception e)
