@@ -48,8 +48,8 @@ namespace BC2G.CLI
             "to its correspoinding ID mapping."
         };
 
-        private int _from;
-        private int _to;
+        private int _from = -1;
+        private int _to = -1;
         private string _output = Environment.CurrentDirectory;
         private string _statusFilename = "status.json";
         private string _addressIdMappingFilename = "address_id_mapping.csv";
@@ -142,6 +142,13 @@ namespace BC2G.CLI
                 throw new ArgumentException(
                     $"Invalid value given for the " +
                     $"`{_toOption.LongName}` argument.");
+
+            if (_to <= _from)
+                throw new ArgumentException(
+                    $"Provided value for {_toOption.LongName} " +
+                    $"({_toOption.Value}) should be greater " +
+                    $"than the value provided for " +
+                    $"{_fromOption.LongName} ({_fromOption.Value})");
 
             try
             {

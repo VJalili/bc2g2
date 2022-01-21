@@ -25,11 +25,11 @@ namespace BC2G
 
         private bool disposed = false;
 
-        private readonly Options _options;
+        private readonly Options _status;
 
         public Orchestrator(string[] args, HttpClient client)
         {
-            if (!TryParseArgs(args, out _options))
+            if (!TryParseArgs(args, out _status))
                 throw new Exception();
 
             _loggerRepository =
@@ -37,7 +37,7 @@ namespace BC2G
                 DateTime.Now.ToString(
                     _loggerTimeStampFormat,
                     CultureInfo.InvariantCulture);
-            LogFile = Path.Join(_options.OutputDir, _loggerRepository + ".txt");
+            LogFile = Path.Join(_status.OutputDir, _loggerRepository + ".txt");
 
             _client = client;
             if (!EnsureOutputDirectory())
@@ -63,16 +63,17 @@ namespace BC2G
             if (cancellationToken.IsCancellationRequested)
                 return false;
 
-            from ??= status.LastProcessedBlock + 1;
-            to ??= chaininfo.Blocks;
-            if (to > from)
+            
+            _status.FromInclusive ??= _status.LastProcessedBlock + 1;
+            _status.ToExclusive ??= chaininfo.Blocks;
+            if (_status.ToExclusive > _status.FromInclusive)
             {
                 from = 719000;
                 to = 719010;
                 try
                 {
-                    status.FromInclusive = (int)from;
-                    status.ToExclusive = (int)to;
+                    //status.FromInclusive = (int)from;
+                    //status.ToExclusive = (int)to;
                     await TraverseBlocksAsync(agent, status, cancellationToken);
                     _logger.Log(
                         "All process finished successfully.",
@@ -122,9 +123,9 @@ namespace BC2G
         {
             try
             {
-                Directory.CreateDirectory(_options.OutputDir);
+                Directory.CreateDirectory(_status.OutputDir);
 
-                var tmpFile = Path.Combine(_options.OutputDir, "tmp_access_test");
+                var tmpFile = Path.Combine(_status.OutputDir, "tmp_access_test");
                 File.Create(tmpFile).Dispose();
                 File.Delete(tmpFile);
                 return true;
@@ -132,7 +133,7 @@ namespace BC2G
             catch (Exception e)
             {
                 Logger.LogExceptionStatic(
-                    $"Require write access to the path {_options.OutputDir}: " +
+                    $"Require write access to the path {_status.OutputDir}: " +
                     $"{e.Message}");
 
                 return false;
@@ -145,7 +146,7 @@ namespace BC2G
             {
                 _logger = new Logger(
                     LogFile, _loggerRepository, Guid.NewGuid().ToString(),
-                    _options.OutputDir, "2GB");
+                    _status.OutputDir, "2GB");
 
                 return true;
             }
@@ -162,13 +163,13 @@ namespace BC2G
 
             try
             {
-                status = JsonSerializer<Options>.DeserializeAsync(_options.StatusFilename).Result;
+                status = JsonSerializer<Options>.DeserializeAsync(_status.StatusFilename).Result;
                 return true;
             }
             catch (Exception e)
             {
                 Logger.LogExceptionStatic(
-                    $"Failed loading status from `{_options.StatusFilename}`: {e.Message}");
+                    $"Failed loading status from `{_status.StatusFilename}`: {e.Message}");
                 return false;
             }
         }
@@ -235,12 +236,12 @@ namespace BC2G
         {
             var graphsBuffer = new ConcurrentQueue<GraphBase>();
 
-            var individualBlocksDir = Path.Combine(_options.OutputDir, "individual_blocks");
+            var individualBlocksDir = Path.Combine(_status.OutputDir, "individual_blocks");
             if (!Directory.Exists(individualBlocksDir))
                 Directory.CreateDirectory(individualBlocksDir);
 
-            using var mapper = new AddressToIdMapper(_options.AddressIdMappingFilename);
-            using var txCache = new TxCache(_options.OutputDir);
+            using var mapper = new AddressToIdMapper(_status.AddressIdMappingFilename);
+            using var txCache = new TxCache(_status.OutputDir);
             using var serializer = new CSVSerializer(mapper);
 
             // Parallelizing block traversal has more disadvantages than
@@ -303,7 +304,7 @@ namespace BC2G
                 _logger.LogStatusProcessingBlock(BlockProcessStatus.Serialize);
                 serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"), blockStats);
                 status.LastProcessedBlock = height;
-                await JsonSerializer<Options>.SerializeAsync(status, _options.StatusFilename);
+                await JsonSerializer<Options>.SerializeAsync(status, _status.StatusFilename);
                 _logger.LogStatusProcessingBlock(BlockProcessStatus.Serialize, false, stopwatch.Elapsed.TotalSeconds);
 
                 stopwatch.Stop();
@@ -313,14 +314,14 @@ namespace BC2G
                 _logger.LogFinishProcessingBlock(height, blockStats.Runtime.TotalSeconds);
             }
 
-            var graphsBufferFilename = Path.Combine(_options.OutputDir, "edges.csv");
+            var graphsBufferFilename = Path.Combine(_status.OutputDir, "edges.csv");
             _logger.Log($"Serializing all edges in `{graphsBufferFilename}`.", newLine: true);
             serializer.Serialize(graphsBuffer, graphsBufferFilename);
 
             _logger.Log("Serializing block status", newLine: true);
             BlocksStatisticsSerializer.Serialize(
                 BlocksStatistics,
-                Path.Combine(_options.OutputDir, "blocks_stats.tsv"));
+                Path.Combine(_status.OutputDir, "blocks_stats.tsv"));
 
             // At this method's exist, the dispose method of
             // the types wrapped in `using` will be called that
