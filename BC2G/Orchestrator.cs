@@ -1,4 +1,5 @@
-﻿using BC2G.Exceptions;
+﻿using BC2G.CLI;
+using BC2G.Exceptions;
 using BC2G.Graph;
 using BC2G.Logging;
 using BC2G.Model;
@@ -30,10 +31,14 @@ namespace BC2G
         private bool disposed = false;
 
         public Orchestrator(
+            string[] args,
             string outputDir, HttpClient client,
             string statusFilename = "status.json",
             string addressIdFilename = "address_id.csv")
         {
+            if (!TryParseArgs(args, out CommandLineOptions options))
+                throw new Exception();
+
             _outputDir = outputDir;
 
             _loggerRepository =
@@ -101,6 +106,28 @@ namespace BC2G
             }
 
             return true;
+        }
+
+        private bool TryParseArgs(string[] args, out CommandLineOptions options)
+        {
+            options = new CommandLineOptions();
+
+            try
+            {
+                options.Parse(args, out bool helpIsDisplayed);
+                if (helpIsDisplayed)
+                    return false;
+                return true;
+            }
+            catch(Exception e)
+            {
+                if (_logger == null)
+                    Logger.LogExceptionStatic(e.Message);
+                else
+                    _logger.LogException(e);
+                Environment.ExitCode = 1;
+                return false;
+            }
         }
 
         private bool EnsureOutputDirectory()

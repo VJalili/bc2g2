@@ -1,6 +1,6 @@
-﻿namespace BC2G.Model
+﻿namespace BC2G.CLI
 {
-    internal class Status
+    public class Status
     {
         public int FromInclusive { get; set; }
         public int LastProcessedBlock { get; set; } = -1;
