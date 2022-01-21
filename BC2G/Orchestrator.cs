@@ -12,14 +12,9 @@ namespace BC2G
 {
     public class Orchestrator : IDisposable
     {
-        public string AddressIdFilename { get; }
-        public string StatusFilename { get; }
-
         public string LogFile { private set; get; }
 
         public ConcurrentQueue<BlockStatistics> BlocksStatistics { set; get; } = new();
-
-        private readonly string _outputDir;
 
         private readonly HttpClient _client;
 
@@ -30,26 +25,19 @@ namespace BC2G
 
         private bool disposed = false;
 
-        public Orchestrator(
-            string[] args,
-            string outputDir, HttpClient client,
-            string statusFilename = "status.json",
-            string addressIdFilename = "address_id.csv")
-        {
-            if (!TryParseArgs(args, out CommandLineOptions options))
-                throw new Exception();
+        private readonly Options _options;
 
-            _outputDir = outputDir;
+        public Orchestrator(string[] args, HttpClient client)
+        {
+            if (!TryParseArgs(args, out _options))
+                throw new Exception();
 
             _loggerRepository =
                 _defaultLoggerRepoName + "_" +
                 DateTime.Now.ToString(
                     _loggerTimeStampFormat,
                     CultureInfo.InvariantCulture);
-            LogFile = Path.Join(_outputDir, _loggerRepository + ".txt");
-
-            AddressIdFilename = Path.Combine(_outputDir, addressIdFilename);
-            StatusFilename = Path.Combine(_outputDir, statusFilename);
+            LogFile = Path.Join(_options.OutputDir, _loggerRepository + ".txt");
 
             _client = client;
             if (!EnsureOutputDirectory())
@@ -87,8 +75,8 @@ namespace BC2G
                     status.ToExclusive = (int)to;
                     await TraverseBlocksAsync(agent, status, cancellationToken);
                     _logger.Log(
-                        "All process finished successfully.", 
-                        newLine: true, 
+                        "All process finished successfully.",
+                        newLine: true,
                         color: ConsoleColor.Green);
                 }
                 catch (Exception e)
@@ -108,19 +96,19 @@ namespace BC2G
             return true;
         }
 
-        private bool TryParseArgs(string[] args, out CommandLineOptions options)
+        private bool TryParseArgs(string[] args, out Options status)
         {
-            options = new CommandLineOptions();
-
             try
             {
-                options.Parse(args, out bool helpIsDisplayed);
+                var options = new CommandLineOptions();
+                status = options.Parse(args, out bool helpIsDisplayed);
                 if (helpIsDisplayed)
                     return false;
                 return true;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
+                status = new Options();
                 if (_logger == null)
                     Logger.LogExceptionStatic(e.Message);
                 else
@@ -134,9 +122,9 @@ namespace BC2G
         {
             try
             {
-                Directory.CreateDirectory(_outputDir);
+                Directory.CreateDirectory(_options.OutputDir);
 
-                var tmpFile = Path.Combine(_outputDir, "tmp_access_test");
+                var tmpFile = Path.Combine(_options.OutputDir, "tmp_access_test");
                 File.Create(tmpFile).Dispose();
                 File.Delete(tmpFile);
                 return true;
@@ -144,7 +132,7 @@ namespace BC2G
             catch (Exception e)
             {
                 Logger.LogExceptionStatic(
-                    $"Require write access to the path {_outputDir}: " +
+                    $"Require write access to the path {_options.OutputDir}: " +
                     $"{e.Message}");
 
                 return false;
@@ -157,7 +145,7 @@ namespace BC2G
             {
                 _logger = new Logger(
                     LogFile, _loggerRepository, Guid.NewGuid().ToString(),
-                    _outputDir, "2GB");
+                    _options.OutputDir, "2GB");
 
                 return true;
             }
@@ -168,19 +156,19 @@ namespace BC2G
             }
         }
 
-        private bool TryLoadStatus(out Status status)
+        private bool TryLoadStatus(out Options status)
         {
             status = new();
 
             try
             {
-                status = JsonSerializer<Status>.DeserializeAsync(StatusFilename).Result;
+                status = JsonSerializer<Options>.DeserializeAsync(_options.StatusFilename).Result;
                 return true;
             }
             catch (Exception e)
             {
                 Logger.LogExceptionStatic(
-                    $"Failed loading status from `{StatusFilename}`: {e.Message}");
+                    $"Failed loading status from `{_options.StatusFilename}`: {e.Message}");
                 return false;
             }
         }
@@ -242,17 +230,17 @@ namespace BC2G
         }
 
         private async Task TraverseBlocksAsync(
-            BitcoinAgent agent, Status status,
+            BitcoinAgent agent, Options status,
             CancellationToken cancellationToken)
         {
             var graphsBuffer = new ConcurrentQueue<GraphBase>();
 
-            var individualBlocksDir = Path.Combine(_outputDir, "individual_blocks");
+            var individualBlocksDir = Path.Combine(_options.OutputDir, "individual_blocks");
             if (!Directory.Exists(individualBlocksDir))
                 Directory.CreateDirectory(individualBlocksDir);
 
-            using var mapper = new AddressToIdMapper(AddressIdFilename);
-            using var txCache = new TxCache(_outputDir);
+            using var mapper = new AddressToIdMapper(_options.AddressIdMappingFilename);
+            using var txCache = new TxCache(_options.OutputDir);
             using var serializer = new CSVSerializer(mapper);
 
             // Parallelizing block traversal has more disadvantages than
@@ -315,7 +303,7 @@ namespace BC2G
                 _logger.LogStatusProcessingBlock(BlockProcessStatus.Serialize);
                 serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"), blockStats);
                 status.LastProcessedBlock = height;
-                await JsonSerializer<Status>.SerializeAsync(status, StatusFilename);
+                await JsonSerializer<Options>.SerializeAsync(status, _options.StatusFilename);
                 _logger.LogStatusProcessingBlock(BlockProcessStatus.Serialize, false, stopwatch.Elapsed.TotalSeconds);
 
                 stopwatch.Stop();
@@ -325,14 +313,14 @@ namespace BC2G
                 _logger.LogFinishProcessingBlock(height, blockStats.Runtime.TotalSeconds);
             }
 
-            var graphsBufferFilename = Path.Combine(_outputDir, "edges.csv");
+            var graphsBufferFilename = Path.Combine(_options.OutputDir, "edges.csv");
             _logger.Log($"Serializing all edges in `{graphsBufferFilename}`.", newLine: true);
             serializer.Serialize(graphsBuffer, graphsBufferFilename);
 
             _logger.Log("Serializing block status", newLine: true);
             BlocksStatisticsSerializer.Serialize(
                 BlocksStatistics,
-                Path.Combine(_outputDir, "blocks_stats.tsv"));
+                Path.Combine(_options.OutputDir, "blocks_stats.tsv"));
 
             // At this method's exist, the dispose method of
             // the types wrapped in `using` will be called that

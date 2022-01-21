@@ -1,10 +1,6 @@
 ﻿using Microsoft.Extensions.CommandLineUtils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace BC2G.CLI
 {
@@ -29,16 +25,34 @@ namespace BC2G.CLI
         };
 
         private readonly CommandOption _outputOption = new(
-            "-o | --output <value>", 
+            "-o | --output <value>",
             CommandOptionType.SingleValue)
         {
             Description = "Sets a path where the result of " +
             "block traversal should be persisted."
         };
 
+        private readonly CommandOption _statusFilenameOption = new(
+            "-s | --status-filename <value>",
+            CommandOptionType.SingleValue)
+        {
+            Description = "The file where the execution status " +
+            "is presisted in JSON format."
+        };
+
+        private readonly CommandOption _addressIdMappingFilenameOption = new(
+            "-m | --mapping-filename <value>",
+            CommandOptionType.SingleValue)
+        {
+            Description = "The filename of transaction address " +
+            "to its correspoinding ID mapping."
+        };
+
         private int _from;
         private int _to;
-        private string _output = string.Empty;
+        private string _output = Environment.CurrentDirectory;
+        private string _statusFilename = "status.json";
+        private string _addressIdMappingFilename = "address_id_mapping.csv";
 
         public static string HelpOption
         {
@@ -56,16 +70,17 @@ namespace BC2G.CLI
             _cla.Options.Add(_fromOption);
             _cla.Options.Add(_toOption);
             _cla.Options.Add(_outputOption);
+            _cla.Options.Add(_statusFilenameOption);
 
             var version = "Unknown (Called from unmanaged code)";
             if (Assembly.GetEntryAssembly() != null)
-                #pragma warning disable CS8604 // Possible null reference argument.
-                #pragma warning disable CS8602 // Dereference of a possibly null reference.
+#pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                 version = Assembly.GetEntryAssembly()
                     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                     .InformationalVersion;
-                #pragma warning restore CS8602 // Dereference of a possibly null reference.
-                #pragma warning restore CS8604 // Possible null reference argument.
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+#pragma warning restore CS8604 // Possible null reference argument.
 
             _cla.HelpOption(HelpOption);
             _cla.VersionOption("-v | --version", () =>
@@ -77,19 +92,23 @@ namespace BC2G.CLI
             _cla.OnExecute(assertArguments);
         }
 
-        public Status Parse(string[] args, out bool helpIsDisplayed)
+        public Options Parse(string[] args, out bool helpIsDisplayed)
         {
             helpIsDisplayed = _cla.Execute(args) != 1;
-            return new Status()
+            return new Options()
             {
                 FromInclusive = _from,
-                ToExclusive = _to
+                ToExclusive = _to,
+                OutputDir = _output,
+                StatusFilename = _statusFilename,
+                AddressIdMappingFilename = _addressIdMappingFilename,
             };
         }
 
         private int AssertArguments()
         {
             AssertRequiredArgsAreGiven();
+            AssertGivenArgs();
             return 1;
         }
 
@@ -109,6 +128,71 @@ namespace BC2G.CLI
                 msgBuilder.Append(missingArgs[^1] + ".");
 
                 throw new ArgumentException(msgBuilder.ToString());
+            }
+        }
+
+        private void AssertGivenArgs()
+        {
+            if (!int.TryParse(_fromOption.Value(), out _from))
+                throw new ArgumentException(
+                    $"Invalid value given for the " +
+                    $"`{_fromOption.LongName}` argument.");
+
+            if (!int.TryParse(_toOption.Value(), out _to))
+                throw new ArgumentException(
+                    $"Invalid value given for the " +
+                    $"`{_toOption.LongName}` argument.");
+
+            try
+            {
+                _output = Path.GetFullPath(_outputOption.Value());
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException(
+                    $"Invalid value given for the " +
+                    $"`{_outputOption.LongName}` argument: {ex.Message}");
+            }
+
+            if (_statusFilenameOption.HasValue())
+            {
+                try
+                {
+                    _statusFilename = Path.GetFullPath(
+                        _statusFilenameOption.Value());
+                }
+                catch (Exception ex)
+                {
+                    throw new ArgumentException(
+                        $"Invalid value given for the " +
+                        $"`{_statusFilenameOption.LongName}` " +
+                        $"argument: {ex.Message}");
+                }
+            }
+            else
+            {
+                _statusFilename = Path.Combine(_output, _statusFilename);
+            }
+
+            if (_addressIdMappingFilenameOption.HasValue())
+            {
+                try
+                {
+                    _addressIdMappingFilename = Path.GetFullPath(
+                        _addressIdMappingFilenameOption.Value());
+                }
+                catch (Exception ex)
+                {
+                    throw new ArgumentException(
+                        $"Invalid value given for the " +
+                        $"`{_addressIdMappingFilenameOption.LongName}` " +
+                        $"argument: {ex.Message}");
+                }
+            }
+            else
+            {
+                _addressIdMappingFilename = Path.Combine(
+                    _output, _addressIdMappingFilename);
             }
         }
     }
