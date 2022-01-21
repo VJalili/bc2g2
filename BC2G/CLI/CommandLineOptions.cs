@@ -6,6 +6,9 @@ namespace BC2G.CLI
 {
     public class CommandLineOptions
     {
+        public string StatusFilename { get { return _statusFilename; } }
+        public string? ResumeFrom { get { return _resumeFrom; } }
+
         private readonly CommandLineApplication _cla;
 
         private readonly CommandOption _fromOption = new(
@@ -48,11 +51,22 @@ namespace BC2G.CLI
             "to its correspoinding ID mapping."
         };
 
+        private readonly CommandOption _resumeFromOption = new(
+            "-r | --resume-from <value>",
+            CommandOptionType.SingleValue)
+        {
+            Description = "Resumes a canceled execution based " +
+            "on the given status filename."
+        };
+
+        //from = 719000;
+        //to = 719010;
         private int _from = -1;
         private int _to = -1;
         private string _output = Environment.CurrentDirectory;
         private string _statusFilename = "status.json";
         private string _addressIdMappingFilename = "address_id_mapping.csv";
+        private string? _resumeFrom = null;
 
         public static string HelpOption
         {
@@ -71,6 +85,7 @@ namespace BC2G.CLI
             _cla.Options.Add(_toOption);
             _cla.Options.Add(_outputOption);
             _cla.Options.Add(_statusFilenameOption);
+            _cla.Options.Add(_resumeFromOption);
 
             var version = "Unknown (Called from unmanaged code)";
             if (Assembly.GetEntryAssembly() != null)
@@ -100,7 +115,6 @@ namespace BC2G.CLI
                 FromInclusive = _from,
                 ToExclusive = _to,
                 OutputDir = _output,
-                StatusFilename = _statusFilename,
                 AddressIdMappingFilename = _addressIdMappingFilename,
             };
         }
@@ -200,6 +214,26 @@ namespace BC2G.CLI
             {
                 _addressIdMappingFilename = Path.Combine(
                     _output, _addressIdMappingFilename);
+            }
+
+            // TODO: if a value for this argument is given,
+            // no value for other arguments should also be
+            // provided, throw a warning that other arguments
+            // will be ignored. Also, implement the code to
+            // ignore those arguments.
+            if(_resumeFromOption.HasValue())
+            {
+                try
+                {
+                    _resumeFrom = Path.GetFullPath(_resumeFromOption.Value());
+                }
+                catch (Exception ex)
+                {
+                    throw new ArgumentException(
+                        $"Invalid value given for the " +
+                        $"`{_resumeFromOption.LongName}` " +
+                        $"argument: {ex.Message}");
+                }
             }
         }
     }

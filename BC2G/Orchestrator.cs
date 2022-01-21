@@ -25,6 +25,7 @@ namespace BC2G
 
         private bool disposed = false;
 
+        private string _statusFilename;
         private readonly Options _status;
 
         public Orchestrator(string[] args, HttpClient client)
@@ -51,9 +52,6 @@ namespace BC2G
             CancellationToken cancellationToken,
             int? from = null, int? to = null)
         {
-            if (!TryLoadStatus(out var status))
-                return false;
-
             if (!TryGetBitCoinAgent(out var agent))
                 return false;
 
@@ -63,18 +61,16 @@ namespace BC2G
             if (cancellationToken.IsCancellationRequested)
                 return false;
 
-            
-            _status.FromInclusive ??= _status.LastProcessedBlock + 1;
-            _status.ToExclusive ??= chaininfo.Blocks;
+            if (_status.FromInclusive == -1)
+                _status.FromInclusive = _status.LastProcessedBlock + 1;
+            if (_status.ToExclusive == -1)
+                _status.ToExclusive = chaininfo.Blocks;
+
             if (_status.ToExclusive > _status.FromInclusive)
             {
-                from = 719000;
-                to = 719010;
                 try
                 {
-                    //status.FromInclusive = (int)from;
-                    //status.ToExclusive = (int)to;
-                    await TraverseBlocksAsync(agent, status, cancellationToken);
+                    await TraverseBlocksAsync(agent, cancellationToken);
                     _logger.Log(
                         "All process finished successfully.",
                         newLine: true,
@@ -101,10 +97,28 @@ namespace BC2G
         {
             try
             {
-                var options = new CommandLineOptions();
-                status = options.Parse(args, out bool helpIsDisplayed);
+                var cliOptions = new CommandLineOptions();
+                status = cliOptions.Parse(args, out bool helpIsDisplayed);
+                _statusFilename = cliOptions.StatusFilename;
                 if (helpIsDisplayed)
                     return false;
+
+                if (cliOptions.ResumeFrom != null)
+                {
+                    try
+                    {
+                        _statusFilename = cliOptions.ResumeFrom;
+                        status = JsonSerializer<Options>
+                            .DeserializeAsync(cliOptions.ResumeFrom).Result;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogExceptionStatic(
+                            $"Failed loading status from " +
+                            $"`{cliOptions.ResumeFrom}`: {e.Message}");
+                        return false;
+                    }
+                }
                 return true;
             }
             catch (Exception e)
@@ -153,23 +167,6 @@ namespace BC2G
             catch (Exception e)
             {
                 Logger.LogExceptionStatic($"Logger setup failed: {e.Message}");
-                return false;
-            }
-        }
-
-        private bool TryLoadStatus(out Options status)
-        {
-            status = new();
-
-            try
-            {
-                status = JsonSerializer<Options>.DeserializeAsync(_status.StatusFilename).Result;
-                return true;
-            }
-            catch (Exception e)
-            {
-                Logger.LogExceptionStatic(
-                    $"Failed loading status from `{_status.StatusFilename}`: {e.Message}");
                 return false;
             }
         }
@@ -231,8 +228,7 @@ namespace BC2G
         }
 
         private async Task TraverseBlocksAsync(
-            BitcoinAgent agent, Options status,
-            CancellationToken cancellationToken)
+            BitcoinAgent agent, CancellationToken cancellationToken)
         {
             var graphsBuffer = new ConcurrentQueue<GraphBase>();
 
@@ -264,11 +260,11 @@ namespace BC2G
             // it balaces with complications of implementing it.
 
             _logger.Log(
-                $"Traversing blocks [{status.FromInclusive:n0}, " +
-                $"{status.ToExclusive:n0}):", newLine: true);
+                $"Traversing blocks [{_status.FromInclusive:n0}, " +
+                $"{_status.ToExclusive:n0}):", newLine: true);
             _logger.CursorTop = Console.CursorTop;
 
-            for (int height = status.FromInclusive; height < status.ToExclusive; height++)
+            for (int height = _status.FromInclusive; height < _status.ToExclusive; height++)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
@@ -303,8 +299,8 @@ namespace BC2G
 
                 _logger.LogStatusProcessingBlock(BlockProcessStatus.Serialize);
                 serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"), blockStats);
-                status.LastProcessedBlock = height;
-                await JsonSerializer<Options>.SerializeAsync(status, _status.StatusFilename);
+                _status.LastProcessedBlock = height;
+                await JsonSerializer<Options>.SerializeAsync(_status, _statusFilename);
                 _logger.LogStatusProcessingBlock(BlockProcessStatus.Serialize, false, stopwatch.Elapsed.TotalSeconds);
 
                 stopwatch.Stop();
