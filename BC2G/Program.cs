@@ -10,7 +10,6 @@ AppDomain.CurrentDomain.ProcessExit +=
 Console.CancelKeyPress += new ConsoleCancelEventHandler(
     (sender, e) => CancelKeyPressHandler(sender, e, tokenSource));
 
-
 var client = new HttpClient();
 client.DefaultRequestHeaders.Accept.Clear();
 client.DefaultRequestHeaders.UserAgent.Clear();
@@ -19,18 +18,29 @@ client.DefaultRequestHeaders.Add("User-Agent", "BitcoinAgent");
 try
 {
     var cliOptions = new CommandLineOptions();
-    var options = cliOptions.Parse(args, out bool helpIsDisplayed);
-    if (helpIsDisplayed)
+    var options = cliOptions.Parse(args, out bool helpOrVersionIsDisplayed);
+    if (helpOrVersionIsDisplayed)
         return;
 
-    var orchestrator = new Orchestrator(options, client, cliOptions.StatusFilename);
-    var success = await orchestrator.RunAsync(cancellationToken, 719000, 719010);
+    Orchestrator orchestrator;
+    try
+    {
+        orchestrator = new Orchestrator(
+            options, client, cliOptions.StatusFilename);
+    }
+    catch
+    {
+        Environment.Exit(1);
+        return;
+    }
+
+    var success = await orchestrator.RunAsync(cancellationToken);
     if (!success)
-        Environment.ExitCode = 1;
+        Environment.Exit(1);
 }
 catch (Exception e)
 {
-    Environment.ExitCode = 1;
+    Environment.Exit(1);
     Console.Error.WriteLine(e.Message);
 }
 

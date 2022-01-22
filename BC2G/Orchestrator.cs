@@ -12,54 +12,68 @@ namespace BC2G
 {
     public class Orchestrator : IDisposable
     {
-
-        public string LogFile { private set; get; }
-
-        public ConcurrentQueue<BlockStatistics> BlocksStatistics { set; get; } = new();
-
         private readonly HttpClient _client;
-
-        private Logger _logger;
-        private readonly string _loggerRepository;
-        private const string _defaultLoggerRepoName = "EventsLog";
-        private readonly string _loggerTimeStampFormat = "yyyyMMdd_HHmmssfffffff";
-
         private bool disposed = false;
 
-        private string _statusFilename;
+        private readonly string _statusFilename;
         private readonly Options _options;
 
-        public Orchestrator(Options options, HttpClient client, string statusFilename)
+        private readonly Logger _logger;
+        private const string _defaultLoggerRepoName = "EventsLog";
+        private readonly string _loggerTimeStampFormat = "yyyyMMdd_HHmmssfffffff";
+        private readonly string _maxLogfileSize = "2GB";
+
+        public Orchestrator(
+            Options options, 
+            HttpClient client, 
+            string statusFilename)
         {
+            _client = client;
             _options = options;
             _statusFilename = statusFilename;
 
-            _loggerRepository =
-                _defaultLoggerRepoName + "_" +
-                DateTime.Now.ToString(
-                    _loggerTimeStampFormat,
-                    CultureInfo.InvariantCulture);
-            LogFile = Path.Join(_options.OutputDir, _loggerRepository + ".txt");
-
-            _client = client;
-            if (!EnsureOutputDirectory())
-                throw new Exception();
-
+            // Create the output directory if it does not exist,
+            // and assert if can write to the given directory.
             try
             {
-                _logger = new Logger(
-                    LogFile, _loggerRepository, Guid.NewGuid().ToString(),
-                    _options.OutputDir, "2GB");
+                Directory.CreateDirectory(_options.OutputDir);
+
+                var tmpFile = Path.Combine(_options.OutputDir, "tmp_access_test");
+                File.Create(tmpFile).Dispose();
+                File.Delete(tmpFile);
             }
             catch (Exception e)
             {
-                throw new Exception($"Logger setup failed: {e.Message}");
+                Logger.LogExceptionStatic(
+                    $"Require write access to the path {_options.OutputDir}: " +
+                    $"{e.Message}");
+                throw;
+            }
+
+            // Set up logger. 
+            try
+            {
+                var _loggerRepository = 
+                    _defaultLoggerRepoName + "_" + 
+                    DateTime.Now.ToString(
+                        _loggerTimeStampFormat, 
+                        CultureInfo.InvariantCulture);
+
+                _logger = new Logger(
+                    Path.Join(_options.OutputDir, _loggerRepository + ".txt"),
+                    _loggerRepository,
+                    Guid.NewGuid().ToString(),
+                    _options.OutputDir, 
+                    _maxLogfileSize);
+            }
+            catch (Exception e)
+            {
+                Logger.LogExceptionStatic($"Logger setup failed: {e.Message}");
+                throw;
             }
         }
 
-        public async Task<bool> RunAsync(
-            CancellationToken cancellationToken,
-            int? from = null, int? to = null)
+        public async Task<bool> RunAsync(CancellationToken cancellationToken)
         {
             if (!TryGetBitCoinAgent(out var agent))
                 return false;
@@ -95,32 +109,12 @@ namespace BC2G
             {
                 _logger.LogWarning(
                     $"The Start block height must be smaller than the end " +
-                    $"block height: `{from}` is not less than `{to}`.");
+                    $"block height: `{_options.FromInclusive}` is not less " +
+                    $"than `{_options.ToExclusive}`.");
                 return false;
             }
 
             return true;
-        }
-
-        private bool EnsureOutputDirectory()
-        {
-            try
-            {
-                Directory.CreateDirectory(_options.OutputDir);
-
-                var tmpFile = Path.Combine(_options.OutputDir, "tmp_access_test");
-                File.Create(tmpFile).Dispose();
-                File.Delete(tmpFile);
-                return true;
-            }
-            catch (Exception e)
-            {
-                Logger.LogExceptionStatic(
-                    $"Require write access to the path {_options.OutputDir}: " +
-                    $"{e.Message}");
-
-                return false;
-            }
         }
 
         private bool TryGetBitCoinAgent(out BitcoinAgent agent)
@@ -183,6 +177,7 @@ namespace BC2G
             BitcoinAgent agent, CancellationToken cancellationToken)
         {
             var graphsBuffer = new ConcurrentQueue<GraphBase>();
+            var blocksStatistics = new ConcurrentQueue<BlockStatistics>();
 
             var individualBlocksDir = Path.Combine(_options.OutputDir, "individual_blocks");
             if (!Directory.Exists(individualBlocksDir))
@@ -257,7 +252,7 @@ namespace BC2G
 
                 stopwatch.Stop();
                 blockStats.Runtime = stopwatch.Elapsed;
-                BlocksStatistics.Enqueue(blockStats);
+                blocksStatistics.Enqueue(blockStats);
 
                 _logger.LogFinishProcessingBlock(height, blockStats.Runtime.TotalSeconds);
             }
@@ -268,7 +263,7 @@ namespace BC2G
 
             _logger.Log("Serializing block status", newLine: true);
             BlocksStatisticsSerializer.Serialize(
-                BlocksStatistics,
+                blocksStatistics,
                 Path.Combine(_options.OutputDir, "blocks_stats.tsv"));
 
             // At this method's exist, the dispose method of

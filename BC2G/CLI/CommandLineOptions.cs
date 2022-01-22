@@ -108,10 +108,10 @@ namespace BC2G.CLI
             _cla.OnExecute(assertArguments);
         }
 
-        public Options Parse(string[] args, out bool helpIsDisplayed)
+        public Options Parse(string[] args, out bool helpOrVersionIsDisplayed)
         {
-            helpIsDisplayed = _cla.Execute(args) != 1;
-            if (helpIsDisplayed)
+            helpOrVersionIsDisplayed = _cla.Execute(args) != 1;
+            if (helpOrVersionIsDisplayed)
                 return new Options();
 
             if (ResumeFrom == null)
