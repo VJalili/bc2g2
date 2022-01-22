@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.CommandLineUtils;
+﻿using BC2G.Serializers;
+using Microsoft.Extensions.CommandLineUtils;
 using System.Reflection;
 using System.Text;
 
@@ -110,13 +111,33 @@ namespace BC2G.CLI
         public Options Parse(string[] args, out bool helpIsDisplayed)
         {
             helpIsDisplayed = _cla.Execute(args) != 1;
-            return new Options()
+            if (helpIsDisplayed)
+                return new Options();
+
+            if (ResumeFrom == null)
             {
-                FromInclusive = _from,
-                ToExclusive = _to,
-                OutputDir = _output,
-                AddressIdMappingFilename = _addressIdMappingFilename,
-            };
+                return new Options()
+                {
+                    FromInclusive = _from,
+                    ToExclusive = _to,
+                    OutputDir = _output,
+                    AddressIdMappingFilename = _addressIdMappingFilename,
+                };
+            }
+            else
+            {
+                try
+                {
+                    return JsonSerializer<Options>
+                        .DeserializeAsync(ResumeFrom).Result;
+                }
+                catch (Exception e)
+                {
+                    throw new ArgumentException(
+                        $"Failed loading status from " +
+                        $"`{ResumeFrom}`: {e.Message}");
+                }
+            }
         }
 
         private int AssertArguments()
@@ -147,32 +168,37 @@ namespace BC2G.CLI
 
         private void AssertGivenArgs()
         {
-            if (!int.TryParse(_fromOption.Value(), out _from))
+            if (_fromOption.HasValue() && 
+                !int.TryParse(_fromOption.Value(), out _from))
                 throw new ArgumentException(
                     $"Invalid value given for the " +
                     $"`{_fromOption.LongName}` argument.");
 
-            if (!int.TryParse(_toOption.Value(), out _to))
+            if (_toOption.HasValue() &&
+                !int.TryParse(_toOption.Value(), out _to))
                 throw new ArgumentException(
                     $"Invalid value given for the " +
                     $"`{_toOption.LongName}` argument.");
 
-            if (_to <= _from)
+            if (_to != -1 && _from != -1 && _to <= _from)
                 throw new ArgumentException(
                     $"Provided value for {_toOption.LongName} " +
                     $"({_toOption.Value}) should be greater " +
                     $"than the value provided for " +
                     $"{_fromOption.LongName} ({_fromOption.Value})");
 
-            try
+            if (_outputOption.HasValue())
             {
-                _output = Path.GetFullPath(_outputOption.Value());
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException(
-                    $"Invalid value given for the " +
-                    $"`{_outputOption.LongName}` argument: {ex.Message}");
+                try
+                {
+                    _output = Path.GetFullPath(_outputOption.Value());
+                }
+                catch (Exception ex)
+                {
+                    throw new ArgumentException(
+                        $"Invalid value given for the " +
+                        $"`{_outputOption.LongName}` argument: {ex.Message}");
+                }
             }
 
             if (_statusFilenameOption.HasValue())

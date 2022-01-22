@@ -1,5 +1,5 @@
 ﻿using BC2G;
-//using System.Net;
+using BC2G.CLI;
 
 var tokenSource = new CancellationTokenSource();
 var cancellationToken = tokenSource.Token;
@@ -19,15 +19,22 @@ client.DefaultRequestHeaders.Add("User-Agent", "BitcoinAgent");
 
 try
 {
-    var orchestrator = new Orchestrator(args, client);
+    args = new string[] { "--version" };
+
+    var cliOptions = new CommandLineOptions();
+    var options = cliOptions.Parse(args, out bool helpIsDisplayed);
+    if (helpIsDisplayed)
+        return;
+
+    var orchestrator = new Orchestrator(options, client, cliOptions.StatusFilename);
     var success = await orchestrator.RunAsync(cancellationToken, 719000, 719010);
     if (!success)
         Environment.ExitCode = 1;
 }
-catch (Exception ex)
+catch (Exception e)
 {
     Environment.ExitCode = 1;
-    Console.Error.WriteLine(ex.Message);
+    Console.Error.WriteLine(e.Message);
 }
 
 static void ProcessExit(
