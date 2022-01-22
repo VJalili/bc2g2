@@ -15,12 +15,9 @@ var client = new HttpClient();
 client.DefaultRequestHeaders.Accept.Clear();
 client.DefaultRequestHeaders.UserAgent.Clear();
 client.DefaultRequestHeaders.Add("User-Agent", "BitcoinAgent");
-//ServicePointManager.DefaultConnectionLimit = 500;
 
 try
 {
-    args = new string[] { "--version" };
-
     var cliOptions = new CommandLineOptions();
     var options = cliOptions.Parse(args, out bool helpIsDisplayed);
     if (helpIsDisplayed)

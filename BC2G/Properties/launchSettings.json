@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "BC2G": {
+      "commandName": "Project",
+      "commandLineArgs": "--version"
+    }
+  }
+}
