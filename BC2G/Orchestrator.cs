@@ -75,6 +75,7 @@ namespace BC2G
 
         public async Task<bool> RunAsync(CancellationToken cancellationToken)
         {
+            Console.CursorVisible = false;
             if (!TryGetBitCoinAgent(out var agent))
                 return false;
 
@@ -112,6 +113,7 @@ namespace BC2G
                 return false;
             }
 
+            Console.CursorVisible = true;
             return true;
         }
 

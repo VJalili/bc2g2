@@ -3,7 +3,6 @@ using log4net.Appender;
 using log4net.Core;
 using log4net.Layout;
 using log4net.Repository.Hierarchy;
-using System.Collections.Concurrent;
 
 namespace BC2G.Logging
 {
@@ -20,8 +19,6 @@ namespace BC2G.Logging
         private bool disposed = false;
 
         private readonly string[] _messages;
-
-        //public int CursorTop { get; set; }
 
         public Logger(
             string logFilename, string repository,
@@ -74,14 +71,6 @@ namespace BC2G.Logging
 
             log.Info("NOTE THAT THE LOG PATTERN IS: <Date> <#Thread> <Level> <Message>");
             Log($"Export Directory: {exportPath}", true, ConsoleColor.DarkGray);
-
-            Console.CursorVisible = false;
-        }
-
-        public void Log(string message, ConsoleColor color)
-        {
-            AsyncConsole.WriteAsync(message, color);
-            log.Info(message);
         }
 
         public void Log(string message, bool writeLine = true)
@@ -138,29 +127,6 @@ namespace BC2G.Logging
         {
             msg = "\r  └  " + _messages[(byte)BlockProcessStatus.ProcessTransactions] + "\t... " + msg;
             AsyncConsole.WriteAsync(msg, color: ConsoleColor.DarkGray);
-        }
-
-        public void LogTraverse(int block, double runtime)
-        {
-            _runtimeMovingAverage.Add(runtime);
-            Console.Write($"\r{block}\t{_runtimeMovingAverage.Speed}");
-        }
-
-        public void LogTraverse(int height, string status, double runtime = -1)
-        {
-            if (runtime != -1)
-                _runtimeMovingAverage.Add(runtime);
-
-            //msgQueue.Add($"\r{height}\t (Rate: {_runtimeMovingAverage.Speed}B/sec)");
-            //Console.Write($"\r{height}\t (Rate: {_runtimeMovingAverage.Speed}B/sec)");
-        }
-
-
-        public void LogTraverse(int threadId, string status, BlockTraverseState state)
-        {
-            //_runtimeMovingAverage.Add(runtime);
-            //Console.Write($"\t{_runtimeMovingAverage.Speed}");
-            //_progressBar.Update(threadId, status, state, CursorTop + 1);
         }
 
         public void LogException(Exception e)
