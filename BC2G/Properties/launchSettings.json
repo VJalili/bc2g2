@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "--from 719000 --to 719003 --output C:\\Users\\Vahid\\Desktop\\test4\\"
+      "commandLineArgs": "--from 719003 --to 719006 --output C:\\Users\\Vahid\\Desktop\\test4\\"
     }
   }
 }

@@ -59,6 +59,19 @@ namespace BC2G.Logging
             });
         }
 
+        public static void WriteLineAsyncAfterAddedLines(string value, ConsoleColor color)
+        {
+            _actions.Add(() =>
+            {
+                var (Left, Top) = Console.GetCursorPosition();
+                Console.SetCursorPosition(0, _bookmarkedLine + _addedLines + 2);
+                Console.ForegroundColor = color;
+                Console.WriteLine(value);
+                Console.ResetColor();
+                Console.SetCursorPosition(Left, Top);
+            });
+        }
+
         public static void BookmarkCurrentLine()
         {
             _actions.Add(() => _bookmarkedLine = Console.CursorTop);

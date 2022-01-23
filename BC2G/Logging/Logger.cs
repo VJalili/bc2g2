@@ -14,6 +14,9 @@ namespace BC2G.Logging
         private readonly string _name;
         private readonly string _repository;
 
+        private int _from;
+        private int _to;
+
         private readonly MovingAverage _runtimeMovingAverage;
 
         private bool disposed = false;
@@ -73,6 +76,13 @@ namespace BC2G.Logging
             Log($"Export Directory: {exportPath}", true, ConsoleColor.DarkGray);
         }
 
+        public void InitBlocksTraverseLog(int from, int to)
+        {
+            _from = from;
+            _to = to;
+            AsyncConsole.WriteLineAsync("");
+        }
+
         public void Log(string message, bool writeLine = true)
         {
             if (writeLine)
@@ -96,37 +106,59 @@ namespace BC2G.Logging
         public void LogStartProcessingBlock(int blockHeight)
         {
             AsyncConsole.EraseToBookmarkedLine();
-            AsyncConsole.WriteLineAsync($"\r{blockHeight}\t ({_runtimeMovingAverage.Speed} B/sec)");
+
+            int completed = blockHeight - _from;
+            double percentage = (completed / (double)(_to - _from)) * 100.0;
+            AsyncConsole.WriteLineAsync(
+                $"\r\tIn progress: {blockHeight:n0}" +
+                $"\tCompleted: {completed:n0}/{_to - _from:n0} ({percentage:f1}%)" +
+                $"\tRate: {_runtimeMovingAverage.Speed} B/sec", 
+                ConsoleColor.Cyan);
         }
 
         public void LogFinishProcessingBlock(int blockHeight, double runtime)
         {
             _runtimeMovingAverage.Add(runtime);
-            AsyncConsole.WriteLineAsync(
-                $"\n  *  Successfully finished processing block in " +
-                $"{Math.Round(runtime, 2)} seconds.",
-                ConsoleColor.DarkGray);
+            var msg = $"\t  *  Successfully finished processing " +
+                $"block in {Math.Round(runtime, 2)} seconds.";
+            AsyncConsole.WriteLineAsync(msg, ConsoleColor.DarkGray);
+            log.Info(msg);
         }
 
         public void LogBlockProcessStatus(BlockProcessStatus status, bool started = true, double runtime = 0)
         {
+            string msg;
             if (status == BlockProcessStatus.ProcessTransactions && !started)
-                AsyncConsole.WriteLineAsync("\r  └  " + _messages[(byte)status] +
-                    "\t... " + $"Done ({Math.Round(runtime, 2)} sec)", color: ConsoleColor.DarkGray);
+            {
+                msg = "\r\t  └  " + _messages[(byte)status] + "\t... " + $"Done ({Math.Round(runtime, 2)} sec)";
+                AsyncConsole.WriteLineAsync(msg, color: ConsoleColor.DarkCyan);
+            }
             else if (started)
-                AsyncConsole.WriteAsync(
-                    "  └  " + _messages[(byte)status] +
-                    "\t... ", color: ConsoleColor.DarkGray);
+            {
+                msg = "\t  └  " + _messages[(byte)status] + "\t... ";
+                AsyncConsole.WriteAsync(msg, color: ConsoleColor.DarkCyan);
+            }
             else
-                AsyncConsole.WriteLineAsync(
-                    $"Done ({Math.Round(runtime, 2)} sec)",
-                    color: ConsoleColor.DarkGray);
+            {
+                msg = $"Done ({Math.Round(runtime, 2)} sec)";
+                AsyncConsole.WriteLineAsync(msg, color: ConsoleColor.DarkCyan);
+            }
+
+            log.Info(msg);
         }
 
         public void LogTransaction(string msg)
         {
-            msg = "\r  └  " + _messages[(byte)BlockProcessStatus.ProcessTransactions] + "\t... " + msg;
-            AsyncConsole.WriteAsync(msg, color: ConsoleColor.DarkGray);
+            msg = "\r\t  └  " + _messages[(byte)BlockProcessStatus.ProcessTransactions] + "\t... " + msg;
+            AsyncConsole.WriteAsync(msg, color: ConsoleColor.DarkCyan);
+            log.Info(msg);
+        }
+
+        public void LogCancelleing()
+        {
+            var msg = "Cancelling ... do not turn off your computer.";
+            AsyncConsole.WriteLineAsyncAfterAddedLines(msg, ConsoleColor.Yellow);
+            log.Info(msg);
         }
 
         public void LogException(Exception e)
