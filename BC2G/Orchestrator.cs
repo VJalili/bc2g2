@@ -99,18 +99,26 @@ namespace BC2G
                 return false;
             }
 
+            var stopwatch = new Stopwatch();
             try
             {
+                stopwatch.Start();
                 await TraverseBlocksAsync(agent, cancellationToken);
+                stopwatch.Stop();
                 _logger.Log(
-                    "All process finished successfully.",
+                    $"All process finished successfully in {stopwatch.Elapsed}.",
                     writeLine: true,
                     color: ConsoleColor.Green);
+                
             }
             catch (Exception e)
             {
                 _logger.LogException(e);
                 return false;
+            }
+            finally
+            {
+                stopwatch.Stop();
             }
 
             Console.CursorVisible = true;
