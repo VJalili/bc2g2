@@ -103,7 +103,7 @@ namespace BC2G
                 await TraverseBlocksAsync(agent, cancellationToken);
                 _logger.Log(
                     "All process finished successfully.",
-                    newLine: true,
+                    writeLine: true,
                     color: ConsoleColor.Green);
             }
             catch (Exception e)
@@ -205,8 +205,8 @@ namespace BC2G
 
             _logger.Log(
                 $"Traversing blocks [{_options.FromInclusive:n0}, " +
-                $"{_options.ToExclusive:n0}):", newLine: true);
-            _logger.CursorTop = Console.CursorTop;
+                $"{_options.ToExclusive:n0}):", writeLine: true);
+            AsyncConsole.BookmarkCurrentLine();
 
             for (int height = _options.FromInclusive; height < _options.ToExclusive; height++)
             {
@@ -218,34 +218,34 @@ namespace BC2G
                 _logger.LogStartProcessingBlock(height);
                 var blockStats = new BlockStatistics(height);
 
-                _logger.LogStatusProcessingBlock(BlockProcessStatus.GetBlockHash);
+                _logger.LogBlockProcessStatus(BlockProcessStatus.GetBlockHash);
                 var blockHash = await agent.GetBlockHash(height);
-                _logger.LogStatusProcessingBlock(BlockProcessStatus.GetBlockHash, false, stopwatch.Elapsed.TotalSeconds);
+                _logger.LogBlockProcessStatus(BlockProcessStatus.GetBlockHash, false, stopwatch.Elapsed.TotalSeconds);
 
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                _logger.LogStatusProcessingBlock(BlockProcessStatus.GetBlock);
+                _logger.LogBlockProcessStatus(BlockProcessStatus.GetBlock);
                 var block = await agent.GetBlock(blockHash);
-                _logger.LogStatusProcessingBlock(BlockProcessStatus.GetBlock, false, stopwatch.Elapsed.TotalSeconds);
+                _logger.LogBlockProcessStatus(BlockProcessStatus.GetBlock, false, stopwatch.Elapsed.TotalSeconds);
 
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                _logger.LogStatusProcessingBlock(BlockProcessStatus.ProcessTransactions);
+                _logger.LogBlockProcessStatus(BlockProcessStatus.ProcessTransactions);
                 var graph = await agent.GetGraph(block, txCache, cancellationToken);
-                _logger.LogStatusProcessingBlock(BlockProcessStatus.ProcessTransactions, false, stopwatch.Elapsed.TotalSeconds);
+                _logger.LogBlockProcessStatus(BlockProcessStatus.ProcessTransactions, false, stopwatch.Elapsed.TotalSeconds);
 
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
                 graphsBuffer.Enqueue(graph);
 
-                _logger.LogStatusProcessingBlock(BlockProcessStatus.Serialize);
+                _logger.LogBlockProcessStatus(BlockProcessStatus.Serialize);
                 serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"), blockStats);
                 _options.LastProcessedBlock = height;
                 await JsonSerializer<Options>.SerializeAsync(_options, _statusFilename);
-                _logger.LogStatusProcessingBlock(BlockProcessStatus.Serialize, false, stopwatch.Elapsed.TotalSeconds);
+                _logger.LogBlockProcessStatus(BlockProcessStatus.Serialize, false, stopwatch.Elapsed.TotalSeconds);
 
                 stopwatch.Stop();
                 blockStats.Runtime = stopwatch.Elapsed;
@@ -255,10 +255,10 @@ namespace BC2G
             }
 
             var graphsBufferFilename = Path.Combine(_options.OutputDir, "edges.csv");
-            _logger.Log($"Serializing all edges in `{graphsBufferFilename}`.", newLine: true);
+            _logger.Log($"Serializing all edges in `{graphsBufferFilename}`.", true);
             serializer.Serialize(graphsBuffer, graphsBufferFilename);
 
-            _logger.Log("Serializing block status", newLine: true);
+            _logger.Log("Serializing block status", true);
             BlocksStatisticsSerializer.Serialize(
                 blocksStatistics,
                 Path.Combine(_options.OutputDir, "blocks_stats.tsv"));
@@ -266,7 +266,7 @@ namespace BC2G
             // At this method's exist, the dispose method of
             // the types wrapped in `using` will be called that
             // finalizes persisting output.
-            _logger.Log("Finalizing serialized files.", newLine: true);
+            _logger.Log("Finalizing serialized files.", true);
         }
 
         // The IDisposable interface is implemented following .NET docs:

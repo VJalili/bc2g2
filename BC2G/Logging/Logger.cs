@@ -14,18 +14,14 @@ namespace BC2G.Logging
         private readonly ILog log;
         private readonly string _name;
         private readonly string _repository;
-        private readonly ChainTraverseProgressBar _progressBar = new();
 
         private readonly MovingAverage _runtimeMovingAverage;
 
         private bool disposed = false;
 
+        private readonly string[] _messages;
 
-        private int _addedLines = 0;
-
-        private string[] _messages;
-
-        public int CursorTop { get; set; }
+        //public int CursorTop { get; set; }
 
         public Logger(
             string logFilename, string repository,
@@ -77,48 +73,63 @@ namespace BC2G.Logging
             };
 
             log.Info("NOTE THAT THE LOG PATTERN IS: <Date> <#Thread> <Level> <Message>");
-            Log($"Export Directory: {exportPath}", ConsoleColor.DarkGray);
+            Log($"Export Directory: {exportPath}", true, ConsoleColor.DarkGray);
+
+            Console.CursorVisible = false;
         }
 
-        public void Log(string message, ConsoleColor? color = null, bool newLine = true)
+        public void Log(string message, ConsoleColor color)
         {
-            AsyncConsole.WriteAsync(message, color: color, newLine: newLine);
+            AsyncConsole.WriteAsync(message, color);
+            log.Info(message);
+        }
+
+        public void Log(string message, bool writeLine = true)
+        {
+            if (writeLine)
+                AsyncConsole.WriteLineAsync(message);
+            else
+                AsyncConsole.WriteAsync(message);
+            
+            log.Info(message);
+        }
+
+        public void Log(string message, bool writeLine, ConsoleColor color)
+        {
+            if (writeLine)
+                AsyncConsole.WriteLineAsync(message, color);
+            else
+                AsyncConsole.WriteAsync(message, color);
+
             log.Info(message);
         }
 
         public void LogStartProcessingBlock(int blockHeight)
         {
-            Console.CursorVisible = false;
-            for (int line = CursorTop + _addedLines; line >= CursorTop; line--)
-                AsyncConsole.WriteAsync(new string(' ', Console.WindowWidth - 1) + "\r", 0, line);
-            _addedLines = 0;
-
-            AsyncConsole.WriteAsync($"\r{blockHeight}\t ({_runtimeMovingAverage.Speed} B/sec)");
+            AsyncConsole.EraseToBookmarkedLine();
+            AsyncConsole.WriteLineAsync($"\r{blockHeight}\t ({_runtimeMovingAverage.Speed} B/sec)");
         }
 
         public void LogFinishProcessingBlock(int blockHeight, double runtime)
         {
-            _addedLines++;
             _runtimeMovingAverage.Add(runtime);
-            AsyncConsole.WriteAsync(
+            AsyncConsole.WriteLineAsync(
                 $"\n  *  Successfully finished processing block in " +
-                $"{Math.Round(runtime, 2)} seconds.", 
-                color: ConsoleColor.DarkGray, 
-                newLine: true);
+                $"{Math.Round(runtime, 2)} seconds.",
+                ConsoleColor.DarkGray);
         }
 
-        public void LogStatusProcessingBlock(BlockProcessStatus status, bool started = true, double runtime = 0)
+        public void LogBlockProcessStatus(BlockProcessStatus status, bool started = true, double runtime = 0)
         {
-            _addedLines++;
             if (status == BlockProcessStatus.ProcessTransactions && !started)
-                AsyncConsole.WriteAsync("\r  └  " + _messages[(byte)status] +
+                AsyncConsole.WriteLineAsync("\r  └  " + _messages[(byte)status] +
                     "\t... " + $"Done ({Math.Round(runtime, 2)} sec)", color: ConsoleColor.DarkGray);
             else if (started)
                 AsyncConsole.WriteAsync(
-                    "\n  └  " + _messages[(byte)status] +
+                    "  └  " + _messages[(byte)status] +
                     "\t... ", color: ConsoleColor.DarkGray);
             else
-                AsyncConsole.WriteAsync(
+                AsyncConsole.WriteLineAsync(
                     $"Done ({Math.Round(runtime, 2)} sec)",
                     color: ConsoleColor.DarkGray);
         }
@@ -149,7 +160,7 @@ namespace BC2G.Logging
         {
             //_runtimeMovingAverage.Add(runtime);
             //Console.Write($"\t{_runtimeMovingAverage.Speed}");
-            _progressBar.Update(threadId, status, state, CursorTop + 1);
+            //_progressBar.Update(threadId, status, state, CursorTop + 1);
         }
 
         public void LogException(Exception e)
