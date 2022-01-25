@@ -7,6 +7,7 @@ using BC2G.Serializers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace BC2G
 {
@@ -243,15 +244,16 @@ namespace BC2G
                         });
                     break;
                 }
+
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
 
                 Logger.LogStartProcessingBlock(height);
                 var blockStats = new BlockStatistics(height);
 
-                Logger.LogBlockProcessStatus(BPS.GetBlockHash);
+                //Logger.LogBlockProcessStatus(BPS.GetBlockHash);
                 var blockHash = await agent.GetBlockHash(height);
-                Logger.LogBlockProcessStatus(BPS.GetBlockHashDone, stopwatch.Elapsed.TotalSeconds);
+                //Logger.LogBlockProcessStatus(BPS.GetBlockHashDone, stopwatch.Elapsed.TotalSeconds);
 
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -266,9 +268,9 @@ namespace BC2G
                     break;
                 }
 
-                Logger.LogBlockProcessStatus(BPS.GetBlock);
+                //Logger.LogBlockProcessStatus(BPS.GetBlock);
                 var block = await agent.GetBlock(blockHash);
-                Logger.LogBlockProcessStatus(BPS.GetBlockDone, stopwatch.Elapsed.TotalSeconds);
+                //Logger.LogBlockProcessStatus(BPS.GetBlockDone, stopwatch.Elapsed.TotalSeconds);
 
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -282,12 +284,12 @@ namespace BC2G
                     break;
                 }
 
-                Logger.LogBlockProcessStatus(BPS.ProcessTransactions);
+                //Logger.LogBlockProcessStatus(BPS.ProcessTransactions);
                 GraphBase graph = new();
                 try
                 {
                     graph = await agent.GetGraph(block, txCache, cancellationToken);
-                    Logger.LogBlockProcessStatus(BPS.ProcessTransactionsDone, stopwatch.Elapsed.TotalSeconds);
+                    //Logger.LogBlockProcessStatus(BPS.ProcessTransactionsDone, stopwatch.Elapsed.TotalSeconds);
                 }
                 catch (OperationCanceledException)
                 {
@@ -314,11 +316,11 @@ namespace BC2G
 
                 graphsBuffer.Enqueue(graph);
 
-                Logger.LogBlockProcessStatus(BPS.Serialize);
+                //Logger.LogBlockProcessStatus(BPS.Serialize);
                 serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"), blockStats);
                 _options.LastProcessedBlock = height;
                 await JsonSerializer<Options>.SerializeAsync(_options, _statusFilename);
-                Logger.LogBlockProcessStatus(BPS.SerializeDone, stopwatch.Elapsed.TotalSeconds);
+                //Logger.LogBlockProcessStatus(BPS.SerializeDone, stopwatch.Elapsed.TotalSeconds);
 
                 stopwatch.Stop();
                 blockStats.Runtime = stopwatch.Elapsed;

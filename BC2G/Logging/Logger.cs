@@ -135,10 +135,10 @@ namespace BC2G.Logging
         public void LogFinishProcessingBlock(double runtime)
         {
             _runtimeMovingAverage.Add(runtime);
-            var (cursorTopOffset, cursorLeft, template) = _messages[(byte)BPS.Successful];
-            var msg = string.Format(template, runtime);
-            AsyncConsole.WriteLine(msg, cursorTopOffset, cursorLeft, ConsoleColor.DarkCyan);
-            log.Info(msg);
+           // var (cursorTopOffset, cursorLeft, template) = _messages[(byte)BPS.Successful];
+           // var msg = string.Format(template, runtime);
+            //AsyncConsole.WriteLine(msg, cursorTopOffset, cursorLeft, ConsoleColor.DarkCyan);
+            //log.Info(msg);
         }
 
         public static void LogFinishTraverse(bool cancelled)

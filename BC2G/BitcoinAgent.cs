@@ -132,7 +132,7 @@ namespace BC2G
                     _cancellationToken.ThrowIfCancellationRequested();
                     await RunParallel(tx, g, txCache, cancellationToken);
                     Interlocked.Increment(ref pTxCount);
-                    _logger.LogTransaction($"{pTxCount}/{txCount} ({pTxCount / txCount:p2})");
+                    //_logger.LogTransaction($"{pTxCount}/{txCount} ({pTxCount / txCount:p2})");
                     _cancellationToken.ThrowIfCancellationRequested();
                 });
 
