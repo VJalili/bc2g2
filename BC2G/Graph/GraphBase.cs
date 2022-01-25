@@ -25,6 +25,8 @@ namespace BC2G.Graph
             }
         }
 
+        private readonly ConcurrentQueue<TransactionGraph> _txGraphsQueue = new();
+
         private readonly ConcurrentDictionary<int, Edge> _edges = new();
         private readonly ConcurrentDictionary<string, byte> _nodes = new();
 
@@ -43,7 +45,26 @@ namespace BC2G.Graph
         }
         public GraphBase() { }
 
-        public void Merge(TransactionGraph txGraph, CancellationToken cancellationToken)
+        public void Enqueue(TransactionGraph g)
+        {
+            _txGraphsQueue.Enqueue(g);
+        }
+
+        public void MergeQueuedTxGraphs(CancellationToken cancellationToken)
+        {
+            Parallel.ForEach(_txGraphsQueue, (txGraph, state) =>
+            {
+                if (cancellationToken.IsCancellationRequested)
+                { state.Stop(); return; }
+
+                Merge(txGraph, cancellationToken);
+
+                if (cancellationToken.IsCancellationRequested)
+                { state.Stop(); return; }
+            });
+        }
+
+        private void Merge(TransactionGraph txGraph, CancellationToken cancellationToken)
         {
             if (txGraph.sources.IsEmpty)
             {
@@ -72,7 +93,8 @@ namespace BC2G.Graph
 
                 foreach (var s in txGraph.sources)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    if (cancellationToken.IsCancellationRequested)
+                        return;
 
                     foreach (var t in txGraph.targets)
                         AddEdge(new Edge(
@@ -92,26 +114,7 @@ namespace BC2G.Graph
             }
         }
 
-        public void UpdateGraph(uint timestamp, List<string>? rewardAddresses = null)
-        {
-            if (_sources.IsEmpty)
-                BuildGenerativeTxGraph(timestamp);
-            else
-            {
-                if (rewardAddresses == null)
-                    throw new ArgumentNullException(
-                        nameof(rewardAddresses),
-                        $"{nameof(rewardAddresses)} cannot be null");
-                else
-                    BuildTxGraph(rewardAddresses, timestamp);
-            }
-
-            _sources.Clear();
-            _targets.Clear();
-            _totalInputValue = 0;
-            _totalOutputValue = 0;
-        }
-
+        // TODO: it could probably be faster if this method takes the attributes of Edge instead of an instance of edge.
         public void AddEdge(Edge edge)
         {
             /// Note that the hashkey is invariant to the edge value.
@@ -129,83 +132,6 @@ namespace BC2G.Graph
             _nodes.TryAdd(edge.Source, 0);
             _nodes.TryAdd(edge.Target, 0);
         }
-
-        public void AddEdges(ICollection<Edge> edges)
-        {
-            foreach (var edge in edges)
-                AddEdge(edge);
-        }
-
-        public string AddSource(string source, double value)
-        {
-            _totalInputValue = Utilities.ThreadsafeAdd(ref _totalInputValue, value);
-            return AddInOrOut(_sources, source, value);
-        }
-
-        public string AddTarget(string target, double value)
-        {
-            _totalOutputValue = Utilities.ThreadsafeAdd(ref _totalOutputValue, value);
-            return AddInOrOut(_targets, target, value);
-        }
-
-        private static string AddInOrOut(
-            ConcurrentDictionary<string, double> collection,
-            string address,
-            double value)
-        {
-            collection.AddOrUpdate(
-                address, Utilities.Round(value),
-                (_, oldValue) => Utilities.Round(oldValue + value));
-
-            return address;
-        }
-
-        private void BuildGenerativeTxGraph(uint timestamp)
-        {
-            foreach (var item in _targets)
-                AddEdge(new Edge(
-                    CoinbaseTxLabel,
-                    item.Key,
-                    item.Value,
-                    EdgeType.Generation,
-                    timestamp));
-        }
-
-        private void BuildTxGraph(List<string> rewardAddresses, uint timestamp)
-        {
-            double fee = Utilities.Round(_totalInputValue - _totalOutputValue);
-            if (fee > 0.0)
-                foreach (var s in _sources)
-                    _sources.AddOrUpdate(
-                        s.Key, _sources[s.Key],
-                        (_, oldValue) => Utilities.Round(
-                            oldValue - Utilities.Round(
-                                oldValue * Utilities.Round(
-                                    fee / _totalInputValue))));
-            /// The AddOrUpdate method is only expected to update, 
-            /// adding a new key is not expected to happen. See
-            /// the above comment.
-
-            foreach (var s in _sources)
-            {
-                foreach (var t in _targets)
-                    AddEdge(new Edge(
-                        s.Key, t.Key,
-                        Utilities.Round(t.Value * Utilities.Round(
-                            s.Value / _totalInputValue)),
-                        s.Key == t.Key ? EdgeType.Change : EdgeType.Transfer,
-                        timestamp));
-
-                foreach (var m in rewardAddresses)
-                {
-                    var feeShare = Utilities.Round(fee / rewardAddresses.Count);
-                    if (feeShare > 0.0)
-                        AddEdge(new Edge(s.Key, m, feeShare, EdgeType.Fee, timestamp));
-                }
-            }
-        }
-
-
 
         public bool Equals(GraphBase? other)
         {
