@@ -79,10 +79,6 @@ namespace BC2G.Logging
             roller.ActivateOptions();
             hierarchy.Root.AddAppender(roller);
 
-            var memory = new MemoryAppender();
-            memory.ActivateOptions();
-            hierarchy.Root.AddAppender(memory);
-
             hierarchy.Root.Level = Level.Info;
             hierarchy.Configured = true;
             log = LogManager.GetLogger(_repository, _name);
