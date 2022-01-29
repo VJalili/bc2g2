@@ -222,23 +222,31 @@ namespace BC2G
                 PropagateCompletion = true
             };
 
+            var blockOptions = new ExecutionDataflowBlockOptions
+            {
+                MaxDegreeOfParallelism = 5
+            };
+
             var getBlockTB = new TransformBlock<DataContainer, DataContainer>(
-                new Func<DataContainer, Task<DataContainer>>(GetBlock), new ExecutionDataflowBlockOptions()
-                {
-                    BoundedCapacity = 100,
-                    CancellationToken = cancellationToken, 
-                    MaxDegreeOfParallelism = 2,
-                });
+                new Func<DataContainer, Task<DataContainer>>(GetBlock),
+                blockOptions);
+            /*new ExecutionDataflowBlockOptions()
+            {
+                BoundedCapacity = 100,
+                CancellationToken = cancellationToken, 
+                MaxDegreeOfParallelism = 2,
+            });*/
 
             var getGraphTB = new TransformBlock<DataContainer, DataContainer>(
-                new Func<DataContainer, Task<DataContainer>>(GetGraph));
+                new Func<DataContainer, Task<DataContainer>>(GetGraph),
+                blockOptions);
 
             var buildGraphTB = new TransformBlock<DataContainer, DataContainer>(
-                new Func<DataContainer, DataContainer>(BuildGraph));
+                new Func<DataContainer, DataContainer>(BuildGraph), blockOptions);
 
             var serializeTB = new ActionBlock<DataContainer>(
-                new Action<DataContainer>(Serialize),
-                new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 1 });
+                new Action<DataContainer>(Serialize), blockOptions);
+                //new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 1 });
 
             getBlockTB.LinkTo(getGraphTB, linkOptions);
             getGraphTB.LinkTo(buildGraphTB, linkOptions);
@@ -261,7 +269,7 @@ namespace BC2G
             }
 
             getBlockTB.Complete();
-            await serializeTB.Completion;
+            await serializeTB.Completion.ConfigureAwait(false);
 
             txCache.Dispose();
         }
