@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading.Tasks.Dataflow;
 
 namespace BC2G
 {
@@ -191,13 +192,17 @@ namespace BC2G
         }
 
         private async Task TraverseBlocksAsync(
+            BitcoinAgent agent, 
+            CancellationToken cancellationToken)
+        {
+            
+        }
+
+
+
+        private async Task TraverseBlocksAsync2(
             BitcoinAgent agent, CancellationToken cancellationToken)
         {
-            // TODO: maybe this method can be implemented better/simpler 
-            // using Task Parallel Library (TPL); that can ideally replace
-            // the Persistent* types, and give a more natural flow to the
-            // current process.
-
             var individualBlocksDir = Path.Combine(_options.OutputDir, "individual_blocks");
             if (_options.CreatePerBlockFiles && !Directory.Exists(individualBlocksDir))
                 Directory.CreateDirectory(individualBlocksDir);
