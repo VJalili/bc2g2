@@ -195,14 +195,59 @@ namespace BC2G
             BitcoinAgent agent, 
             CancellationToken cancellationToken)
         {
-            
+            // Create the pipeline.
+            var linkOptions = new DataflowLinkOptions
+            {
+                PropagateCompletion = true
+            };
+
+            var getBlockTB = new TransformBlock<int, (Block, BlockStatistics)>(
+                new Func<int, Task<(Block, BlockStatistics)>>(GetBlock));
+
+            var getGraphTB = new TransformBlock<(Block, BlockStatistics), (GraphBase, BlockStatistics)>(
+                new Func<(Block, BlockStatistics), Task<(GraphBase, BlockStatistics)>>(GetGraph));
+
+            var serializeTB = new ActionBlock<(GraphBase, BlockStatistics)>(
+                new Action<(GraphBase, BlockStatistics)>(Serialize));
+
+
+            getBlockTB.LinkTo(getGraphTB, linkOptions);
+            getGraphTB.LinkTo(serializeTB, linkOptions);
+
+            for (int height = _options.LastProcessedBlock + 1; height < _options.ToExclusive; height++)
+            {
+                getBlockTB.Post(height);
+            }
+
+            getBlockTB.Complete();
+
+            await serializeTB.Completion;
         }
 
+        private async Task<(Block, BlockStatistics)> GetBlock(int height)
+        {
+            return (null, null);
+        }
 
+        private async Task<(GraphBase, BlockStatistics)> GetGraph(
+            (Block block, BlockStatistics stats) item)
+        {
+            return (null, null);
+        }
+
+        private void Serialize((GraphBase g, BlockStatistics stats) item)
+        {
+
+        }
 
         private async Task TraverseBlocksAsync2(
             BitcoinAgent agent, CancellationToken cancellationToken)
         {
+            // TODO: maybe this method can be implemented better/simpler 
+            // using Task Parallel Library (TPL); that can ideally replace
+            // the Persistent* types, and give a more natural flow to the
+            // current process.
+
             var individualBlocksDir = Path.Combine(_options.OutputDir, "individual_blocks");
             if (_options.CreatePerBlockFiles && !Directory.Exists(individualBlocksDir))
                 Directory.CreateDirectory(individualBlocksDir);
