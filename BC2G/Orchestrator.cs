@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 using System.Threading.Tasks.Dataflow;
 
 namespace BC2G
@@ -20,12 +21,16 @@ namespace BC2G
         private readonly string _statusFilename;
         private readonly Options _options;
 
+        private const string _delimiter = ",";
+
         public Logger Logger { set; get; }
         private const string _defaultLoggerRepoName = "EventsLog";
         private readonly string _loggerTimeStampFormat = "yyyyMMdd_HHmmssfffffff";
         private readonly string _maxLogfileSize = "2GB";
 
-        public Orchestrator(
+        private BitcoinAgent _agent;
+
+    public Orchestrator(
             Options options,
             HttpClient client,
             string statusFilename)
@@ -77,9 +82,11 @@ namespace BC2G
 
         public async Task<bool> RunAsync(CancellationToken cancellationToken)
         {
+            // TODO: these two may better to move the constructor. 
             Console.CursorVisible = false;
             if (!TryGetBitCoinAgent(out var agent))
                 return false;
+            _agent = agent;
 
             if (!AssertChain(agent, out ChainInfo chaininfo))
                 return false;
@@ -191,53 +198,126 @@ namespace BC2G
             }
         }
 
-        private async Task TraverseBlocksAsync(
-            BitcoinAgent agent, 
-            CancellationToken cancellationToken)
+        private async Task TraverseBlocksAsync(BitcoinAgent agent, CancellationToken cancellationToken)
         {
+            // Declear resource shared across every block in the pipeline.
+            var edgesStream = File.AppendText(
+                Path.Combine(_options.OutputDir, "edges.csv"));
+            edgesStream.AutoFlush = true;
+
+            var blockStatsStream = File.AppendText(
+                Path.Combine(_options.OutputDir, "blocks_stats.tsv"));
+            blockStatsStream.AutoFlush = true;
+
+           var txCache = new TxIndex(_options.OutputDir, cancellationToken);
+
+            var mapper = new AddressToIdMapper(
+                _options.AddressIdMappingFilename,
+                AddressToIdMapper.Deserialize(_options.AddressIdMappingFilename),
+                cancellationToken);
+
             // Create the pipeline.
             var linkOptions = new DataflowLinkOptions
             {
                 PropagateCompletion = true
             };
 
-            var getBlockTB = new TransformBlock<int, (Block, BlockStatistics)>(
-                new Func<int, Task<(Block, BlockStatistics)>>(GetBlock));
+            var getBlockTB = new TransformBlock<DataContainer, DataContainer>(
+                new Func<DataContainer, Task<DataContainer>>(GetBlock), new ExecutionDataflowBlockOptions()
+                {
+                    BoundedCapacity = 100,
+                    CancellationToken = cancellationToken, 
+                    MaxDegreeOfParallelism = 2,
+                });
 
-            var getGraphTB = new TransformBlock<(Block, BlockStatistics), (GraphBase, BlockStatistics)>(
-                new Func<(Block, BlockStatistics), Task<(GraphBase, BlockStatistics)>>(GetGraph));
+            var getGraphTB = new TransformBlock<DataContainer, DataContainer>(
+                new Func<DataContainer, Task<DataContainer>>(GetGraph));
 
-            var serializeTB = new ActionBlock<(GraphBase, BlockStatistics)>(
-                new Action<(GraphBase, BlockStatistics)>(Serialize));
+            var buildGraphTB = new TransformBlock<DataContainer, DataContainer>(
+                new Func<DataContainer, DataContainer>(BuildGraph));
 
+            var serializeTB = new ActionBlock<DataContainer>(
+                new Action<DataContainer>(Serialize),
+                new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 1 });
 
             getBlockTB.LinkTo(getGraphTB, linkOptions);
-            getGraphTB.LinkTo(serializeTB, linkOptions);
+            getGraphTB.LinkTo(buildGraphTB, linkOptions);
+            buildGraphTB.LinkTo(serializeTB, linkOptions);
 
-            for (int height = _options.LastProcessedBlock + 1; height < _options.ToExclusive; height++)
+            for (int height = _options.LastProcessedBlock + 1;
+                height < _options.ToExclusive;
+                height++)
             {
-                getBlockTB.Post(height);
+                var container = new DataContainer();
+                container.Stopwatch.Start();
+                container.BlockStatistics = new BlockStatistics(height);
+                container.EdgesStreamWriter = edgesStream;
+                container.BlockStatsStreamWriter = blockStatsStream;
+                container.TxCache = txCache;
+                container.CancellationToken = cancellationToken;
+                container.Mapper = mapper;
+
+                getBlockTB.Post(container);
             }
 
             getBlockTB.Complete();
-
             await serializeTB.Completion;
+
+            txCache.Dispose();
         }
 
-        private async Task<(Block, BlockStatistics)> GetBlock(int height)
+        private async Task<DataContainer> GetBlock(DataContainer c)
         {
-            return (null, null);
+            var blockHash = await _agent.GetBlockHash(c.BlockHeight);
+            var block = await _agent.GetBlock(blockHash);
+            c.Block = block;
+            return c;
         }
 
-        private async Task<(GraphBase, BlockStatistics)> GetGraph(
-            (Block block, BlockStatistics stats) item)
+        private async Task<DataContainer> GetGraph(DataContainer dc)
         {
-            return (null, null);
+            GraphBase graph = new(dc.BlockStatistics);
+            try
+            {
+                // TODO: move txCache to agent constructor. 
+                graph = await _agent.GetGraph(dc.Block, dc.TxCache, dc.BlockStatistics, dc.CancellationToken);
+                dc.GraphBase = graph;
+                return dc;
+                //Logger.LogBlockProcessStatus(BPS.ProcessTransactionsDone, stopwatch.Elapsed.TotalSeconds);
+            }
+            catch (OperationCanceledException)
+            {
+                //Logger.LogCancelledTasks(
+                //break;
+                // TODO: FIX ME. .................................
+                return dc;
+            }
         }
 
-        private void Serialize((GraphBase g, BlockStatistics stats) item)
+        private DataContainer BuildGraph(DataContainer c)
         {
+            c.GraphBase.MergeQueuedTxGraphs(c.CancellationToken);
+            return c;
+        }
 
+        private void Serialize(DataContainer c)
+        {
+            var csvBuilder = new StringBuilder();
+            foreach (var edge in c.GraphBase.Edges)
+                csvBuilder.AppendLine(
+                    string.Join(_delimiter, new string[]
+                    {
+                        c.Mapper.GetId(edge.Source).ToString(),
+                        c.Mapper.GetId(edge.Target).ToString(),
+                        edge.Value.ToString(),
+                        ((byte)edge.Type).ToString(),
+                        edge.Timestamp.ToString()
+                    }));
+            c.EdgesStreamWriter.Write(csvBuilder.ToString());
+
+            c.Stopwatch.Stop();
+            c.BlockStatistics.Runtime = c.Stopwatch.Elapsed;
+            c.BlockStatsStreamWriter.Write(c.BlockStatistics.ToString());
         }
 
         private async Task TraverseBlocksAsync2(
@@ -425,7 +505,10 @@ namespace BC2G
             if (!disposed)
             {
                 if (disposing)
+                {
                     Logger.Dispose();
+                    //_txCache.Dispose();
+                }
 
                 disposed = true;
             }
