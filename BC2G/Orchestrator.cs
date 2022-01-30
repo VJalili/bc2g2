@@ -217,24 +217,22 @@ namespace BC2G
                 cancellationToken);
 
             // Create the pipeline.
-            var linkOptions = new DataflowLinkOptions
-            {
-                PropagateCompletion = true
-            };
-
-            var blockOptions = new ExecutionDataflowBlockOptions
-            {
-                MaxDegreeOfParallelism = 5,
-                CancellationToken = cancellationToken
-            };
-
             var getBlockTB = new TransformBlock<DataContainer, DataContainer>(
                 new Func<DataContainer, Task<DataContainer>>(GetBlock),
-                blockOptions);
+                new ExecutionDataflowBlockOptions()
+                {
+                    MaxDegreeOfParallelism = 5,
+                    CancellationToken = cancellationToken,
+                    //BoundedCapacity = 10
+                });
 
             var getGraphTB = new TransformBlock<DataContainer, DataContainer>(
                 new Func<DataContainer, Task<DataContainer>>(GetGraph),
-                blockOptions);
+                new ExecutionDataflowBlockOptions()
+                {
+                    MaxDegreeOfParallelism = 5,
+                    CancellationToken = cancellationToken
+                });
 
             var buildGraphTB = new TransformBlock<DataContainer, DataContainer>(
                 new Func<DataContainer, DataContainer>(BuildGraph), 
@@ -251,6 +249,9 @@ namespace BC2G
                     CancellationToken = cancellationToken
                 });
 
+            var linkOptions = new DataflowLinkOptions()
+            { PropagateCompletion = true };
+
             getBlockTB.LinkTo(getGraphTB, linkOptions);
             getGraphTB.LinkTo(buildGraphTB, linkOptions);
             buildGraphTB.LinkTo(serializeTB, linkOptions);
@@ -259,14 +260,9 @@ namespace BC2G
                 height < _options.ToExclusive;
                 height++)
             {
-                var container = new DataContainer();
-                container.BlockHeight = height;
-                container.BlockStatistics = new BlockStatistics(height);
-                container.EdgesStreamWriter = edgesStream;
-                container.BlockStatsStreamWriter = blockStatsStream;
-                container.TxCache = txCache;
-                container.CancellationToken = cancellationToken;
-                container.Mapper = mapper;
+                var container = new DataContainer(
+                    height, edgesStream, blockStatsStream, 
+                    txCache, mapper, cancellationToken);
 
                 getBlockTB.Post(container);
             }

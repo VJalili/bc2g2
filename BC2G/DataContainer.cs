@@ -7,15 +7,40 @@ namespace BC2G
 {
     public class DataContainer
     {
-        public int BlockHeight { get; set; }
-        public Stopwatch Stopwatch { get; set; } = new Stopwatch();
-        public BlockStatistics BlockStatistics { get; set; }
-        public Block Block { get; set; }
-        public GraphBase GraphBase { get; set; }
-        public StreamWriter EdgesStreamWriter { get; set; }
-        public StreamWriter BlockStatsStreamWriter { get; set; }
-        public TxIndex TxCache { get; set; }
-        public AddressToIdMapper Mapper { set; get; }
-        public CancellationToken CancellationToken { get; set; }
+        public Block Block { set; get; }
+        public GraphBase GraphBase { set; get; }
+
+        public int BlockHeight { get; }
+        public Stopwatch Stopwatch { get; }
+        public BlockStatistics BlockStatistics { get; }
+        public StreamWriter EdgesStreamWriter { get; }
+        public StreamWriter BlockStatsStreamWriter { get; }
+        public TxIndex TxCache { get; }
+        public AddressToIdMapper Mapper { get; }
+        public CancellationToken CancellationToken { get; }
+
+        public DataContainer(
+            int blockHeight,
+            StreamWriter edgesStreamWriter,
+            StreamWriter blockStatsStreamWriter,
+            TxIndex txCache,
+            AddressToIdMapper mapper,
+            CancellationToken cancellationToken)
+        {
+            BlockHeight = blockHeight;
+            EdgesStreamWriter = edgesStreamWriter;
+            BlockStatsStreamWriter = blockStatsStreamWriter;
+            TxCache = txCache;
+            Mapper = mapper;
+            CancellationToken = cancellationToken;
+
+            Block = new Block();
+            BlockStatistics = new BlockStatistics(BlockHeight);
+            Stopwatch = new Stopwatch();
+
+            // This initializatin puts the object on the safer-side
+            // because this instance of GraphBase will not be used.
+            GraphBase = new GraphBase(BlockStatistics);
+        }
     }
 }
