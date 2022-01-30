@@ -237,11 +237,19 @@ namespace BC2G
                 blockOptions);
 
             var buildGraphTB = new TransformBlock<DataContainer, DataContainer>(
-                new Func<DataContainer, DataContainer>(BuildGraph), blockOptions);
+                new Func<DataContainer, DataContainer>(BuildGraph), 
+                new ExecutionDataflowBlockOptions()
+                {
+                    CancellationToken = cancellationToken
+                });
 
             var serializeTB = new ActionBlock<DataContainer>(
                 new Action<DataContainer>(Serialize),
-            new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 1 });
+                new ExecutionDataflowBlockOptions()
+                {
+                    MaxDegreeOfParallelism = 1,
+                    CancellationToken = cancellationToken
+                });
 
             getBlockTB.LinkTo(getGraphTB, linkOptions);
             getGraphTB.LinkTo(buildGraphTB, linkOptions);
@@ -252,6 +260,7 @@ namespace BC2G
                 height++)
             {
                 var container = new DataContainer();
+                container.BlockHeight = height;
                 container.BlockStatistics = new BlockStatistics(height);
                 container.EdgesStreamWriter = edgesStream;
                 container.BlockStatsStreamWriter = blockStatsStream;
