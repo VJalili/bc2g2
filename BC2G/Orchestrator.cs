@@ -221,23 +221,25 @@ namespace BC2G
                 new Func<DataContainer, Task<DataContainer>>(GetBlock),
                 new ExecutionDataflowBlockOptions()
                 {
+                    //BoundedCapacity = 2,
                     MaxDegreeOfParallelism = 5,
-                    CancellationToken = cancellationToken,
-                    //BoundedCapacity = 10
+                    CancellationToken = cancellationToken
                 });
 
             var getGraphTB = new TransformBlock<DataContainer, DataContainer>(
                 new Func<DataContainer, Task<DataContainer>>(GetGraph),
                 new ExecutionDataflowBlockOptions()
                 {
+                    //BoundedCapacity = 2,
                     MaxDegreeOfParallelism = 5,
                     CancellationToken = cancellationToken
                 });
 
             var buildGraphTB = new TransformBlock<DataContainer, DataContainer>(
-                new Func<DataContainer, DataContainer>(BuildGraph), 
+                new Func<DataContainer, DataContainer>(BuildGraph),
                 new ExecutionDataflowBlockOptions()
                 {
+                    MaxDegreeOfParallelism = 5,
                     CancellationToken = cancellationToken
                 });
 
@@ -292,18 +294,21 @@ namespace BC2G
             var blockHash = await _agent.GetBlockHash(c.BlockHeight);
             var block = await _agent.GetBlock(blockHash);
             c.Block = block;
+
+            Logger.Log($"Received block hash and data for block {c.BlockHeight}.");
             return c;
         }
 
-        private async Task<DataContainer> GetGraph(DataContainer dc)
+        private async Task<DataContainer> GetGraph(DataContainer c)
         {
-            GraphBase graph = new(dc.BlockStatistics);
+            GraphBase graph = new(c.BlockStatistics);
             try
             {
                 // TODO: move txCache to agent constructor. 
-                graph = await _agent.GetGraph(dc.Block, dc.TxCache, dc.BlockStatistics, dc.CancellationToken);
-                dc.GraphBase = graph;
-                return dc;
+                graph = await _agent.GetGraph(c.Block, c.TxCache, c.BlockStatistics, c.CancellationToken);
+                c.GraphBase = graph;
+                Logger.Log($"Received graph for block height {c.BlockHeight}.");
+                return c;
                 //Logger.LogBlockProcessStatus(BPS.ProcessTransactionsDone, stopwatch.Elapsed.TotalSeconds);
             }
             catch (OperationCanceledException)
@@ -311,13 +316,14 @@ namespace BC2G
                 //Logger.LogCancelledTasks(
                 //break;
                 // TODO: FIX ME. .................................
-                return dc;
+                return c;
             }
         }
 
         private DataContainer BuildGraph(DataContainer c)
         {
             c.GraphBase.MergeQueuedTxGraphs(c.CancellationToken);
+            Logger.Log($"Built graph for block height {c.BlockHeight}.");
             return c;
         }
 
@@ -339,6 +345,8 @@ namespace BC2G
             c.Stopwatch.Stop();
             c.BlockStatistics.Runtime = c.Stopwatch.Elapsed;
             c.BlockStatsStreamWriter.Write(c.BlockStatistics.ToString());
+
+            Logger.Log($"Serialized block height {c.BlockHeight}.");
         }
 
         private async Task TraverseBlocksAsync2(
