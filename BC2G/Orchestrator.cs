@@ -209,7 +209,7 @@ namespace BC2G
                 Path.Combine(_options.OutputDir, "blocks_stats.tsv"));
             blockStatsStream.AutoFlush = true;
 
-           var txCache = new TxIndex(_options.OutputDir, cancellationToken);
+            var txCache = new TxIndex(_options.OutputDir, cancellationToken);
 
             var mapper = new AddressToIdMapper(
                 _options.AddressIdMappingFilename,
@@ -224,7 +224,8 @@ namespace BC2G
 
             var blockOptions = new ExecutionDataflowBlockOptions
             {
-                MaxDegreeOfParallelism = 5
+                MaxDegreeOfParallelism = 5,
+                CancellationToken = cancellationToken
             };
 
             var getBlockTB = new TransformBlock<DataContainer, DataContainer>(
@@ -246,7 +247,7 @@ namespace BC2G
 
             var serializeTB = new ActionBlock<DataContainer>(
                 new Action<DataContainer>(Serialize), blockOptions);
-                //new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 1 });
+            //new ExecutionDataflowBlockOptions() { MaxDegreeOfParallelism = 1 });
 
             getBlockTB.LinkTo(getGraphTB, linkOptions);
             getGraphTB.LinkTo(buildGraphTB, linkOptions);
@@ -269,9 +270,22 @@ namespace BC2G
             }
 
             getBlockTB.Complete();
-            await serializeTB.Completion.ConfigureAwait(false);
+            try
+            {
+                serializeTB.Completion.Wait(cancellationToken);
+            }
+            catch (OperationCanceledException e)
+            {
 
-            txCache.Dispose();
+            }
+            catch (Exception e)
+            {
+
+            }
+            finally
+            {
+                txCache.Dispose();
+            }
         }
 
         private async Task<DataContainer> GetBlock(DataContainer c)
