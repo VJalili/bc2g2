@@ -222,7 +222,7 @@ namespace BC2G
 
             // Create the pipeline.
             var getBlockTB = new TransformBlock<DataContainer, DataContainer>(
-                new Func<DataContainer, Task<DataContainer>>(GetBlock),
+                GetBlock,
                 new ExecutionDataflowBlockOptions()
                 {
                     //BoundedCapacity = 2,
@@ -231,7 +231,7 @@ namespace BC2G
                 });
 
             var getGraphTB = new TransformBlock<DataContainer, DataContainer>(
-                new Func<DataContainer, Task<DataContainer>>(GetGraph),
+                GetGraph,
                 new ExecutionDataflowBlockOptions()
                 {
                     //BoundedCapacity = 2,
@@ -240,7 +240,7 @@ namespace BC2G
                 });
 
             var buildGraphTB = new TransformBlock<DataContainer, DataContainer>(
-                new Func<DataContainer, DataContainer>(BuildGraph),
+                BuildGraph,
                 new ExecutionDataflowBlockOptions()
                 {
                     MaxDegreeOfParallelism = 5,
@@ -248,7 +248,7 @@ namespace BC2G
                 });
 
             var serializeTB = new ActionBlock<DataContainer>(
-                new Action<DataContainer>(Serialize),
+                Serialize,
                 new ExecutionDataflowBlockOptions()
                 {
                     MaxDegreeOfParallelism = 1,

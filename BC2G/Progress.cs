@@ -6,6 +6,7 @@ namespace BC2G
     {
         private readonly int _from;
         private readonly int _to;
+        private readonly int _blocksCount;
         private int _processed;
 
         private const int _movinAvgWindow = 10;
@@ -15,6 +16,7 @@ namespace BC2G
         {
             _from = from;
             _to = to;
+            _blocksCount = _to - _from;
             _runtimeMovingAverage = new MovingAverage(_movinAvgWindow);
         }
 
@@ -31,7 +33,7 @@ namespace BC2G
 
         public override string ToString()
         {
-            return $"Processed {_processed:n0} / {_to-_from:n0}\t";
+            return $"Processed {_processed:n0} / {_blocksCount:n0}\t";
         }
     }
 }
