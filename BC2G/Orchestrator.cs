@@ -216,6 +216,10 @@ namespace BC2G
                 AddressToIdMapper.Deserialize(_options.AddressIdMappingFilename),
                 cancellationToken);
 
+            int from = _options.LastProcessedBlock + 1;
+            int to = _options.ToExclusive;
+            var progress = new Progress(from, to);
+
             // Create the pipeline.
             var getBlockTB = new TransformBlock<DataContainer, DataContainer>(
                 new Func<DataContainer, Task<DataContainer>>(GetBlock),
@@ -231,7 +235,7 @@ namespace BC2G
                 new ExecutionDataflowBlockOptions()
                 {
                     //BoundedCapacity = 2,
-                    MaxDegreeOfParallelism = 5,
+                    //MaxDegreeOfParallelism = 5,
                     CancellationToken = cancellationToken
                 });
 
@@ -258,12 +262,10 @@ namespace BC2G
             getGraphTB.LinkTo(buildGraphTB, linkOptions);
             buildGraphTB.LinkTo(serializeTB, linkOptions);
 
-            for (int height = _options.LastProcessedBlock + 1;
-                height < _options.ToExclusive;
-                height++)
+            for (int height = from; height < to; height++)
             {
                 var container = new DataContainer(
-                    height, edgesStream, blockStatsStream, 
+                    height, progress, edgesStream, blockStatsStream,
                     txCache, mapper, cancellationToken);
 
                 getBlockTB.Post(container);
@@ -295,7 +297,7 @@ namespace BC2G
             var block = await _agent.GetBlock(blockHash);
             c.Block = block;
 
-            Logger.Log($"Received block hash and data for block {c.BlockHeight}.");
+            //Logger.Log($"Received block hash and data for block {c.BlockHeight}.");
             return c;
         }
 
@@ -307,7 +309,7 @@ namespace BC2G
                 // TODO: move txCache to agent constructor. 
                 graph = await _agent.GetGraph(c.Block, c.TxCache, c.BlockStatistics, c.CancellationToken);
                 c.GraphBase = graph;
-                Logger.Log($"Received graph for block height {c.BlockHeight}.");
+                //Logger.Log($"Received graph for block height {c.BlockHeight}.");
                 return c;
                 //Logger.LogBlockProcessStatus(BPS.ProcessTransactionsDone, stopwatch.Elapsed.TotalSeconds);
             }
@@ -323,7 +325,7 @@ namespace BC2G
         private DataContainer BuildGraph(DataContainer c)
         {
             c.GraphBase.MergeQueuedTxGraphs(c.CancellationToken);
-            Logger.Log($"Built graph for block height {c.BlockHeight}.");
+            //Logger.Log($"Built graph for block height {c.BlockHeight}.");
             return c;
         }
 
@@ -346,7 +348,9 @@ namespace BC2G
             c.BlockStatistics.Runtime = c.Stopwatch.Elapsed;
             c.BlockStatsStreamWriter.Write(c.BlockStatistics.ToString());
 
-            Logger.Log($"Serialized block height {c.BlockHeight}.");
+            //c.Progress.IncrementProcessed();
+            c.Progress.RecordProcessed(c.Block.TransactionsCount, c.BlockStatistics.Runtime.TotalSeconds);
+            Logger.Log(c.Progress);
         }
 
         private async Task TraverseBlocksAsync2(

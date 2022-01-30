@@ -11,16 +11,18 @@ namespace BC2G
         public GraphBase GraphBase { set; get; }
 
         public int BlockHeight { get; }
-        public Stopwatch Stopwatch { get; }
         public BlockStatistics BlockStatistics { get; }
         public StreamWriter EdgesStreamWriter { get; }
         public StreamWriter BlockStatsStreamWriter { get; }
         public TxIndex TxCache { get; }
         public AddressToIdMapper Mapper { get; }
+        public Progress Progress { get; }
+        public Stopwatch Stopwatch { get; }
         public CancellationToken CancellationToken { get; }
 
         public DataContainer(
             int blockHeight,
+            Progress progress,
             StreamWriter edgesStreamWriter,
             StreamWriter blockStatsStreamWriter,
             TxIndex txCache,
@@ -28,6 +30,7 @@ namespace BC2G
             CancellationToken cancellationToken)
         {
             BlockHeight = blockHeight;
+            Progress = progress;
             EdgesStreamWriter = edgesStreamWriter;
             BlockStatsStreamWriter = blockStatsStreamWriter;
             TxCache = txCache;
