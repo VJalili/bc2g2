@@ -252,7 +252,6 @@ namespace BC2G
                 height++)
             {
                 var container = new DataContainer();
-                container.Stopwatch.Start();
                 container.BlockStatistics = new BlockStatistics(height);
                 container.EdgesStreamWriter = edgesStream;
                 container.BlockStatsStreamWriter = blockStatsStream;
@@ -284,6 +283,7 @@ namespace BC2G
 
         private async Task<DataContainer> GetBlock(DataContainer c)
         {
+            c.Stopwatch.Start();
             var blockHash = await _agent.GetBlockHash(c.BlockHeight);
             var block = await _agent.GetBlock(blockHash);
             c.Block = block;

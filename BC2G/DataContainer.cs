@@ -8,7 +8,7 @@ namespace BC2G
     public class DataContainer
     {
         public int BlockHeight { get; set; }
-        public Stopwatch Stopwatch { get; set; }=new Stopwatch();
+        public Stopwatch Stopwatch { get; set; } = new Stopwatch();
         public BlockStatistics BlockStatistics { get; set; }
         public Block Block { get; set; }
         public GraphBase GraphBase { get; set; }
