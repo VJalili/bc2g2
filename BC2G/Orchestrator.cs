@@ -221,12 +221,18 @@ namespace BC2G
             var progress = new Progress(from, to);
 
             // Create the pipeline.
+            var blockBuffer = new BufferBlock<DataContainer>(new DataflowBlockOptions
+            {
+                BoundedCapacity = 100,
+                CancellationToken = cancellationToken
+            });
+
             var getBlockTB = new TransformBlock<DataContainer, DataContainer>(
                 GetBlock,
                 new ExecutionDataflowBlockOptions()
                 {
-                    //BoundedCapacity = 2,
-                    MaxDegreeOfParallelism = 5,
+                    BoundedCapacity = 100,
+                    MaxDegreeOfParallelism = 2,//5,
                     CancellationToken = cancellationToken
                 });
 
@@ -234,8 +240,8 @@ namespace BC2G
                 GetGraph,
                 new ExecutionDataflowBlockOptions()
                 {
-                    //BoundedCapacity = 2,
-                    //MaxDegreeOfParallelism = 5,
+                    BoundedCapacity = 100,
+                    MaxDegreeOfParallelism = 2, //Environment.ProcessorCount,
                     CancellationToken = cancellationToken
                 });
 
@@ -243,7 +249,8 @@ namespace BC2G
                 BuildGraph,
                 new ExecutionDataflowBlockOptions()
                 {
-                    MaxDegreeOfParallelism = 5,
+                    //BoundedCapacity = 100,
+                    MaxDegreeOfParallelism = Environment.ProcessorCount,
                     CancellationToken = cancellationToken
                 });
 
@@ -251,6 +258,7 @@ namespace BC2G
                 Serialize,
                 new ExecutionDataflowBlockOptions()
                 {
+                    //BoundedCapacity = 100,
                     MaxDegreeOfParallelism = 1,
                     CancellationToken = cancellationToken
                 });
@@ -258,6 +266,7 @@ namespace BC2G
             var linkOptions = new DataflowLinkOptions()
             { PropagateCompletion = true };
 
+            blockBuffer.LinkTo(getBlockTB, linkOptions);
             getBlockTB.LinkTo(getGraphTB, linkOptions);
             getGraphTB.LinkTo(buildGraphTB, linkOptions);
             buildGraphTB.LinkTo(serializeTB, linkOptions);
@@ -268,10 +277,11 @@ namespace BC2G
                     height, progress, edgesStream, blockStatsStream,
                     txCache, mapper, cancellationToken);
 
-                getBlockTB.Post(container);
+                //getBlockTB.Post(container);
+                await blockBuffer.SendAsync(container);
             }
 
-            getBlockTB.Complete();
+            blockBuffer.Complete();
             try
             {
                 serializeTB.Completion.Wait(cancellationToken);
@@ -292,24 +302,33 @@ namespace BC2G
 
         private async Task<DataContainer> GetBlock(DataContainer c)
         {
-            c.Stopwatch.Start();
-            var blockHash = await _agent.GetBlockHash(c.BlockHeight);
-            var block = await _agent.GetBlock(blockHash);
-            c.Block = block;
+            try
+            {
+                Logger.Log($"Start getting block info {c.BlockHeight}.");
+                c.Stopwatch.Start();
+                var blockHash = await _agent.GetBlockHash(c.BlockHeight);
+                var block = await _agent.GetBlock(blockHash);
+                c.Block = block;
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
 
-            //Logger.Log($"Received block hash and data for block {c.BlockHeight}.");
+            Logger.Log($"Received block hash and data for block {c.BlockHeight}.");
             return c;
         }
 
         private async Task<DataContainer> GetGraph(DataContainer c)
-        {
-            GraphBase graph = new(c.BlockStatistics);
+        {            
             try
             {
+                Logger.Log($"Start getting block {c.BlockHeight}.");
+                GraphBase graph = new(c.BlockStatistics);
                 // TODO: move txCache to agent constructor. 
                 graph = await _agent.GetGraph(c.Block, c.TxCache, c.BlockStatistics, c.CancellationToken);
                 c.GraphBase = graph;
-                //Logger.Log($"Received graph for block height {c.BlockHeight}.");
+                Logger.Log($"Received graph for block height {c.BlockHeight}.");
                 return c;
                 //Logger.LogBlockProcessStatus(BPS.ProcessTransactionsDone, stopwatch.Elapsed.TotalSeconds);
             }
@@ -324,32 +343,48 @@ namespace BC2G
 
         private DataContainer BuildGraph(DataContainer c)
         {
-            c.GraphBase.MergeQueuedTxGraphs(c.CancellationToken);
-            //Logger.Log($"Built graph for block height {c.BlockHeight}.");
+            try
+            {
+                Logger.Log($"Start building graph {c.BlockHeight}.");
+                c.GraphBase.MergeQueuedTxGraphs(c.CancellationToken);
+                Logger.Log($"Built graph for block height {c.BlockHeight}.");
+            }
+            catch (Exception e)
+            {
+
+            }
             return c;
         }
 
         private void Serialize(DataContainer c)
         {
-            var csvBuilder = new StringBuilder();
-            foreach (var edge in c.GraphBase.Edges)
-                csvBuilder.AppendLine(
-                    string.Join(_delimiter, new string[]
-                    {
+            try
+            {
+                Logger.Log($"started serialization for {c.BlockHeight}");
+                var csvBuilder = new StringBuilder();
+                foreach (var edge in c.GraphBase.Edges)
+                    csvBuilder.AppendLine(
+                        string.Join(_delimiter, new string[]
+                        {
                         c.Mapper.GetId(edge.Source).ToString(),
                         c.Mapper.GetId(edge.Target).ToString(),
                         edge.Value.ToString(),
                         ((byte)edge.Type).ToString(),
                         edge.Timestamp.ToString()
-                    }));
-            c.EdgesStreamWriter.Write(csvBuilder.ToString());
+                        }));
+                c.EdgesStreamWriter.Write(csvBuilder.ToString());
 
-            c.Stopwatch.Stop();
-            c.BlockStatistics.Runtime = c.Stopwatch.Elapsed;
-            c.BlockStatsStreamWriter.Write(c.BlockStatistics.ToString());
+                c.Stopwatch.Stop();
+                c.BlockStatistics.Runtime = c.Stopwatch.Elapsed;
+                c.BlockStatsStreamWriter.Write(c.BlockStatistics.ToString());
 
-            //c.Progress.IncrementProcessed();
-            c.Progress.RecordProcessed(c.Block.TransactionsCount, c.BlockStatistics.Runtime.TotalSeconds);
+                //c.Progress.IncrementProcessed();
+                c.Progress.RecordProcessed(c.Block.TransactionsCount, c.BlockStatistics.Runtime.TotalSeconds);
+            }
+            catch (Exception ex)
+            {
+
+            }
             Logger.Log(c.Progress);
         }
 

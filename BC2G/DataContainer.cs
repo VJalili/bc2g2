@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace BC2G
 {
-    public class DataContainer
+    public class DataContainer : IDisposable
     {
         public Block Block { set; get; }
         public GraphBase GraphBase { set; get; }
@@ -44,6 +44,11 @@ namespace BC2G
             // This initializatin puts the object on the safer-side
             // because this instance of GraphBase will not be used.
             GraphBase = new GraphBase(BlockStatistics);
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 }
