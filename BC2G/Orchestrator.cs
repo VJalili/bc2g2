@@ -198,7 +198,7 @@ namespace BC2G
             }
         }
 
-        private async Task TraverseBlocksAsync(BitcoinAgent agent, CancellationToken cancellationToken)
+        private async Task TraverseBlocksAsync_tpl(BitcoinAgent agent, CancellationToken cancellationToken)
         {
             // Declear resource shared across every block in the pipeline.
             var edgesStream = File.AppendText(
@@ -232,7 +232,7 @@ namespace BC2G
                 new ExecutionDataflowBlockOptions()
                 {
                     BoundedCapacity = 100,
-                    MaxDegreeOfParallelism = 2,//5,
+                    MaxDegreeOfParallelism = 25,//5,
                     CancellationToken = cancellationToken
                 });
 
@@ -241,7 +241,7 @@ namespace BC2G
                 new ExecutionDataflowBlockOptions()
                 {
                     BoundedCapacity = 100,
-                    MaxDegreeOfParallelism = 2, //Environment.ProcessorCount,
+                    MaxDegreeOfParallelism = 25, //Environment.ProcessorCount,
                     CancellationToken = cancellationToken
                 });
 
@@ -249,8 +249,8 @@ namespace BC2G
                 BuildGraph,
                 new ExecutionDataflowBlockOptions()
                 {
-                    //BoundedCapacity = 100,
-                    MaxDegreeOfParallelism = Environment.ProcessorCount,
+                    BoundedCapacity = 100,
+                    MaxDegreeOfParallelism = Environment.ProcessorCount * 8,
                     CancellationToken = cancellationToken
                 });
 
@@ -271,6 +271,7 @@ namespace BC2G
             getGraphTB.LinkTo(buildGraphTB, linkOptions);
             buildGraphTB.LinkTo(serializeTB, linkOptions);
 
+            from = 719000;
             for (int height = from; height < to; height++)
             {
                 var container = new DataContainer(
@@ -388,7 +389,7 @@ namespace BC2G
             Logger.Log(c.Progress);
         }
 
-        private async Task TraverseBlocksAsync2(
+        private async Task TraverseBlocksAsync(
             BitcoinAgent agent, CancellationToken cancellationToken)
         {
             // TODO: maybe this method can be implemented better/simpler 
@@ -418,6 +419,18 @@ namespace BC2G
                 pBlockStat,
                 cancellationToken);
 
+            /// Multiple stategies for concurrently running processing
+            /// blocks are tested, among them are paralle.For,
+            /// parallel.Foreach, and Tasks.Dataflow (TPL dataflow).
+            /// They all add additional complexity with minor performance
+            /// improvement, and sometimes (mainly with TPL), significant
+            /// slow-down. 
+            /// CPU profiling shows the hottest line is when sending/getting
+            /// requests to/from the bitcoin clinet. Hence, the slowest 
+            /// part of the application is getting data from the 
+            /// Bitcoin agent. And through experiments, submitting more
+            /// concurrent requests does not speed up. 
+
             // Parallelizing block traversal has more disadvantages than
             // advantages it could bring. One draw back is related to
             // caching transactions, where of a block are cached for faster
@@ -443,8 +456,9 @@ namespace BC2G
             Logger.InitBlocksTraverseLog(_options.FromInclusive, _options.ToExclusive);
             AsyncConsole.BookmarkCurrentLine();
 
+            /*
             var blockHeightQueue = new ConcurrentQueue<int>();
-            for(int h = _options.LastProcessedBlock + 1; h< _options.ToExclusive; h++)
+            for (int h = _options.LastProcessedBlock + 1; h < _options.ToExclusive; h++)
                 blockHeightQueue.Enqueue(h);
 
 
@@ -452,9 +466,9 @@ namespace BC2G
             {
                 blockHeightQueue.TryDequeue(out var h);
                 ProcessBlock(agent, gBuffer, serializer, txCache, h, individualBlocksDir, cancellationToken).Wait();
-            });
+            });*/
 
-            for (int height = _options.LastProcessedBlock + 1; height < _options.ToExclusive; height++)
+            for (int height = 719000 /*_options.LastProcessedBlock + 1*/; height < _options.ToExclusive; height++)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
