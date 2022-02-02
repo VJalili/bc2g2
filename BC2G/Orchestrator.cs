@@ -448,7 +448,6 @@ namespace BC2G
             await JsonSerializer<Options>.SerializeAsync(_options, _statusFilename);
         }
 
-
         private async Task TraverseBlocksAsync(
             BitcoinAgent agent, CancellationToken cancellationToken)
         {
