@@ -517,18 +517,6 @@ namespace BC2G
             Logger.InitBlocksTraverseLog(_options.FromInclusive, _options.ToExclusive);
             AsyncConsole.BookmarkCurrentLine();
 
-            /*
-            var blockHeightQueue = new ConcurrentQueue<int>();
-            for (int h = _options.LastProcessedBlock + 1; h < _options.ToExclusive; h++)
-                blockHeightQueue.Enqueue(h);
-
-
-            Parallel.For(0, blockHeightQueue.Count, i =>
-            {
-                blockHeightQueue.TryDequeue(out var h);
-                ProcessBlock(agent, gBuffer, serializer, txCache, h, individualBlocksDir, cancellationToken).Wait();
-            });*/
-
             for (int height = 719000 /*_options.LastProcessedBlock + 1*/; height < _options.ToExclusive; height++)
             {
                 if (cancellationToken.IsCancellationRequested)
