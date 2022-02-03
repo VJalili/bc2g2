@@ -449,7 +449,6 @@ namespace BC2G
         }
 
 
-
         private async Task TraverseBlocksAsync(
             BitcoinAgent agent, CancellationToken cancellationToken)
         {
