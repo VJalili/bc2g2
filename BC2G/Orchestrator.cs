@@ -199,11 +199,6 @@ namespace BC2G
         private async Task TraverseBlocksAsync(
             BitcoinAgent agent, CancellationToken cancellationToken)
         {
-            // TODO: maybe this method can be implemented better/simpler 
-            // using Task Parallel Library (TPL); that can ideally replace
-            // the Persistent* types, and give a more natural flow to the
-            // current process.
-
             var individualBlocksDir = Path.Combine(_options.OutputDir, "individual_blocks");
             if (_options.CreatePerBlockFiles && !Directory.Exists(individualBlocksDir))
                 Directory.CreateDirectory(individualBlocksDir);
@@ -226,37 +221,6 @@ namespace BC2G
                 pBlockStat,
                 cancellationToken);
 
-            // Multiple stategies for concurrently running processing
-            // blocks are tested, among them are Paralle.For,
-            // Parallel.Foreach, and Tasks.Dataflow (TPL dataflow).
-            // They all add additional complexity with minor performance
-            // improvement, and sometimes (mainly with TPL), significant
-            // slow-down. 
-            // CPU profiling shows the hottest line is when sending/getting
-            // requests to/from the bitcoin clinet. Hence, the slowest 
-            // part of the application is getting data from the 
-            // Bitcoin agent. And through experiments, submitting more
-            // concurrent requests does not speed up. 
-
-            // Parallelizing block traversal has more disadvantages than
-            // advantages it could bring. One draw back is related to
-            // caching transactions, where of a block are cached for faster
-            // processing of subsequent blocks, however, when parallelized
-            // this optimization may not be fully applicable. For instance,
-            // consider traversing blocks 0-200 and the parallelizer
-            // partitioner to split the interval to thread_1: 0-100 and
-            // thread_2: 100-200. If blocks 100-200 are referencing
-            // transactions in blocks 0-100, those transactions may not
-            // be in cache yet, hence, BitCoinAgent will need to query
-            // Bitcoin client for those transactions, which is considerably
-            // slower than using the built-in cache. Partitioner can be
-            // adjusted to assign threads as thread_1:0, thread_2:1,
-            // thread_1:2, thread_2:3, and so on. This might suffer less
-            // than the previous partitioning, and a good techniuqe to
-            // implement it is TPL. However, it needs to be tested
-            // if/how-much performance optimization it delivers and if
-            // it balaces with complications of implementing it.
-
             Logger.Log(
                 $"Traversing blocks [{_options.FromInclusive:n0}, " +
                 $"{_options.ToExclusive:n0}):", writeLine: true);
@@ -272,6 +236,9 @@ namespace BC2G
                 MaxDegreeOfParallelism = _options.MaxConcurrentBlocks
             };
 
+            // Have tested TPL dataflow as alternative to Parallel.For,
+            // it adds more complexity with little performance improvements,
+            // and in some cases, slower than Parallel.For and sequential traversal.
             Parallel.For(0, blockHeightQueue.Count, parallelOptions, (i, state) =>
             {
                 if (cancellationToken.IsCancellationRequested)
