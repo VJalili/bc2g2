@@ -17,13 +17,13 @@ namespace BC2G
 
         private readonly Logger _logger;
 
-        private readonly TxIndex _txCache;
+        private readonly TxCache _txCache;
 
         private readonly CancellationToken _cT;
 
         private bool _disposed = false;
 
-        public BitcoinAgent(HttpClient client, TxIndex txCache, Logger logger, CancellationToken ct)
+        public BitcoinAgent(HttpClient client, TxCache txCache, Logger logger, CancellationToken ct)
         {
             _client = client;
             _txCache = txCache;

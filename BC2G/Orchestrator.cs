@@ -142,7 +142,7 @@ namespace BC2G
             {
                 agent = new BitcoinAgent(
                     _client,
-                    new TxIndex(_options.OutputDir, cT),
+                    new TxCache(_options.OutputDir, cT),
                     Logger,
                     cT);
 
