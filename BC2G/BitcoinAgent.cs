@@ -103,12 +103,12 @@ namespace BC2G
 
             var graph = new BlockGraph(height);
             
-            _logger.Log($"Getting block hash; height `{height}`.");
+            _logger.Log($"Getting block hash; height {height}.");
             var blockHash = await GetBlockHash(height);
 
             if (ct.IsCancellationRequested) throw new OperationCanceledException();
 
-            _logger.Log($"Getting block; height: `{height}`.");
+            _logger.Log($"Getting block; height: {height}.");
             var block = await GetBlock(blockHash);
 
             // See the following BIP on using `mediantime` instead of `time`.
@@ -117,7 +117,7 @@ namespace BC2G
 
             if (ct.IsCancellationRequested) throw new OperationCanceledException();
 
-            _logger.Log($"Getting graph; height: `{height}`.");
+            _logger.Log($"Getting graph; height: {height}.");
             await ProcessTransactions(graph, block, txCache, ct);
 
             return graph;
