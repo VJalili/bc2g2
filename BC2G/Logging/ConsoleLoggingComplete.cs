@@ -18,17 +18,8 @@
 
         public override void Log(int height)
         {
-            string[] msgs = new[]
-            {
-                $"\tCurrent:\t{height,10:n0}",
-                $"\tCompleted:\t{Completed,10:n0}/{Total:n0} ({Percentage:f2}%)",
-                $"\tBlock Rage:\t{BlockRuntimeMovingAvg.Speed,10:n0} bps",
-                $"\tEdge Rage:\t{EdgeRuntimeMovingAvg.Speed,10:n0} eps",
-                $"\tNodes:\t{NodesCount,10:n0}",
-                $"\tEdges:\t{EdgesCount,10:n0}"
-            };
-
-            AsyncConsole.WriteLines(msgs, _colors);
+            base.Log(height);
+            Log();
         }
 
         public override void Log(
@@ -38,7 +29,24 @@
             double runtime)
         {
             base.Log(height, allNodesCount, addedEdgesCount, runtime);
-            Log(height);
+            Log();
+        }
+
+        private void Log()
+        {
+            // Do not use tab (\t) since the length of each string
+            // is used to determine how many blank spaces to add or
+            // when to truncate the line w.r.t console window width.
+            string[] msgs = new[]
+            {
+                $"\r    Active Blocks: {ActiveBlocks}",
+                $"\r    Completed:     {Completed,10:n0}/{Total:n0} ({Percentage:f2}%)",
+                $"\r    Block Rage:    {BlockRuntimeMovingAvg.Speed,10:n0} bps",
+                $"\r    Edge Rage:     {EdgeRuntimeMovingAvg.Speed,10:n0} eps",
+                $"\r    Nodes:         {NodesCount,10:n0}",
+                $"\r    Edges:         {EdgesCount,10:n0}"
+            };
+            AsyncConsole.WriteLines(msgs, _colors);
         }
     }
 }

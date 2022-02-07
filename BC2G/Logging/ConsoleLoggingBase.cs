@@ -1,4 +1,6 @@
-﻿namespace BC2G.Logging
+﻿using System.Collections.Concurrent;
+
+namespace BC2G.Logging
 {
     public class ConsoleLoggingBase
     {
@@ -18,10 +20,22 @@
         public int EdgesCount { get { return _edgesCount; } }
         private int _edgesCount;
 
+        public string ActiveBlocks
+        {
+            get
+            {
+                return
+                    $"{_activeBlocks.Keys.Count,10}: " +
+                    $"{string.Join(", ", _activeBlocks.Keys)}";
+            }
+        }
+
         public MovingAverage BlockRuntimeMovingAvg { get; }
         public MovingAverage EdgeRuntimeMovingAvg { get; }
 
         private const string _cancelling = "Cancelling ... do not turn off your computer.";
+
+        private readonly ConcurrentDictionary<int, bool> _activeBlocks = new();
 
         public ConsoleLoggingBase(int fromInclusive, int toExclusive, int templateLinesCount)
         {
@@ -39,7 +53,9 @@
         }
 
         public virtual void Log(int height)
-        { }
+        {
+            _activeBlocks.TryAdd(height, true);
+        }
 
         public virtual void Log(
             int height, 
@@ -47,6 +63,8 @@
             int addedEdgesCount, 
             double runtime)
         {
+            _activeBlocks.TryRemove(height, out bool _);
+
             Interlocked.Increment(ref _completed);
             Interlocked.Add(ref _edgesCount, addedEdgesCount);
             _nodesCount = allNodesCount;
