@@ -72,13 +72,25 @@ namespace BC2G.Logging
             });
         }
 
-        public static void Write(string value, ConsoleColor color)
+        public static void Write(string value, ConsoleColor color, int lineOffset = 1)
         {
             _actions.Add(() =>
             {
-                Console.ForegroundColor = color;
-                Console.Write(value);
-                Console.ResetColor();
+                if (Console.CursorTop != BookmarkedLine + 1)
+                {
+                    var (Left, Top) = Console.GetCursorPosition();
+                    Console.SetCursorPosition(0, BookmarkedLine + lineOffset);
+                    Console.ForegroundColor = color;
+                    Console.Write(value);
+                    Console.ResetColor();
+                    Console.SetCursorPosition(Left, Top);
+                }
+                else
+                {
+                    Console.ForegroundColor = color;
+                    Console.Write(value);
+                    Console.ResetColor();
+                }
             });
         }
 

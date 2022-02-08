@@ -2,7 +2,7 @@
 
 namespace BC2G.Logging
 {
-    public class ConsoleLoggingBase
+    public abstract class ConsoleLoggingBase
     {
         public int MovingAvgWindowSize { set; get; } = 10;
 
@@ -48,6 +48,7 @@ namespace BC2G.Logging
             BlockRuntimeMovingAvg = new MovingAverage(MovingAvgWindowSize);
             EdgeRuntimeMovingAvg = new MovingAverage(MovingAvgWindowSize);
 
+            Console.CursorVisible = false;
             AsyncConsole.BookmarkCurrentLine();
             AsyncConsole.WriteLine("");
             for (int i = 0; i <= templateLinesCount; i++)
@@ -57,6 +58,7 @@ namespace BC2G.Logging
         public virtual string Log(int height)
         {
             _activeBlocks.TryAdd(height, true);
+            ToConsole();
             return $"Started processing block {height}.";
         }
 
@@ -75,6 +77,8 @@ namespace BC2G.Logging
             BlockRuntimeMovingAvg.Add(runtime);
             EdgeRuntimeMovingAvg.Add(runtime / addedEdgesCount);
 
+            ToConsole();
+
             return
                 $"Active:{ActiveBlocksCount};" +
                 $"Completed:{Completed}/{Total};" +
@@ -83,6 +87,8 @@ namespace BC2G.Logging
                 $"N:{NodesCount};" +
                 $"E:{EdgesCount}.";
         }
+
+        protected abstract void ToConsole();
 
         public virtual string LogCancelling()
         {

@@ -14,27 +14,11 @@
 
         public ConsoleLoggingComplete(int fromInclusive, int toExclusive) :
             base(fromInclusive, toExclusive, 6)
-        { }
-
-        public override string Log(int height)
         {
-            var m = base.Log(height);
-            Log();
-            return m;
+            Console.CursorVisible = false;
         }
 
-        public override string Log(
-            int height,
-            int allNodesCount,
-            int addedEdgesCount,
-            double runtime)
-        {
-            var m = base.Log(height, allNodesCount, addedEdgesCount, runtime);
-            Log();
-            return m;
-        }
-
-        private void Log()
+        protected override void ToConsole()
         {
             // Do not use tab (\t) since the length of each string
             // is used to determine how many blank spaces to add or

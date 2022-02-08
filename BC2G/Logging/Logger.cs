@@ -10,6 +10,8 @@ namespace BC2G.Logging
     {
         public string MaxLogFileSize { get; } = "2GB";
 
+        public ConsoleLoggingInterface ConsoleLoggingInterface { get; }
+
         private readonly ILog log;
         private readonly string _name;
         private readonly string _repository;
@@ -24,7 +26,7 @@ namespace BC2G.Logging
             string maxLogFileSize)
         {
             MaxLogFileSize = maxLogFileSize;
-            Console.CursorVisible = false;
+            ConsoleLoggingInterface = ConsoleLoggingInterface.Minimal;
 
             _name = name;
             _repository = repository;
@@ -60,7 +62,15 @@ namespace BC2G.Logging
         
         public void InitBlocksTraverse(int from, int to)
         {
-            _consoleLogging = new ConsoleLoggingComplete(from, to);
+            switch(ConsoleLoggingInterface)
+            {
+                case ConsoleLoggingInterface.Minimal:
+                    _consoleLogging = new ConsoleLoggingMinimal(from, to);
+                    break;
+                case ConsoleLoggingInterface.Complete:
+                    _consoleLogging = new ConsoleLoggingComplete(from, to);
+                    break;
+            }
         }
 
         public void Log(string message, bool writeLine = true)
