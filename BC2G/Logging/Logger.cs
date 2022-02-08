@@ -86,12 +86,12 @@ namespace BC2G.Logging
         
         public void LogStartProcessingBlock(int blockHeight)
         {
-            _consoleLogging.Log(blockHeight);
+            log.Info(_consoleLogging.Log(blockHeight));
         }
 
         public void LogFinishProcessingBlock(int height, int allNodesCount, int addedEdgesCount, double runtime)
         {
-            _consoleLogging.Log(height, allNodesCount, addedEdgesCount, runtime);
+            log.Info(_consoleLogging.Log(height, allNodesCount, addedEdgesCount, runtime));
         }
 
         public void LogCancelling()

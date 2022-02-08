@@ -30,6 +30,8 @@ namespace BC2G.Logging
             }
         }
 
+        public int ActiveBlocksCount { get { return _activeBlocks.Count; } }
+
         public MovingAverage BlockRuntimeMovingAvg { get; }
         public MovingAverage EdgeRuntimeMovingAvg { get; }
 
@@ -52,12 +54,13 @@ namespace BC2G.Logging
                 AsyncConsole.WriteLine("");
         }
 
-        public virtual void Log(int height)
+        public virtual string Log(int height)
         {
             _activeBlocks.TryAdd(height, true);
+            return $"Started processing block {height}.";
         }
 
-        public virtual void Log(
+        public virtual string Log(
             int height, 
             int allNodesCount, 
             int addedEdgesCount, 
@@ -71,6 +74,14 @@ namespace BC2G.Logging
 
             BlockRuntimeMovingAvg.Add(runtime);
             EdgeRuntimeMovingAvg.Add(runtime / addedEdgesCount);
+
+            return
+                $"Active:{ActiveBlocksCount};" +
+                $"Completed:{Completed}/{Total};" +
+                $"{BlockRuntimeMovingAvg.Speed}bps;" +
+                $"{EdgeRuntimeMovingAvg.Speed}eps;" +
+                $"N:{NodesCount};" +
+                $"E:{EdgesCount}.";
         }
 
         public virtual string LogCancelling()

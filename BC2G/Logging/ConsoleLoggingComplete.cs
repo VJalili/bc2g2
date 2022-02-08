@@ -16,20 +16,22 @@
             base(fromInclusive, toExclusive, 6)
         { }
 
-        public override void Log(int height)
+        public override string Log(int height)
         {
-            base.Log(height);
+            var m = base.Log(height);
             Log();
+            return m;
         }
 
-        public override void Log(
+        public override string Log(
             int height,
             int allNodesCount,
             int addedEdgesCount,
             double runtime)
         {
-            base.Log(height, allNodesCount, addedEdgesCount, runtime);
+            var m = base.Log(height, allNodesCount, addedEdgesCount, runtime);
             Log();
+            return m;
         }
 
         private void Log()
