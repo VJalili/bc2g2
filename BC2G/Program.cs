@@ -54,6 +54,8 @@ namespace BC2G
                     (sender, e) => CancelKeyPressHandler(
                         e, _tokenSource, orchestrator.Logger));
 
+                AsyncConsole.CancellationToken = cancellationToken;
+
                 success = orchestrator.RunAsync(cancellationToken).Result;
             }
             catch (Exception e)
