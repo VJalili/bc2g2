@@ -4,7 +4,7 @@ namespace BC2G.Logging
 {
     public class ConsoleLoggingBase
     {
-        public int MovingAvgWindowSize { set; get; } = 20;
+        public int MovingAvgWindowSize { set; get; } = 10;
 
         public int FromInclusive { get; }
         public int ToExclusive { get; }
@@ -25,7 +25,7 @@ namespace BC2G.Logging
             get
             {
                 return
-                    $"{_activeBlocks.Keys.Count,10}: " +
+                    $"{_activeBlocks.Keys.Count,9}: " +
                     $"{string.Join(", ", _activeBlocks.Keys)}";
             }
         }
@@ -41,7 +41,7 @@ namespace BC2G.Logging
         {
             FromInclusive = fromInclusive;
             ToExclusive = toExclusive;
-            Total = ToExclusive - FromInclusive;
+            Total = ToExclusive - FromInclusive - 1;
 
             BlockRuntimeMovingAvg = new MovingAverage(MovingAvgWindowSize);
             EdgeRuntimeMovingAvg = new MovingAverage(MovingAvgWindowSize);
