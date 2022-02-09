@@ -48,7 +48,11 @@ namespace BC2G.Logging
             BlockRuntimeMovingAvg = new MovingAverage(MovingAvgWindowSize);
             EdgeRuntimeMovingAvg = new MovingAverage(MovingAvgWindowSize);
 
-            Console.CursorVisible = false;
+            // The exception is thrown with the message 'The handle is invalid.'
+            // only when running the tests, because Xunit does not have a console.
+            try { Console.CursorVisible = false; }
+            catch (IOException) { }
+
             AsyncConsole.BookmarkCurrentLine();
             AsyncConsole.WriteLine("");
             for (int i = 0; i <= templateLinesCount; i++)

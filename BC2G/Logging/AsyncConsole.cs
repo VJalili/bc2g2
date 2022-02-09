@@ -131,7 +131,6 @@ namespace BC2G.Logging
             {
                 var (currentLeft, currentTop) = Console.GetCursorPosition();
                 Console.SetCursorPosition(0, BookmarkedLine + cursorTopOffset);
-                Console.CursorVisible = false;
                 for (int i = 0; i < msgs.Length; i++)
                 {
                     Console.ForegroundColor = colors[i];
@@ -177,7 +176,13 @@ namespace BC2G.Logging
 
         public static void BookmarkCurrentLine()
         {
-            _actions.Add(() => BookmarkedLine = Console.CursorTop);
+            _actions.Add(() =>
+            {
+                // The exception is thrown with the message 'The handle is invalid.'
+                // only when running the tests, because Xunit does not have a console.
+                try { BookmarkedLine = Console.CursorTop; }
+                catch (IOException) { }
+            });
         }
 
         public static void MoveCursorTo(int left, int top)

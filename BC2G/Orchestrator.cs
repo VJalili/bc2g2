@@ -227,9 +227,10 @@ namespace BC2G
                 $"{_options.ToExclusive:n0}):", writeLine: true);
 
             // test:
+            /*
             _options.FromInclusive = 0;//700000;
             _options.LastProcessedBlock = _options.FromInclusive;
-            _options.ToExclusive = 700005;
+            _options.ToExclusive = 700005;*/
 
             Logger.InitBlocksTraverse(_options.FromInclusive, _options.ToExclusive);
 

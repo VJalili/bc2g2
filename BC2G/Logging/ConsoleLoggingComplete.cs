@@ -14,9 +14,7 @@
 
         public ConsoleLoggingComplete(int fromInclusive, int toExclusive) :
             base(fromInclusive, toExclusive, 6)
-        {
-            Console.CursorVisible = false;
-        }
+        { }
 
         protected override void ToConsole()
         {
