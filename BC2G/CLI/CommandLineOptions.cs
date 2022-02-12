@@ -225,12 +225,11 @@ namespace BC2G.CLI
                 _statusFilename = Path.Combine(output, _statusFilename);
             }
 
-            var aimFilename = string.Empty;
             if (_addressIdMappingFilenameOption.HasValue())
             {
                 try
                 {
-                    aimFilename =
+                    _parsedOptions.AddressIdMappingFilename =
                         Path.GetFullPath(_addressIdMappingFilenameOption.Value());
                 }
                 catch (Exception e)
@@ -243,10 +242,9 @@ namespace BC2G.CLI
             }
             else
             {
-                aimFilename = Path.Combine(
-                    output, aimFilename);
+                _parsedOptions.AddressIdMappingFilename =
+                    Path.Combine(output, _parsedOptions.AddressIdMappingFilename);
             }
-            _parsedOptions.AddressIdMappingFilename = aimFilename;
 
 
             if (_createPerBlockFilesOption.HasValue())
