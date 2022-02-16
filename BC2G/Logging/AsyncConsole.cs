@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System;
 
 namespace BC2G.Logging
 {
