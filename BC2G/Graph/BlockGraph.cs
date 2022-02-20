@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 
 namespace BC2G.Graph
 {
-    public class BlockGraph : GraphBase
+    public class BlockGraph : GraphBase, IEquatable<BlockGraph>
     {
         public int Height { get; }
         public uint Timestamp { get; set; }
@@ -126,6 +126,44 @@ namespace BC2G.Graph
             _nodes.TryAdd(edge.Source, 0);
             _nodes.TryAdd(edge.Target, 0);
             Stats.IncrementEdgeType(edge.Type);
+        }
+
+        public bool Equals(BlockGraph? other)
+        {
+            if (other == null)
+                return false;
+
+            if (ReferenceEquals(this, other))
+                return true;
+
+            var otherNodes = other.Nodes;
+            if (_nodes.Count != otherNodes.Count)
+                return false;
+
+            var otherEdges = other.Edges;
+            if (_edges.Count != otherEdges.Count)
+                return false;
+
+            var equal = Enumerable.SequenceEqual(
+                Nodes.OrderBy(x => x),
+                otherNodes.OrderBy(x => x));
+
+            if (!equal)
+                return false;
+
+            var hashes = new HashSet<int>(_edges.Keys);
+            foreach (var edge in otherEdges)
+                /// Note that this hash method does not include
+                /// edge value in the computation of hash key;
+                /// this is in accordance with home with _edges.Keys
+                /// are generated in the AddEdge method.
+                if (!hashes.Remove(edge.GetHashCode(true)))
+                    return false;
+
+            if (hashes.Count > 0)
+                return false;
+
+            return true;
         }
     }
 }
