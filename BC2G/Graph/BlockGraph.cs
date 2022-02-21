@@ -165,5 +165,10 @@ namespace BC2G.Graph
 
             return true;
         }
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as BlockGraph);
+        }
     }
 }
