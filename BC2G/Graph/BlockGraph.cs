@@ -170,5 +170,10 @@ namespace BC2G.Graph
         {
             return Equals(obj as BlockGraph);
         }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
