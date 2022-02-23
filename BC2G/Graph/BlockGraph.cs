@@ -8,6 +8,7 @@ namespace BC2G.Graph
         public int Height { get; }
         public uint Timestamp { get; set; }
         public GraphStatistics Stats { set; get; }
+
         public ReadOnlyCollection<Edge> Edges
         {
             get
@@ -15,6 +16,8 @@ namespace BC2G.Graph
                 return new ReadOnlyCollection<Edge>(_edges.Values.ToList());
             }
         }
+        private readonly ConcurrentDictionary<int, Edge> _edges = new();
+
         public ReadOnlyCollection<string> Nodes
         {
             get
@@ -22,14 +25,12 @@ namespace BC2G.Graph
                 return new ReadOnlyCollection<string>(_nodes.Keys.ToList());
             }
         }
+        private readonly ConcurrentDictionary<string, byte> _nodes = new();
 
         public int NodeCount { get { return _nodes.Count; } }
         public int EdgeCount { get { return _edges.Count; } }
 
         private readonly ConcurrentQueue<TransactionGraph> _txGraphsQueue = new();
-
-        private readonly ConcurrentDictionary<int, Edge> _edges = new();
-        private readonly ConcurrentDictionary<string, byte> _nodes = new();
 
         public BlockGraph(int height):base()
         {
