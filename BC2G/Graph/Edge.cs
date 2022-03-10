@@ -8,6 +8,24 @@
         public EdgeType Type { get; }
         public uint Timestamp { get; }
 
+        public static string Header
+        {
+            get
+            {
+                return string.Join(_delimiter, new string[]
+                {
+                    "Source",
+                    "Target",
+                    "Weight",
+                    "EdgeType",
+                    "Timestamp",
+                    "TimeOffsetFromGenesisBlock"
+                });
+            }
+        }
+
+        private const string _delimiter = ",";
+
 
         public Edge(
             string source, string target,
@@ -19,6 +37,19 @@
             Value = value;
             Type = type;
             Timestamp = timestamp;
+        }
+
+        public string ToString(string sourceId, string targetId)
+        {
+            return string.Join(_delimiter, new string[]
+            {
+                sourceId,
+                targetId,
+                Value.ToString(),
+                ((int)Type).ToString(),
+                Timestamp.ToString(),
+                (Timestamp - BitcoinAgent.GenesisTimestamp).ToString()
+            });
         }
 
         public int GetHashCode(bool ignoreValue)
