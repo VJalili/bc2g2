@@ -7,6 +7,7 @@
         public double Value { get; }
         public EdgeType Type { get; }
         public uint Timestamp { get; }
+        public int BlockHeight { get; }
 
         public static string Header
         {
@@ -19,7 +20,8 @@
                     "Weight",
                     "EdgeType",
                     "Timestamp",
-                    "TimeOffsetFromGenesisBlock"
+                    "TimeOffsetFromGenesisBlock",
+                    "BlockHeight"
                 });
             }
         }
@@ -30,13 +32,14 @@
         public Edge(
             string source, string target,
             double value, EdgeType type,
-            uint timestamp)
+            uint timestamp, int blockHeight)
         {
             Source = source;
             Target = target;
             Value = value;
             Type = type;
             Timestamp = timestamp;
+            BlockHeight = blockHeight;
         }
 
         public string ToString(string sourceId, string targetId)
@@ -48,7 +51,8 @@
                 Value.ToString(),
                 ((int)Type).ToString(),
                 Timestamp.ToString(),
-                (Timestamp - BitcoinAgent.GenesisTimestamp).ToString()
+                (Timestamp - BitcoinAgent.GenesisTimestamp).ToString(),
+                BlockHeight.ToString()
             });
         }
 

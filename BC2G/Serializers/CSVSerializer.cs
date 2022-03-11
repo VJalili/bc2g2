@@ -135,7 +135,8 @@ namespace BC2G.Serializers
                     nodeIds[x[1]],
                     double.Parse(x[2]),
                     (EdgeType)int.Parse(x[3]),
-                    uint.Parse(x[4])));
+                    uint.Parse(x[4]),
+                    int.Parse(x[5])));
             }
 
             return g;
