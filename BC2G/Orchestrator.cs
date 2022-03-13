@@ -104,7 +104,7 @@ namespace BC2G
 
                 while (true)
                 {
-                    if (txCache.BufferEmpty)
+                    if (txCache.CanClose)
                         break;
                     Thread.Sleep(500);
                 }
@@ -272,7 +272,7 @@ namespace BC2G
 
             while(true)
             {
-                if (mapper.BufferEmpty && gBuffer.BufferEmpty)
+                if (mapper.CanDispose && gBuffer.CanDispose)
                     break;
                 Thread.Sleep(500);
             }

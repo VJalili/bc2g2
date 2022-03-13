@@ -9,9 +9,9 @@ namespace BC2G
 
     public class TxCache : IDisposable
     {
-        public bool BufferEmpty
+        public bool CanClose
         {
-            get { return _visitedTxCache.BufferEmpty; }
+            get { return _visitedTxCache.CanDispose; }
         }
 
         private readonly string _utxoIndexFilename = "utxo.csv";
