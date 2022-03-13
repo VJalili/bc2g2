@@ -145,6 +145,7 @@ namespace BC2G
                     var tmpMF = _utxoIndexFilename + _tmpFilenamePostfix;
                     Serialize(tmpMF);
                     File.Move(tmpMF, _utxoIndexFilename, true);
+                    _visitedTxCache.Dispose();
                 }
             }
 

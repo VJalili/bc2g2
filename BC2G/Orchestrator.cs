@@ -89,10 +89,22 @@ namespace BC2G
 
             if (_options.ToExclusive <= _options.FromInclusive)
             {
-                Logger.LogWarning(
+                Logger.LogException(
                     $"The Start block height must be smaller than the end " +
                     $"block height: `{_options.FromInclusive}` is not less " +
                     $"than `{_options.ToExclusive}`.");
+                return false;
+            }
+
+            if (_options.FromInclusive < 0)
+            {
+                Logger.LogException($"Invalid Start block height {_options.FromInclusive}");
+                return false;
+            }
+
+            if(_options.ToExclusive < 0)
+            {
+                Logger.LogException($"Invalid To block height {_options.ToExclusive}");
                 return false;
             }
 
@@ -133,6 +145,8 @@ namespace BC2G
             finally
             {
                 stopwatch.Stop();
+                agent.Dispose();
+                txCache.Dispose();
             }
 
             return true;
