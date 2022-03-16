@@ -10,11 +10,8 @@ namespace BC2G.Serializers
         private const string _tmpFilenamePostfix = ".tmp";
         private bool disposed = false;
 
-        private readonly string _mapperFilename = string.Empty;
         private readonly List<string> _createdFiles = new();
         private readonly AddressToIdMapper _mapper;
-
-        public CSVSerializer() { }
 
         public CSVSerializer(AddressToIdMapper mapper)
         {
