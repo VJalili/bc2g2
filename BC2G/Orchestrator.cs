@@ -240,12 +240,6 @@ namespace BC2G
                 $"Traversing blocks [{_options.FromInclusive:n0}, " +
                 $"{_options.ToExclusive:n0}):");
 
-            // test:
-            /*
-            _options.FromInclusive = 0;//700000;
-            _options.LastProcessedBlock = _options.FromInclusive;
-            _options.ToExclusive = 700005;*/
-
             Logger.InitBlocksTraverse(_options.FromInclusive, _options.ToExclusive);
 
             var blockHeightQueue = new ConcurrentQueue<int>();

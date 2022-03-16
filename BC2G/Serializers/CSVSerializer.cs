@@ -187,7 +187,7 @@ namespace BC2G.Serializers
                 if (disposing)
                 {
                     /// rename temporary files as the following.
-                    ///   rom: abc.csv.tmp
+                    ///  from: abc.csv.tmp
                     ///    to: abc.csv
                     foreach (var filename in _createdFiles)
                         File.Move(
