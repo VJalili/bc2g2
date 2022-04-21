@@ -6,7 +6,7 @@ namespace BC2G.Serializers
 {
     public class CSVSerializer : SerializerBase, IDisposable
     {
-        private const string _delimiter = ",";
+        private const string _delimiter = "\t";
         private const string _tmpFilenamePostfix = ".tmp";
         private bool disposed = false;
 
@@ -87,7 +87,7 @@ namespace BC2G.Serializers
             reader.ReadLine(); // skip the header.
             while ((line = reader.ReadLine()) != null)
             {
-                var cols = line.Trim().Split(',');
+                var cols = line.Trim().Split(_delimiter);
                 cols[0] = mappings[cols[0]];
                 cols[1] = mappings[cols[1]];
 
