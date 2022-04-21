@@ -20,8 +20,8 @@ namespace BC2G.Serializers
 
         public override void Serialize(BlockGraph g, string baseFilename)
         {
-            var nodesFilename = baseFilename + "_nodes.csv" + _tmpFilenamePostfix;
-            var edgeFilename = baseFilename + "_edges.csv" + _tmpFilenamePostfix;
+            var nodesFilename = baseFilename + "_nodes.tsv" + _tmpFilenamePostfix;
+            var edgeFilename = baseFilename + "_edges.tsv" + _tmpFilenamePostfix;
 
             WriteNodes(g, nodesFilename);
             WriteEdges(g, edgeFilename);
@@ -67,8 +67,8 @@ namespace BC2G.Serializers
 
         public override BlockGraph Deserialize(string path, int blockHeight)
         {
-            var nodeIds = ReadNodes(Path.Combine(path, $"{blockHeight}_nodes.csv"));
-            return ReadEdges(Path.Combine(path, $"{blockHeight}_edges.csv"), blockHeight, nodeIds);
+            var nodeIds = ReadNodes(Path.Combine(path, $"{blockHeight}_nodes.tsv"));
+            return ReadEdges(Path.Combine(path, $"{blockHeight}_edges.tsv"), blockHeight, nodeIds);
         }
 
         public static Dictionary<int, BlockGraph> Deserialize(string edges, string addressIdMapping)
@@ -184,8 +184,8 @@ namespace BC2G.Serializers
                 if (disposing)
                 {
                     /// rename temporary files as the following.
-                    ///  from: abc.csv.tmp
-                    ///    to: abc.csv
+                    ///  from: abc.tsv.tmp
+                    ///    to: abc.tsv
                     foreach (var filename in _createdFiles)
                         File.Move(
                             filename,

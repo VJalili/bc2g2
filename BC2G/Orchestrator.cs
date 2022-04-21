@@ -226,11 +226,11 @@ namespace BC2G
             using var serializer = new CSVSerializer(mapper);
 
             using var pGraphStat = new PersistentGraphStatistics(
-                Path.Combine(_options.OutputDir, "block_stats.tsv"),
+                Path.Combine(_options.OutputDir, "blocks_stats.tsv"),
                 cT);
 
             using var gBuffer = new PersistentGraphBuffer(
-                Path.Combine(_options.OutputDir, "edges.csv"),
+                Path.Combine(_options.OutputDir, "edges.tsv"),
                 mapper,
                 pGraphStat,
                 Logger,
