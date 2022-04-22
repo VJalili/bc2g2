@@ -142,7 +142,7 @@ namespace BC2G
             foreach (var output in coinbaseTx.Outputs.Where(x => x.IsValueTransfer))
             {
                 output.TryGetAddress(out string address);
-                address = generationTxGraph.AddTarget(address, output.Value);
+                address = generationTxGraph.AddTarget(address, output.Value, output.GetScriptType());
                 rewardAddresses.Add(address);
                 g.Stats.AddInputTxCount(1);
                 _txCache.Add(coinbaseTx.Txid, output.Index, address, output.Value);
@@ -201,7 +201,7 @@ namespace BC2G
                 _cT.ThrowIfCancellationRequested();
 
                 output.TryGetAddress(out string address);
-                txGraph.AddTarget(address, output.Value);
+                txGraph.AddTarget(address, output.Value, output.GetScriptType());
                 _txCache.Add(tx.Txid, output.Index, address, output.Value);
             }
 

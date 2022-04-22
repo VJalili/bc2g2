@@ -17,19 +17,20 @@ namespace BC2G.Graph
         public string AddSource(string source, double value)
         {
             TotalInputValue += value;
-            return AddOrUpdate(Sources, source, value);
+            return AddOrUpdate(Sources, source, value, ScriptType.Unknown);
         }
 
-        public string AddTarget(string target, double value)
+        public string AddTarget(string target, double value, ScriptType scriptType)
         {
             TotalOutputValue += value;
-            return AddOrUpdate(Targets, target, value);
+            return AddOrUpdate(Targets, target, value, scriptType);
         }
 
         private static string AddOrUpdate(
             ConcurrentDictionary<string, double> collection,
             string address,
-            double value)
+            double value,
+            ScriptType scriptType)
         {
             collection.AddOrUpdate(
                 address, Utilities.Round(value),
