@@ -18,14 +18,14 @@ namespace BC2G.Graph
         }
         private readonly ConcurrentDictionary<int, Edge> _edges = new();
 
-        public ReadOnlyCollection<string> Nodes
+        public ReadOnlyCollection<Node> Nodes
         {
             get
             {
-                return new ReadOnlyCollection<string>(_nodes.Keys.ToList());
+                return new ReadOnlyCollection<Node>(_nodes.Keys.ToList());
             }
         }
-        private readonly ConcurrentDictionary<string, byte> _nodes = new();
+        private readonly ConcurrentDictionary<Node, byte> _nodes = new();
 
         public int NodeCount { get { return _nodes.Count; } }
         public int EdgeCount { get { return _edges.Count; } }
@@ -47,6 +47,10 @@ namespace BC2G.Graph
         public void MergeQueuedTxGraphs(CancellationToken ct)
         {
             Parallel.ForEach(_txGraphsQueue,
+
+                /* TEMP */
+                new ParallelOptions() { MaxDegreeOfParallelism=1 },                
+                
                 (txGraph, state) =>
                 {
                     if (ct.IsCancellationRequested)
@@ -66,7 +70,7 @@ namespace BC2G.Graph
                 // build generative graph
                 foreach (var item in txGraph.Targets)
                     AddEdge(new Edge(
-                        CoinbaseTxLabel,
+                        new Node(),
                         item.Key,
                         item.Value,
                         EdgeType.Generation,
@@ -96,7 +100,7 @@ namespace BC2G.Graph
                         AddEdge(new Edge(
                             s.Key, t.Key,
                             Utilities.Round(t.Value * Utilities.Round(
-                                s.Value / txGraph.TotalInputValue)),
+                                s.Value / (txGraph.TotalInputValue - fee))),
                             s.Key == t.Key ? EdgeType.Change : EdgeType.Transfer,
                             Timestamp,
                             Height));
