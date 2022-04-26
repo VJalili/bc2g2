@@ -47,10 +47,6 @@ namespace BC2G.Graph
         public void MergeQueuedTxGraphs(CancellationToken ct)
         {
             Parallel.ForEach(_txGraphsQueue,
-
-                /* TEMP */
-                new ParallelOptions() { MaxDegreeOfParallelism=1 },                
-                
                 (txGraph, state) =>
                 {
                     if (ct.IsCancellationRequested)

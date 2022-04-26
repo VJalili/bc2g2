@@ -1,5 +1,4 @@
 ﻿using BC2G.Model;
-using System.Diagnostics.CodeAnalysis;
 
 namespace BC2G.Graph
 {
