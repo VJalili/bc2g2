@@ -1,10 +1,19 @@
-﻿using System.Diagnostics;
+﻿using BC2G.Model;
+using System.Diagnostics;
 
 namespace BC2G.Graph
 {
-    public class GraphStatistics
+    public class BlockStatistics
     {
         public int Height { get; }
+        public int Confirmations { get; }
+        public string Bits { get; }
+        public double Difficulty { get; }
+        public int Size { get; }
+        public int StrippedSize { get; }
+        public int Weight { get; }
+        public int TransactionsCount { get; }
+
         public TimeSpan Runtime { get { return _runtime; } }
         private TimeSpan _runtime;
         private readonly Stopwatch _stopwatch = new();
@@ -34,7 +43,19 @@ namespace BC2G.Graph
 
         private const char _delimiter = '\t';
 
-        public GraphStatistics(int height)
+        public BlockStatistics(Block block)
+        {
+            Height = block.Height;
+            Confirmations = block.Confirmations;
+            Bits = block.Bits;
+            Difficulty = block.Difficulty;
+            Size = block.Size;
+            StrippedSize = block.StrippedSize;
+            Weight = block.Weight;
+            TransactionsCount = block.TransactionsCount;
+        }
+
+        public BlockStatistics(int height)
         {
             Height = height;
         }
