@@ -105,17 +105,17 @@ namespace BC2G.Graph
                 "Size",
                 "StrippedSize",
                 "Weight",
-                "TxCount",
-                "InputTxCount",
-                "OutputTxCount",
+                "BlockTxCount",
+                "BlockTxInputsCount",
+                "BlockTxOutputsCount",
                 string.Join(
                     _delimiter,
                     ((EdgeType[])Enum.GetValues(typeof(EdgeType))).Select(
-                        x => x + "TxCount").ToArray()),
+                        x => "Graph" + x + "TxCount").ToArray()),
                 string.Join(
                     _delimiter,
                     ((EdgeType[])Enum.GetValues(typeof(EdgeType))).Select(
-                        x => x + "TxSum").ToArray()),
+                        x => "Graph" + x + "TxSum").ToArray()),
             });
         }
 
