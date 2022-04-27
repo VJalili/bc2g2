@@ -99,6 +99,13 @@ namespace BC2G.Graph
             {
                 "BlockHeight",
                 "Runtime",
+                "Confirmations",
+                "Bits",
+                "Difficulty",
+                "Size",
+                "StrippedSize",
+                "Weight",
+                "TxCount",
                 "InputTxCount",
                 "OutputTxCount",
                 string.Join(
@@ -118,6 +125,13 @@ namespace BC2G.Graph
             {
                 Height.ToString(),
                 Runtime.ToString(),
+                Confirmations.ToString(),
+                Bits,
+                Difficulty.ToString(),
+                Size.ToString(),
+                StrippedSize.ToString(),
+                Weight.ToString(),
+                TransactionsCount.ToString(),
                 InputTxCount.ToString(),
                 OutputTxCount.ToString(),
                 string.Join(
