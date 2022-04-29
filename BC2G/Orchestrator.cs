@@ -241,13 +241,13 @@ namespace BC2G
                 $"Traversing blocks [{_options.FromInclusive:n0}, " +
                 $"{_options.ToExclusive:n0}):");
 
-            Logger.InitBlocksTraverse(_options.FromInclusive, _options.ToExclusive);
-
             var blockHeightQueue = new ConcurrentQueue<int>();
             for (int h = _options.LastProcessedBlock + 1;
                      h < _options.ToExclusive;
                      h += _options.Granularity)
                 blockHeightQueue.Enqueue(h);
+
+            Logger.InitBlocksTraverse(_options.FromInclusive, _options.ToExclusive, blockHeightQueue.Count);
 
             var parallelOptions = new ParallelOptions()
             {
