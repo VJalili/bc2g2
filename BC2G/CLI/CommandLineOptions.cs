@@ -68,6 +68,15 @@ namespace BC2G.CLI
             "it creates `[block_height]_edges.tsv` and `[block_height]_nodes.tsv. "
         };
 
+        private readonly CommandOption _granularityOption = new(
+            "-g | --granularity",
+            CommandOptionType.SingleValue)
+        {
+            Description = "Sets the blockchain traversal granularity " +
+            "(default is 1). For instance, `-g 10` means processing " +
+            "every 10 blocks in the blockchain."
+        };
+
         private Options _parsedOptions = new();
 
         public static string HelpOption
@@ -89,6 +98,7 @@ namespace BC2G.CLI
             _cla.Options.Add(_statusFilenameOption);
             _cla.Options.Add(_resumeFromOption);
             _cla.Options.Add(_createPerBlockFilesOption);
+            _cla.Options.Add(_granularityOption);
 
             var version = "Unknown (Called from unmanaged code)";
             var assembly = Assembly.GetEntryAssembly();
@@ -243,6 +253,20 @@ namespace BC2G.CLI
             {
                 _parsedOptions.AddressIdMappingFilename =
                     Path.Combine(output, _parsedOptions.AddressIdMappingFilename);
+            }
+
+            if (_granularityOption.HasValue())
+            {
+                if (!int.TryParse(_granularityOption.Value(), out int granularity))
+                {
+                    throw new ArgumentException(
+                        $"Invalid value given for the " +
+                        $"`{_granularityOption.LongName}`.");
+                }
+                else
+                {
+                    _parsedOptions.Granularity = granularity;
+                }
             }
 
 

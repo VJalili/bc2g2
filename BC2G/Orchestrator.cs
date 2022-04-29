@@ -210,7 +210,6 @@ namespace BC2G
             }
         }
 
-
         private async Task TraverseBlocksAsync(
             BitcoinAgent agent, CancellationToken cT)
         {
@@ -245,7 +244,9 @@ namespace BC2G
             Logger.InitBlocksTraverse(_options.FromInclusive, _options.ToExclusive);
 
             var blockHeightQueue = new ConcurrentQueue<int>();
-            for (int h = _options.LastProcessedBlock + 1; h < _options.ToExclusive; h++)
+            for (int h = _options.LastProcessedBlock + 1;
+                     h < _options.ToExclusive;
+                     h += _options.Granularity)
                 blockHeightQueue.Enqueue(h);
 
             var parallelOptions = new ParallelOptions()
