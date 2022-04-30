@@ -45,7 +45,7 @@ def main(filename):
             print(f"\r\t{row_counter:,} / {row_count:,} ({row_counter / row_count:.2%})", end="")
     mem_map.flush()
 
-    print("\nAll process completed successfully.")
+    return mem_map_filename, (row_count, col_count)
 
 
 if __name__ == "__main__":
@@ -53,4 +53,10 @@ if __name__ == "__main__":
         print("Missing filename.")
         exit()
 
-    main(sys.argv[1])
+    out_filename, out_shape = main(sys.argv[1])
+
+    print("\n\n")
+    print("*" * 35, "\nAll Process Completed Successfully!")
+    print("*" * 35)
+    print(f"\nShape: {out_shape}")
+    print(f"\nMemoryMap filename: {out_filename}\n")
