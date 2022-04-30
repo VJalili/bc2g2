@@ -39,10 +39,11 @@ def main(filename):
         next(f)
         for line in f:
             mem_map[row_counter] = line.split(DELIMITER)
-            # TODO: do you need to flush at every line?!
-            mem_map.flush()
+            if row_counter % 100000 == 0:
+                mem_map.flush()
             row_counter += 1
             print(f"\r\t{row_counter:,} / {row_count:,} ({row_counter / row_count:.2%})", end="")
+    mem_map.flush()
 
     print("\nAll process completed successfully.")
 
@@ -53,4 +54,3 @@ if __name__ == "__main__":
         exit()
 
     main(sys.argv[1])
-
