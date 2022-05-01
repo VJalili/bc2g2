@@ -84,6 +84,12 @@ namespace BC2G.CLI
             get { return "-? | -h | --help"; }
         }
 
+        /* TODO: -s and -r are confusing; should not it be possible to 
+         resume a stopped task based on the info in a given status file?
+         i.e., given -s should be able to resume, and if so, not sure why
+         -r is needed.
+        */
+
         public CommandLineOptions()
         {
             _cla = new CommandLineApplication
