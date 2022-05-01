@@ -1,4 +1,5 @@
-
+import base64
+import pickle
 import sqlalchemy
 from sqlalchemy import create_engine, ForeignKey, Table, Column, Integer, String, Float, Time
 from sqlalchemy.orm import declarative_base
@@ -11,6 +12,46 @@ from urllib.parse import quote
 Base = declarative_base()
 
 
+class B64Hashable:
+    def encode(self):
+        return base64.b64encode(pickle.dumps(self))
+
+    def __hash__(self):
+        # TODO: this is not ideal, because you're mapping
+        #  from 128 to 64/32, so surely there is will be
+        #  a collision. It is advised that a hash function
+        #  with ~%50 collision chance is considered good,
+        #  because the objects with colliding hash can be
+        #  grouped together but not replacing each other.
+        #  However, this is very collection-specific and
+        #  needs further analysis for the purposes of this
+        #  application.
+        return abs(hash(self.encode()))
+
+    def __eq__(self, other):
+        return self.encode() == other.encode()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __getstate__(self):
+        # We do not consider private members
+        # for the state of an object, hence, we
+        # do not pickle (and eventually hash) them.
+        # Additionally, there should not be two
+        # nodes/edges with identical information in
+        # the database, however, if there are,
+        # their auto-generated ids might differ,
+        # which will lead to "identical" entities
+        # have different encoding/hash. Hence, we
+        # exclude `id` from the state dictionary.
+        return {k: v for k, v in self.__dict__.items()
+                if not k.startswith("_") and k != "id"}
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+
+
 # *************
 # Note: do not use double-quotes for column names in SQLAlchemy
 # as they create issues accessing the column (e.g., the column
@@ -18,7 +59,7 @@ Base = declarative_base()
 # *************
 
 
-class Node(Base):
+class Node(Base, B64Hashable):
     __tablename__ = 'Nodes'
 
     id = Column(Integer, primary_key=True)
@@ -26,8 +67,13 @@ class Node(Base):
     # address = Column(String(256), index=True)
     script_type = Column(Integer)
 
+    features_count = 1
 
-class Edge(Base):
+    def get_features(self):
+        return [self.script_type]
+
+
+class Edge(Base, B64Hashable):
     __tablename__ = 'Edges'
 
     id = Column(Integer, primary_key=True)
@@ -42,6 +88,17 @@ class Edge(Base):
     edge_type = Column(Float)
     time_offset = Column(Float)
     block_height = Column(Float)
+
+    features_count = 4
+
+    def __getstate__(self):
+        s = super().__getstate__()
+        del s["source"]
+        del s["target"]
+        return s
+
+    def get_features(self):
+        return [self.value, self.edge_type, self.time_offset, self.block_height]
 
 
 class BlockStatus(Base):
