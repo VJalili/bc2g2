@@ -217,6 +217,13 @@ namespace BC2G
             if (_options.CreatePerBlockFiles && !Directory.Exists(individualBlocksDir))
                 Directory.CreateDirectory(individualBlocksDir);
 
+            /* TODO: This object does not scale, 
+             * its memory requirement grows linearly w.r.t. to 
+             * the blocks traversed. This should not be needed
+             * at all when moved to db, but meanwhile, is there
+             * a better solution for running on machines with 
+             * less than 16GB of RAM?! 
+             */
             using var mapper = new AddressToIdMapper(
                 _options.AddressIdMappingFilename,
                 AddressToIdMapper.Deserialize(_options.AddressIdMappingFilename),
@@ -295,6 +302,12 @@ namespace BC2G
                 Thread.Sleep(500);
             }
         }
+
+        /* TODO: The following error may occur, 
+         * (a) why it occurs? 
+         * (b) when it occurs not every persistence 
+         * object is updated, in particular, the status is updated. 
+         */
 
         private async Task ProcessBlock(
             BitcoinAgent agent,
