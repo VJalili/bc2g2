@@ -19,14 +19,13 @@ def main(nodes_filename, edges_filename, block_status_filename):
             next(f)  # skip header
             for line in f:
                 cols = line.strip().split(DELIMITER)
-                try:
+                res = session.query(Node).filter(Node.id_generated == int(cols[0])).all()
+                if len(res) == 0:
                     session.add(Node(id_generated=int(cols[0]),
                                      script_type=int(cols[1])))
                     session.commit()
                     session.flush()
-                except Exception:
-                    # TODO: this indicates a problem with the source data, maybe better log it instead.
-                    pass
+
                 counter += 1
                 if counter % 1000 == 0:
                     print(f"\r\tNodes added: {counter:,}", end="", flush=True)
