@@ -1,6 +1,11 @@
 import numpy as np
 import sys
 
+# Note: the following method turns-out to be the most efficient/the fastest querying approach:
+#  mask = (self.edges[:, 0] == 2)  # find edges where source id is 2.
+#  x = self.edges[mask, :]
+#
+
 
 DELIMITER = "\t"
 
