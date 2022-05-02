@@ -258,15 +258,24 @@ class Sampler:
         denominator = 2 if include_random_edges else 1
 
         while len(node_features) / denominator < count and max_retries > 0:
+            print(f"Sampling graphs ... try {max_retries - 3}/3")
             max_retries -= 1
             root_nodes = self._sample_nodes(count)
+            root_nodes_count = len(root_nodes)
+            print(f"Sampled root nodes count: {root_nodes_count}")
 
+            root_node_counter = 0
             for root_node in root_nodes:
+                root_node_counter += 1
+                print(f"processing root node with id {root_node.id_generated}: {root_node_counter}/{root_nodes_count}")
                 neighbors = self.get_neighbors(root_node.id_generated, hops)
+                print("retrieved neighbors")
                 if not neighbors:
                     continue
 
+                print(f"constructing graph ... ", end="", flush=True)
                 g1 = Graph(set(neighbors))
+                print("Done.")
 
                 if for_edge_prediction:
                     # TODO: there is a corner case where you may
@@ -292,16 +301,20 @@ class Sampler:
                     continue
 
                 if include_random_edges:
+                    print("Getting random edges ... ", end="", flush=True)
                     g2 = Graph(self.get_random_edges(len(g1.edges)))
+                    print("Done.")
                     if len(g2.edges) == 0:
                         continue
 
                 existing_g.add(g_hash)
 
+                print("Graph to arrays ... ", end="", flush=True)
                 nf1, ef1, pi1 = self.get_components(g1)
                 node_features.append(nf1)
                 edge_features.append(ef1)
                 pair_indices.append(pi1)
+                print("Done")
                 if for_edge_prediction:
                     labels.append(extracted_edge)
                 else:
@@ -322,12 +335,15 @@ class Sampler:
 
 def main():
     sampler = Sampler()
-    nodes, edges, pair_indices, labels = sampler.sample(hops=2)
+    nodes, edges, pair_indices, labels = sampler.sample(
+        count=1000, hops=3, include_random_edges=True, for_edge_prediction=False)
 
+    print("Serializing now ...")
     np.save("nodes_features", nodes)
     np.save("edges_features", edges)
     np.save("pair_indices", pair_indices)
     np.save("labels", labels)
+    print("All process completed successfully.")
 
 
 if __name__ == "__main__":
