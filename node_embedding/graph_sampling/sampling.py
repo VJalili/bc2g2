@@ -1,5 +1,8 @@
+import h5py
+import math
 import models
 import numpy as np
+import os
 import random
 
 from sqlalchemy import or_
@@ -109,14 +112,10 @@ class Sampler:
                     models.Edge.source_id == node_id,
                     models.Edge.target_id == node_id)).all()
 
-    def _sample_nodes(self, count: int, seed=None):
+    def sample_nodes(self, count: int, seed=None):
         with Session(self.engine) as session:
             self._set_sql_random_seed(seed or self.rnd_seed / 100)
             return session.query(models.Node).order_by(func.random()).limit(count).all()
-
-    def _get_node_features(self, node):
-        row = self.nodes.loc[self.nodes[NODE_COL_NAME] == node]
-        return row.loc[:, row.columns != NODE_COL_NAME].values[0].tolist()
 
     def get_neighbors(self, node_id: int, hops: int):
         hops -= 1
@@ -199,17 +198,17 @@ class Sampler:
         edges.sort(key=lambda x: (x[0], x[1]))
         return node_features, [x[2] for x in edges], [[x[0], x[1]] for x in edges]
 
-    def get_random_edges(self, edge_count) -> list[models.Edge]:
-        edges = []
+    def get_random_edges(self, edge_count) -> set[models.Edge]:
+        edges = set()
         max_retries = 3
         while len(edges) < edge_count and max_retries > 0:
             max_retries -= 1
-            nodes = self._sample_nodes(int(edge_count / 2), seed=(self.rnd_seed + 1) / 100)
+            nodes = self.sample_nodes(int(math.ceil(edge_count / 2)), seed=(self.rnd_seed + 1) / 100)
             for node in nodes:
                 node_edges = self._get_edges(node.id_generated)
                 if len(node_edges) == 0:
                     continue
-                edges.append(node_edges[0])
+                edges.add(node_edges[0])
 
                 if len(edges) >= edge_count:
                     break
@@ -222,7 +221,7 @@ class Sampler:
         max_retries = 3
         while len(node_features) < graph_count and max_retries > 0:
             max_retries -= 1
-            root_nodes = self._sample_nodes(graph_count)
+            root_nodes = self.sample_nodes(graph_count)
 
             for root_node in root_nodes:
                 edges = self.get_neighbors_count(root_node.id_generated, nodes_per_graph)
@@ -250,100 +249,130 @@ class Sampler:
                   f"found {int(len(node_features) / 2)} pairs, requested {graph_count}.")
         return node_features, edge_features, pair_indices, labels
 
-    def sample(self, count=2, hops=1, include_random_edges=True, for_edge_prediction=False):
+    def sample(self, root_node=None, hops=1, include_random_edges=True, for_edge_prediction=False, existing_graphs=None):
         node_features, edge_features, pair_indices, labels = [], [], [], []
-        existing_g = set()
+        existing_graphs = existing_graphs or set()
+        root_node = root_node or self.sample_nodes(1)[0]
 
         max_retries = 3
-        denominator = 2 if include_random_edges else 1
 
-        while len(node_features) / denominator < count and max_retries > 0:
-            print(f"Sampling graphs ... try {max_retries - 3}/3")
+        while max_retries > 0:
+            print(f"\ttry {4 - max_retries}/3:")
             max_retries -= 1
-            root_nodes = self._sample_nodes(count)
-            root_nodes_count = len(root_nodes)
-            print(f"Sampled root nodes count: {root_nodes_count}")
 
-            root_node_counter = 0
-            for root_node in root_nodes:
-                root_node_counter += 1
-                print(f"processing root node with id {root_node.id_generated}: {root_node_counter}/{root_nodes_count}")
-                neighbors = self.get_neighbors(root_node.id_generated, hops)
-                print("retrieved neighbors")
-                if not neighbors:
+            neighbors = self.get_neighbors(root_node.id_generated, hops)
+            print("\t\tRetrieved neighbors.")
+            if not neighbors:
+                continue
+
+            print(f"\t\tConstructing graph ... ", end="", flush=True)
+            g1 = Graph(set(neighbors))
+            print("Done.")
+
+            if for_edge_prediction:
+                # TODO: there is a corner case where you may
+                #  remove the only not-to-self edge of a node,
+                #  hence you may end-up with a graph that not
+                #  all of its nodes are connected.
+                edges = []
+                extracted_edge = None
+                for edge in g1.edges:
+                    if edge.source.id_ != edge.target.id_ and extracted_edge is None:
+                        extracted_edge = edge
+                    else:
+                        edges.append(edge)
+
+                g1.edges = edges
+                if extracted_edge is None:
                     continue
 
-                print(f"constructing graph ... ", end="", flush=True)
-                g1 = Graph(set(neighbors))
+            if len(g1.edges) == 0:
+                print("\n\nGraph does not have any edges.")
+                continue
+            g_hash = g1.__hash__()
+            if g_hash in existing_graphs:
+                print("\n\nGraph already exists.")
+                continue
+
+            if include_random_edges:
+                print("\t\tGetting random edges ... ", end="", flush=True)
+                g2 = Graph(self.get_random_edges(len(g1.edges)))
                 print("Done.")
-
-                if for_edge_prediction:
-                    # TODO: there is a corner case where you may
-                    #  remove the only not-to-self edge of a node,
-                    #  hence you may end-up with a graph that not
-                    #  all of its nodes are connected.
-                    edges = []
-                    extracted_edge = None
-                    for edge in g1.edges:
-                        if edge.source.id_ != edge.target.id_ and extracted_edge is None:
-                            extracted_edge = edge
-                        else:
-                            edges.append(edge)
-
-                    g1.edges = edges
-                    if extracted_edge is None:
-                        continue
-
-                if len(g1.edges) == 0:
-                    continue
-                g_hash = g1.__hash__()
-                if g_hash in existing_g:
+                if len(g2.edges) == 0:
+                    print("\t\tRandom edges list empty.")
                     continue
 
-                if include_random_edges:
-                    print("Getting random edges ... ", end="", flush=True)
-                    g2 = Graph(self.get_random_edges(len(g1.edges)))
-                    print("Done.")
-                    if len(g2.edges) == 0:
-                        continue
+            existing_graphs.add(g_hash)
 
-                existing_g.add(g_hash)
+            print("\t\tGraph to arrays ... ", end="", flush=True)
+            nf1, ef1, pi1 = self.get_components(g1)
+            node_features.append(nf1)
+            edge_features.append(ef1)
+            pair_indices.append(pi1)
+            print("Done")
+            if for_edge_prediction:
+                labels.append(extracted_edge)
+            else:
+                labels.append(0)
 
-                print("Graph to arrays ... ", end="", flush=True)
-                nf1, ef1, pi1 = self.get_components(g1)
-                node_features.append(nf1)
-                edge_features.append(ef1)
-                pair_indices.append(pi1)
-                print("Done")
-                if for_edge_prediction:
-                    labels.append(extracted_edge)
-                else:
-                    labels.append(0)
+            if include_random_edges:
+                nf2, ef2, pi2 = self.get_components(g2)
+                node_features.append(nf2)
+                edge_features.append(ef2)
+                pair_indices.append(pi2)
+                labels.append(1)
 
-                if include_random_edges:
-                    nf2, ef2, pi2 = self.get_components(g2)
-                    node_features.append(nf2)
-                    edge_features.append(ef2)
-                    pair_indices.append(pi2)
-                    labels.append(1)
+            return node_features, edge_features, pair_indices, labels
 
-        if max_retries == 0:
-            print(f"Warning: found less graphs than requested; "
-                  f"found {int(len(node_features) / 2)} pairs, requested {count}.")
-        return node_features, edge_features, pair_indices, labels
+        return None, None, None, None
 
 
-def main():
+# TODO: in some cases the positive and negative graphs do not
+#  have the same number of nodes and/or edges. Is that a problem?
+
+def main(graph_count=100, hops=2, filename="sampled_graphs.hdf5"):
+    if os.path.isfile(filename):
+        # TODO: inform the user file already exist, and take actions based on their choices.
+        os.remove(filename)
+
     sampler = Sampler()
-    nodes, edges, pair_indices, labels = sampler.sample(
-        count=1000, hops=3, include_random_edges=True, for_edge_prediction=False)
 
-    print("Serializing now ...")
-    np.save("nodes_features", nodes)
-    np.save("edges_features", edges)
-    np.save("pair_indices", pair_indices)
-    np.save("labels", labels)
-    print("All process completed successfully.")
+    print(f"Sampling {graph_count} nodes ... ", end="", flush=True)
+    root_nodes = sampler.sample_nodes(graph_count)
+    root_nodes_count = len(root_nodes)
+    assert root_nodes_count == graph_count
+    print("Done.")
+
+    existing_graphs = set()
+    root_node_counter, persisted_graphs_counter, missed = 0, -1, 0
+    for root_node in root_nodes:
+        root_node_counter += 1
+        print(f"[{root_node_counter} / {root_nodes_count}] Processing root node {root_node.id_generated}:", flush=True)
+        nodes, edges, pair_indices, labels = sampler.sample(
+            root_node=root_node, hops=hops,
+            include_random_edges=True,
+            for_edge_prediction=False,
+            existing_graphs=existing_graphs)
+
+        if nodes is not None:
+            print("\tPersisting ... ", end="", flush=True)
+            persisted_graphs_counter += 1
+            with h5py.File(filename, "a") as f:
+                for group, i in [("graph", 0), ("random_edges", 1)]:
+                    f.create_dataset(f"{persisted_graphs_counter}/{group}/node_features", data=nodes[i])
+                    f.create_dataset(f"{persisted_graphs_counter}/{group}/edge_features", data=edges[i])
+                    f.create_dataset(f"{persisted_graphs_counter}/{group}/pair_indices", data=pair_indices[i])
+                    f.create_dataset(f"{persisted_graphs_counter}/{group}/labels", data=labels[i])
+            print("Done.")
+        else:
+            print("\t\t!! Unable to create a graph with given parameters. !!")
+            missed += 1
+
+    if missed > 0:
+        print(f"Warning! Requested {graph_count} graphs, but {graph_count - missed} were created.")
+        print("Finished with warnings.")
+    else:
+        print("All process completed successfully.")
 
 
 if __name__ == "__main__":
