@@ -3,6 +3,7 @@ import logging
 import math
 import model
 import numpy as np
+import pandas as pd
 import warnings
 
 import tensorflow as tf
@@ -97,7 +98,7 @@ class GraphEncoder:
     def __init__(self, filename):
         self.filename = filename
 
-    def train(self):
+    def train(self, train_history_filename, eval_history_filename, epochs=100, learning_rate=5e-4):
         with h5py.File(self.filename, "r") as f:
             indices = list(f.keys())
         permuted_indices = np.random.permutation(indices)
@@ -109,29 +110,44 @@ class GraphEncoder:
 
         train_data_generator = GraphGenerator(self.filename, train_index)
         val_data_generator = GraphGenerator(self.filename, valid_index)
-        test_data_generator = GraphGenerator(self.filename, test_index)
+        eval_data_generator = GraphGenerator(self.filename, test_index)
 
         bcgm, __inputs, __embedder_output = model.BlockChainGraphModel.get_model(
             node_features_count=1, edge_features_count=4)
 
         bcgm.compile(
             loss=tf.keras.losses.BinaryCrossentropy(),
-            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
-            metrics=[tf.keras.metrics.AUC(name="AUC")])
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            metrics=[
+                tf.keras.metrics.AUC(),
+                tf.keras.metrics.Accuracy(),
+                tf.keras.metrics.KLDivergence(),
+                tf.keras.metrics.MeanAbsoluteError(),
+                tf.keras.metrics.Precision(),
+                tf.keras.metrics.Recall()])
 
-        history = bcgm.fit(
+        train_history = bcgm.fit(
             train_data_generator,
             validation_data=val_data_generator,
-            epochs=10,  # 40,
+            epochs=epochs,
             verbose=2,
-            class_weight={0: 2.0, 1: 0.5})
+            class_weight={0: 2.0, 1: 0.5})  # hence the loss is a weighted average
+        self.serialize_history(train_history.history, train_history_filename)
+
+        eval_history = bcgm.evaluate(eval_data_generator, return_dict=True)
+        self.serialize_history(eval_history, eval_history_filename)
+
+    @staticmethod
+    def serialize_history(history, filename):
+        df = pd.DataFrame.from_dict(history, orient="index").transpose()
+        df.to_csv(filename, sep="\t")
 
 
-def main(filename):
+def main(filename, train_history_filename, eval_history_filename):
     encoder = GraphEncoder(filename)
-    encoder.train()
+    encoder.train(train_history_filename, eval_history_filename, epochs=2)
 
 
 if __name__ == "__main__":
     hdf5_filename = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
-    main(hdf5_filename)
+    main(hdf5_filename, "train_history.tsv", "eval_history.tsv")
