@@ -2,7 +2,6 @@
 Populates a PostgreSQL database with nodes and edges given TSV format.
 """
 
-import psycopg2
 import sys
 from models import get_engine, Node, Edge, BlockStatus
 from sqlalchemy.orm import Session
