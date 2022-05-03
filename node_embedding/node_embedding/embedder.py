@@ -1,12 +1,24 @@
 import h5py
+import logging
 import math
+import model
 import numpy as np
+import warnings
 
 import tensorflow as tf
 from tensorflow.keras.utils import Sequence
 
 
+# TODO: Globally set the random seed, currently it is set in different places to different values.
+# TODO: also add a flag that disables fixing the seed at deploy.
 RAND_SEED = 1
+tf.random.set_seed(RAND_SEED)
+# TODO: this is a legacy approach, update to current latest best practices.
+np.random.seed(RAND_SEED)
+
+tf.get_logger().setLevel(logging.ERROR)
+# TODO: disable suppressing the warnings and address them to the extend possible.
+warnings.filterwarnings("ignore")
 
 
 class GraphGenerator(Sequence):
@@ -81,75 +93,45 @@ class GraphGenerator(Sequence):
             np.random.shuffle(self.indices)
 
 
-# This section uses TF Dataset instead of the generator.
-# def graph_generator():
-#     with h5py.File(graphs_hdf5, "r") as f:
-#         for idx in train_index:
-#             node_features, edge_features, pair_indices, labels = [], [], [], []
-#             for group_key in ["graph", "random_edges"]:
-#                 group = f[idx][group_key]
-#                 node_features.append(group["node_features"][...])
-#                 edge_features.append(group["edge_features"][...])
-#                 pair_indices.append(group["pair_indices"][...])
-#                 labels.append(group["labels"][...])
-#             x = (tf.ragged.constant(node_features, dtype=tf.float32),
-#                  tf.ragged.constant(edge_features, dtype=tf.float32),
-#                  tf.ragged.constant(pair_indices, dtype=tf.int32))
-#             yield (x, labels)
-#
-# def transform(x_batch, y_batch):
-#     pass
-#
-#
-# def get_graph_dataset(filename, indices, batch_size=16, shuffle=False):
-#     # generator = GraphGenerator(filename, indices, batch_size=batch_size)
-#     dataset = tf.data.Dataset.from_generator(graph_generator)
-#     if shuffle:
-#         dataset = dataset.shuffle(RAND_SEED)
-#     return dataset.batch(batch_size).map(transform, -1)
+class GraphEncoder:
+    def __init__(self, filename):
+        self.filename = filename
+
+    def train(self):
+        with h5py.File(self.filename, "r") as f:
+            indices = list(f.keys())
+        permuted_indices = np.random.permutation(indices)
+
+        pi1, pi2 = int(len(permuted_indices) * 0.8), int(len(permuted_indices) * 0.99)
+        train_index = permuted_indices[: pi1]
+        valid_index = permuted_indices[pi1: pi2]
+        test_index = permuted_indices[pi2:]
+
+        train_data_generator = GraphGenerator(self.filename, train_index)
+        val_data_generator = GraphGenerator(self.filename, valid_index)
+        test_data_generator = GraphGenerator(self.filename, test_index)
+
+        bcgm, __inputs, __embedder_output = model.BlockChainGraphModel.get_model(
+            node_features_count=1, edge_features_count=4)
+
+        bcgm.compile(
+            loss=tf.keras.losses.BinaryCrossentropy(),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
+            metrics=[tf.keras.metrics.AUC(name="AUC")])
+
+        history = bcgm.fit(
+            train_data_generator,
+            validation_data=val_data_generator,
+            epochs=10,  # 40,
+            verbose=2,
+            class_weight={0: 2.0, 1: 0.5})
 
 
-# TODO: this is a legacy approach, update to current latest best practices.
-np.random.seed(RAND_SEED)
-
-graphs_hdf5 = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
-with h5py.File(graphs_hdf5, "r") as f:
-    idxs = list(f.keys())
-permuted_indices = np.random.permutation(idxs)
-
-pi1, pi2 = int(len(permuted_indices) * 0.8), int(len(permuted_indices) * 0.99)
-train_index = permuted_indices[: pi1]
-valid_index = permuted_indices[pi1: pi2]
-test_index = permuted_indices[pi2:]
-
-# TEST
-# z = get_graph_dataset(graphs_hdf5, train_index)
-
-training_generator = GraphGenerator(graphs_hdf5, train_index)
-validation_generator = GraphGenerator(graphs_hdf5, valid_index)
+def main(filename):
+    encoder = GraphEncoder(filename)
+    encoder.train()
 
 
-xyz = GraphGenerator(graphs_hdf5, train_index)
-# print(xyz._get_graphs(train_index))
-
-import model
-
-mpnn, __inputs, __embedder_output = model.MPNNModel(
-    atom_dim=1, bond_dim=4,
-)
-
-
-
-mpnn.compile(
-    loss=tf.keras.losses.BinaryCrossentropy(),
-    optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
-    metrics=[tf.keras.metrics.AUC(name="AUC")],
-)
-
-history = mpnn.fit(
-    training_generator,
-    validation_data=validation_generator,
-    epochs=10,#40,
-    verbose=2,
-    class_weight={0: 2.0, 1: 0.5},
-)
+if __name__ == "__main__":
+    hdf5_filename = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
+    main(hdf5_filename)
