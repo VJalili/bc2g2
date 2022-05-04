@@ -47,11 +47,13 @@ class EdgeNetwork(layers.Layer):
         self.efc = input_shape[1][-1]
 
         self.kernel = self.add_weight(
+            "kernel",
             shape=(self.efc, self.nfc * self.nfc),
             trainable=True,
             initializer="glorot_uniform")
 
         self.bias = self.add_weight(
+            "bias",
             shape=(self.nfc * self.nfc),
             trainable=True,
             initializer="zeros")
