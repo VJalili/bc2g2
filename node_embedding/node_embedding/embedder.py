@@ -1,15 +1,19 @@
 import h5py
 import logging
 import math
+import matplotlib.pyplot as plt
 import model
 import numpy as np
 import os
 import pandas as pd
+import seaborn as sns
 import warnings
 
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.utils import Sequence
+
+from sklearn.manifold import TSNE
 
 
 # TODO: Globally set the random seed, currently it is set in different places to different values.
@@ -38,9 +42,9 @@ class GraphGenerator(Sequence):
 
     def __getitem__(self, idx):
         batch_indices = self.indices[idx * self.batch_size:(idx + 1) * self.batch_size]
-        return self._get_graphs(batch_indices)
+        return self.get_graphs(batch_indices)
 
-    def _get_graphs(self, indices):
+    def get_graphs(self, indices):
         node_features, edge_features, pair_indices, labels = [], [], [], []
         with h5py.File(self.filename, "r") as f:
             for idx in indices:
@@ -97,24 +101,30 @@ class GraphGenerator(Sequence):
 
 
 class GraphEncoder:
-    def __init__(self):
-        self.model = None
+    def __init__(self, inputs_dir, outputs_dir):
+        self.classifier_model = None
+        self.embedder_model = None
+        self.inputs_dir = inputs_dir
+        self.outputs_dir = outputs_dir
 
-    def run_all(self, graphs_filename, model_dir, train_hist_filename, eval_hist_filename):
-        # TODO: it currently fails to correctly save/load the model.
-
-        if os.path.isdir(model_dir):
-            self.model = keras.models.load_model(model_dir)
+    def run_pipeline(self, graphs_filename):
+        # Train/get classifier.
+        classifier_model_dir = os.path.join(self.inputs_dir, "classifier_model")
+        if os.path.isdir(classifier_model_dir):
+            # TODO: it currently fails to correctly save/load the model.
+            # self.classifier_model = keras.models.load_model(model_dir)
+            raise NotImplemented()
         else:
-            self.model, train_history, eval_data_generator = self.train(graphs_filename, epochs=2)
-            self.model.save(model_dir)
-            self.serialize_history(train_history.history, train_hist_filename)
+            self.classifier_model, model_input, embedder_output = self.train_classifier(graphs_filename, epochs=2)
+            # TODO: currently there are issues saving/loading this model.
+            # self.classifier_model.save(classifier_model_dir)
+        self.classifier_model.trainable = False
 
-            eval_history = self.model.evaluate(eval_data_generator, return_dict=True)
-            self.serialize_history(eval_history, eval_hist_filename)
+        # Train/get embedder & and embed nodes in given graphs.
+        self.embedder_model = keras.Model(inputs=model_input, outputs=embedder_output)
+        self.embed_graph(graphs_filename)  # fixme
 
-    @staticmethod
-    def train(graphs_filename, epochs=100, learning_rate=5e-4):
+    def train_classifier(self, graphs_filename, epochs=100, learning_rate=5e-4):
         with h5py.File(graphs_filename, "r") as f:
             indices = list(f.keys())
         permuted_indices = np.random.permutation(indices)
@@ -128,7 +138,7 @@ class GraphEncoder:
         val_data_generator = GraphGenerator(graphs_filename, valid_index)
         eval_data_generator = GraphGenerator(graphs_filename, test_index)
 
-        bcgm, __inputs, __embedder_output = model.BlockChainGraphModel.get_model(
+        bcgm, model_input, embedder_output = model.BlockChainGraphModel.get_model(
             node_features_count=1, edge_features_count=4)
 
         bcgm.compile(
@@ -149,7 +159,37 @@ class GraphEncoder:
             verbose=2,
             class_weight={0: 2.0, 1: 0.5})  # hence the loss is a weighted average
 
-        return bcgm, train_history, eval_data_generator
+        eval_history = bcgm.evaluate(eval_data_generator, return_dict=True)
+
+        self.serialize_history(train_history.history, os.path.join(self.outputs_dir, "training_metrics.tsv"))
+        self.serialize_history(eval_history, os.path.join(self.outputs_dir, "evaluation_metrics.tsv"))
+
+        return bcgm, model_input, embedder_output
+
+    def embed_graph(self, graphs_filename):
+        with h5py.File(graphs_filename, "r") as f:
+            indices = list(f.keys())
+        generator = GraphGenerator(graphs_filename, indices)
+        x, y = generator.get_graphs(indices)
+        embeddings = self.embedder_model.predict(generator)
+
+        # tSNE plot the embeddings.
+        trans = TSNE(n_components=2)
+        emb_transformed = pd.DataFrame(trans.fit_transform(embeddings))  # TODO: , index=node_ids
+        emb_transformed["label"] = y
+        df = pd.DataFrame(data={
+            "dim 1": emb_transformed[0],
+            "dim 2": emb_transformed[1],
+            "label": emb_transformed["label"].astype("category")})
+
+        sns.set_theme()
+        sns.set_context("paper")
+        ax = sns.scatterplot(data=df, x="dim 1", y="dim 2", hue="label")
+        ax.set_title(f"{TSNE.__name__} visualization of node embeddings")
+        ax.set_xlabel("Dimension 1")
+        ax.set_ylabel("Dimension 2")
+        plt.legend([], [], frameon=False)  # hide legend
+        plt.savefig(os.path.join(self.outputs_dir, "node_embedding_tsne.pdf"))
 
     @staticmethod
     def serialize_history(history, filename):
@@ -157,11 +197,14 @@ class GraphEncoder:
         df.to_csv(filename, sep="\t")
 
 
-def main(graphs_filename, model_filename, train_history_filename, eval_history_filename):
-    encoder = GraphEncoder()
-    encoder.run_all(graphs_filename, model_filename, train_history_filename, eval_history_filename)
+def main(graphs_filename,
+         inputs_dir="..\\..\\data\\node_embedding\\inputs",
+         outputs_dir="..\\..\\data\\node_embedding\\outputs"):
+
+    encoder = GraphEncoder(inputs_dir, outputs_dir)
+    encoder.run_pipeline(graphs_filename)
 
 
 if __name__ == "__main__":
     hdf5_filename = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
-    main(hdf5_filename, "model_dir", "train_history.tsv", "eval_history.tsv")
+    main(hdf5_filename)
