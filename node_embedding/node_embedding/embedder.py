@@ -3,10 +3,12 @@ import logging
 import math
 import model
 import numpy as np
+import os
 import pandas as pd
 import warnings
 
 import tensorflow as tf
+from tensorflow import keras
 from tensorflow.keras.utils import Sequence
 
 
@@ -95,11 +97,25 @@ class GraphGenerator(Sequence):
 
 
 class GraphEncoder:
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self):
+        self.model = None
 
-    def train(self, train_history_filename, eval_history_filename, epochs=100, learning_rate=5e-4):
-        with h5py.File(self.filename, "r") as f:
+    def run_all(self, graphs_filename, model_dir, train_hist_filename, eval_hist_filename):
+        # TODO: it currently fails to correctly save/load the model.
+
+        if os.path.isdir(model_dir):
+            self.model = keras.models.load_model(model_dir)
+        else:
+            self.model, train_history, eval_data_generator = self.train(graphs_filename, epochs=2)
+            self.model.save(model_dir)
+            self.serialize_history(train_history.history, train_hist_filename)
+
+            eval_history = self.model.evaluate(eval_data_generator, return_dict=True)
+            self.serialize_history(eval_history, eval_hist_filename)
+
+    @staticmethod
+    def train(graphs_filename, epochs=100, learning_rate=5e-4):
+        with h5py.File(graphs_filename, "r") as f:
             indices = list(f.keys())
         permuted_indices = np.random.permutation(indices)
 
@@ -108,9 +124,9 @@ class GraphEncoder:
         valid_index = permuted_indices[pi1: pi2]
         test_index = permuted_indices[pi2:]
 
-        train_data_generator = GraphGenerator(self.filename, train_index)
-        val_data_generator = GraphGenerator(self.filename, valid_index)
-        eval_data_generator = GraphGenerator(self.filename, test_index)
+        train_data_generator = GraphGenerator(graphs_filename, train_index)
+        val_data_generator = GraphGenerator(graphs_filename, valid_index)
+        eval_data_generator = GraphGenerator(graphs_filename, test_index)
 
         bcgm, __inputs, __embedder_output = model.BlockChainGraphModel.get_model(
             node_features_count=1, edge_features_count=4)
@@ -132,10 +148,8 @@ class GraphEncoder:
             epochs=epochs,
             verbose=2,
             class_weight={0: 2.0, 1: 0.5})  # hence the loss is a weighted average
-        self.serialize_history(train_history.history, train_history_filename)
 
-        eval_history = bcgm.evaluate(eval_data_generator, return_dict=True)
-        self.serialize_history(eval_history, eval_history_filename)
+        return bcgm, train_history, eval_data_generator
 
     @staticmethod
     def serialize_history(history, filename):
@@ -143,11 +157,11 @@ class GraphEncoder:
         df.to_csv(filename, sep="\t")
 
 
-def main(filename, train_history_filename, eval_history_filename):
-    encoder = GraphEncoder(filename)
-    encoder.train(train_history_filename, eval_history_filename, epochs=2)
+def main(graphs_filename, model_filename, train_history_filename, eval_history_filename):
+    encoder = GraphEncoder()
+    encoder.run_all(graphs_filename, model_filename, train_history_filename, eval_history_filename)
 
 
 if __name__ == "__main__":
     hdf5_filename = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
-    main(hdf5_filename, "train_history.tsv", "eval_history.tsv")
+    main(hdf5_filename, "model_dir", "train_history.tsv", "eval_history.tsv")
