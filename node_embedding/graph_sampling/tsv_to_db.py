@@ -28,8 +28,6 @@ def main(nodes_filename, edges_filename, block_status_filename):
                 counter += 1
                 if counter % 1000 == 0:
                     print(f"\r\tNodes added: {counter:,}", end="", flush=True)
-                if counter == 1000000:
-                    break
 
         print("\r\tFlushing transaction to database ...", end="", flush=True)
         session.commit()
@@ -57,9 +55,6 @@ def main(nodes_filename, edges_filename, block_status_filename):
                 counter += 1
                 if counter % 1000 == 0:
                     print(f"\r\tEdges added: {counter:,}", end="", flush=True)
-
-                if counter == 1000000:
-                    break
 
         print("\r\tFlushing transaction to database ...", end="", flush=True)
         session.commit()
@@ -100,9 +95,6 @@ def main(nodes_filename, edges_filename, block_status_filename):
                 counter += 1
                 if counter % 1000 == 0:
                     print(f"\r\tBlock statistics added: {counter:,}", end="", flush=True)
-
-                if counter == 1000000:
-                    break
 
         print("\r\tFlushing transaction to database ...", end="", flush=True)
         session.commit()
