@@ -188,9 +188,9 @@ class BlockChainGraphModel:
             num_attention_heads=8,
             dense_units=512):
 
-        node_features = layers.Input((node_features_count), dtype="float32", name="node_features")
-        edge_features = layers.Input((edge_features_count), dtype="float32", name="edge_features")
-        pair_indices = layers.Input((2), dtype="int32", name="pair_indices")
+        node_features = layers.Input(node_features_count, dtype="float32", name="node_features")
+        edge_features = layers.Input(edge_features_count, dtype="float32", name="edge_features")
+        pair_indices = layers.Input(2, dtype="int32", name="pair_indices")
         node_partition_indices = layers.Input((), dtype="int32", name="node_partition_indices")
 
         x = MessagePassing(message_units, message_steps)(
