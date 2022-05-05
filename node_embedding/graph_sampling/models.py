@@ -65,7 +65,7 @@ class Node(Base, B64Hashable):
     id = Column(Integer, primary_key=True)
     id_generated = Column(Integer, unique=True, index=True)
     # address = Column(String(256), index=True)
-    script_type = Column(Integer)
+    script_type = Column(Float)
 
     features_count = 1
 
@@ -153,4 +153,3 @@ def get_engine():
     Base.metadata.create_all(engine)
 
     return engine
-
