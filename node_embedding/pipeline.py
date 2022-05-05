@@ -1,13 +1,27 @@
 import argparse
+import os
 import sys
 
 
-def normalize():
+def normalize(data_dir):
     pass
 
 
-def end_to_end():
-    pass
+def end_to_end(data_dir):
+    output_prefix = ""
+    classifier_inputs_filename = os.path.join(data_dir, "sampled_graphs.hdf5")
+    embedder_inputs_filename = os.path.join(data_dir, "sampled_graphs.hdf5")
+    g4ep_train = os.path.join(data_dir, "sampled_graphs_for_edge_predict.hdf5")
+
+    from node_embedding import embedder
+    embedder.main(
+        data_dir=data_dir,
+        graphs_for_classifier=classifier_inputs_filename,
+        graphs_to_embed_filename=embedder_inputs_filename,
+        graphs_for_train_edge_predictor_filename=g4ep_train,
+        graphs_for_val_edge_predictor_filename=g4ep_train,
+        graphs_for_eval_edge_predictor_filename=g4ep_train,
+        output_prefix=output_prefix)
 
 
 def main():
@@ -31,10 +45,16 @@ def main():
 
     args = parser.parse_args()
 
+    this_script_abs_path = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(os.path.dirname(this_script_abs_path), "data")
+
     if args.commands == "normalize":
-        normalize()
+        normalize(data_dir)
     elif args.commands == "end-to-end":
-        end_to_end()
+        end_to_end(data_dir)
+    else:
+        print("No command was provided.")
+        parser.print_help()
 
 
 if __name__ == '__main__':
