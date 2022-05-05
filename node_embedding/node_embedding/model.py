@@ -4,34 +4,10 @@ from tensorflow.keras import layers
 
 
 """
-## Model
-
-The MPNN model can take on various shapes and forms. In this tutorial, we will implement an
-MPNN based on the original paper
-[Neural Message Passing for Quantum Chemistry](https://arxiv.org/abs/1704.01212) and
-[DeepChem's MPNNModel](https://deepchem.readthedocs.io/en/latest/api_reference/models.html#mpnnmodel).
-The MPNN of this tutorial consists of three stages: message passing, readout and
-classification.
-
-### Message passing
-
-The message passing step itself consists of two parts:
-
-1. The *edge network*, which passes messages from 1-hop neighbors `w^{t}_{i}` of `v^{t}`
-to `v^{t}`, based on the edge features between them (`e_{v^{t}w^{t}_{i}}`, where `t =
-0`), resulting in an updated node state `v^{t+1}`. `_{i}` denotes the `i:th` neighbor of
-`v^{t}` and `^{t}` the `t:th` state of `v` or `w`. An important feature of the edge
-network (in contrast to e.g. the relational graph convolutional network) is that it
-allows for non-discrete edge features. However, in this tutorial, only discrete edge
-features will be used.
-
-2. The *gated recurrent unit* (GRU), which takes as input the most recent node state
-(e.g., `v^{t+1}`) and updates it based on previous node state(s) (e.g., `v^{t}`). In
-other words, the most recent node states serves as the input to the GRU, while the previous
-node state(s) are incorporated within the memory state of the GRU.
-
-Importantly, step (1) and (2) are repeated for `k steps`, and where at each step `1...k`,
-the radius (or # hops) of aggregated information from the source node `v` increases by 1.
+The model is implemented based on original paper 
+Neural Message Passing for Quantum Chemistry (https://arxiv.org/abs/1704.01212) and
+DeepChem's MPNNModel(https://deepchem.readthedocs.io/en/latest/api_reference/models.html#mpnnmodel), 
+and tutorials such as https://keras.io/examples/graph/mpnn-molecular-graphs/.
 """
 
 
@@ -74,7 +50,10 @@ class EdgeNetwork(layers.Layer):
         transformed_features = tf.squeeze(transformed_features, axis=-1)
         aggregated_features = tf.math.segment_sum(transformed_features, pair_indices[:, 0])
 
-        # aggregated_features = tf.math.unsorted_segment_sum(transformed_features, pair_indices[:, 0])
+        # aggregated_features = tf.math.unsorted_segment_sum(
+        #     transformed_features,
+        #     pair_indices[:, 0],
+        #     num_segments=tf.shape(node_features)[0])
         return aggregated_features
 
 
@@ -108,26 +87,6 @@ class MessagePassing(layers.Layer):
                 node_features_aggregated, node_features_updated)
 
         return node_features_updated
-
-
-"""
-### Readout
-
-When the message passing procedure ends, the k-step-aggregated node states are to be partitioned
-into subgraphs (correspoding to each molecule in the batch) and subsequently
-reduced to graph-level embeddings. In the
-[original paper](https://arxiv.org/abs/1704.01212), a
-[set-to-set layer](https://arxiv.org/abs/1511.06391) was used for this purpose.
-In this tutorial however, a transformer encoder will be used. Specifically:
-
-* the k-step-aggregated node states will be partitioned into the subgraphs
-(corresponding to each molecule in the batch);
-* each subgraph will then be padded to match the subgraph with the greatest number of nodes, followed
-by a `tf.stack(...)`;
-* the (stacked) padded tensor, encoding subgraphs (each subgraph containing sets of node states), are
-masked to make sure the paddings don't interfere with training;
-* finally, the padded tensor is passed to the transformer followed by an average pooling.
-"""
 
 
 class PartitionPadding(layers.Layer):
@@ -183,10 +142,10 @@ class BlockChainGraphModel:
             node_features_count,
             edge_features_count,
             batch_size=32,
-            message_units=64,
+            message_units=32,  # the size of the vector representing a node.
             message_steps=4,
             num_attention_heads=8,
-            dense_units=512):
+            dense_units=64):  # This will determine the length of node embedding vector.
 
         node_features = layers.Input(node_features_count, dtype="float32", name="node_features")
         edge_features = layers.Input(edge_features_count, dtype="float32", name="edge_features")
