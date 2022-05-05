@@ -2,7 +2,8 @@ import h5py
 import logging
 import math
 import matplotlib.pyplot as plt
-import model
+from . import model
+#import model
 import numpy as np
 import os
 import pandas as pd
@@ -108,13 +109,28 @@ class GraphGenerator(Sequence):
 
 
 class GraphEncoder:
-    def __init__(self, inputs_dir, outputs_dir):
+    def __init__(self, data_dir,
+                 graphs_for_classifier,
+                 graphs_to_embed_filename,
+                 graphs_for_train_edge_predictor_filename,
+                 graphs_for_val_edge_predictor_filename,
+                 graphs_for_eval_edge_predictor_filename,
+                 output_prefix=""):
+        self.data_dir = data_dir
         self.classifier_model = None
         self.embedder_model = None
-        self.inputs_dir = inputs_dir
-        self.outputs_dir = outputs_dir
         self.node_features_count = 1
         self.edge_features_count = 4
+        self.output_prefix = output_prefix
+        self.graphs_for_classifier = graphs_for_classifier
+        self.graphs_to_embed_filename = graphs_to_embed_filename
+        # TODO: We should surely use only one hdf5 for these three.
+        self.g4ep_train_filename = graphs_for_train_edge_predictor_filename
+        self.g4ep_val_filename = graphs_for_val_edge_predictor_filename
+        self.g4ep_eval_filename = graphs_for_eval_edge_predictor_filename
+        # TODO: should create a class for all the hyperparams and pass instances of the class around.
+        self.embedder_epochs = 2
+        self.embedder_learning_rate = 5e-4
 
     @staticmethod
     def _get_generators(graphs_filename, groups=None):
@@ -132,27 +148,27 @@ class GraphEncoder:
             GraphGenerator(graphs_filename, valid_index, groups=groups), \
             GraphGenerator(graphs_filename, test_index, groups=groups)
 
-    def run_pipeline(self, graphs_filename, graph_for_embeddings_filename):
+    def run_pipeline(self):
         # Train/get classifier.
-        classifier_model_dir = os.path.join(self.inputs_dir, "classifier_model")
+        classifier_model_dir = os.path.join(self.data_dir, "classifier_model")
         if os.path.isdir(classifier_model_dir):
             # TODO: it currently fails to correctly save/load the model.
             # self.classifier_model = keras.models.load_model(model_dir)
             raise NotImplemented()
         else:
-            self.classifier_model, model_input, embedder_output = self.train_classifier(graphs_filename, epochs=2)
+            self.classifier_model, model_input, embedder_output = self.train_classifier()
             # TODO: currently there are issues saving/loading this model.
             # self.classifier_model.save(classifier_model_dir)
         self.classifier_model.trainable = False
 
         # Train/get embedder & and embed nodes in given graphs.
         self.embedder_model = keras.Model(inputs=model_input, outputs=embedder_output)
-        self.embed_graph(graph_for_embeddings_filename)
+        self.embed_graph()
 
         self.make_edge_predictions()
 
-    def train_classifier(self, graphs_filename, epochs=100, learning_rate=5e-4):
-        train_gen, val_gen, eval_gen = self._get_generators(graphs_filename)
+    def train_classifier(self):
+        train_gen, val_gen, eval_gen = self._get_generators(self.graphs_for_classifier)
 
         bcgm, model_input, embedder_output = model.BlockChainGraphModel.get_model(
             node_features_count=self.node_features_count,
@@ -160,7 +176,7 @@ class GraphEncoder:
 
         bcgm.compile(
             loss=tf.keras.losses.BinaryCrossentropy(),
-            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=self.embedder_learning_rate),
             metrics=[
                 tf.keras.metrics.AUC(),
                 tf.keras.metrics.Accuracy(),
@@ -172,21 +188,26 @@ class GraphEncoder:
         train_history = bcgm.fit(
             train_gen,
             validation_data=val_gen,
-            epochs=epochs,
+            epochs=self.embedder_epochs,
             verbose=1,
             class_weight={0: 2.0, 1: 0.5})  # hence the loss is a weighted average
 
         eval_history = bcgm.evaluate(eval_gen, return_dict=True)
 
-        self.serialize_history(train_history.history, os.path.join(self.outputs_dir, "training_metrics.tsv"))
-        self.serialize_history(eval_history, os.path.join(self.outputs_dir, "evaluation_metrics.tsv"))
+        self.serialize_history(
+            train_history.history,
+            os.path.join(self.data_dir, self.output_prefix, "training_metrics.tsv"))
+
+        self.serialize_history(
+            eval_history,
+            os.path.join(self.data_dir, self.output_prefix, "evaluation_metrics.tsv"))
 
         return bcgm, model_input, embedder_output
 
-    def embed_graph(self, graphs_filename):
-        with h5py.File(graphs_filename, "r") as f:
+    def embed_graph(self):
+        with h5py.File(self.graphs_to_embed_filename, "r") as f:
             indices = list(f.keys())
-        generator = GraphGenerator(graphs_filename, indices)
+        generator = GraphGenerator(self.graphs_to_embed_filename, indices)
         x, y = generator.get_graphs(indices)
         embeddings = self.embedder_model.predict(generator)
 
@@ -206,7 +227,7 @@ class GraphEncoder:
         ax.set_xlabel("Dimension 1")
         ax.set_ylabel("Dimension 2")
         plt.legend([], [], frameon=False)  # hide legend
-        plt.savefig(os.path.join(self.outputs_dir, "node_embedding_tsne.pdf"))
+        plt.savefig(os.path.join(self.data_dir, self.output_prefix, "node_embedding_tsne.pdf"))
 
     def make_edge_predictions(self):
         # TODO: this can be abstracted/simplified using the _get_generators method.
@@ -224,11 +245,11 @@ class GraphEncoder:
 
             return embeddings, y
 
-        embd_train, y_train = get_data(os.path.join(self.inputs_dir, "sampled_graphs_for_edge_predict_train.hdf5"))
-        embd_val, y_val = get_data(os.path.join(self.inputs_dir, "sampled_graphs_for_edge_predict_validation.hdf5"))
-        embd_eval, y_eval = get_data(os.path.join(self.inputs_dir, "sampled_graphs_for_edge_predict_evaluation.hdf5"))
+        embeddings_train, y_train = get_data(self.g4ep_train_filename)
+        embeddings_val, y_val = get_data(self.g4ep_val_filename)
+        embeddings_eval, y_eval = get_data(self.g4ep_eval_filename)
 
-        input_layer = layers.Input(shape=len(embd_train[0]), dtype="float32")
+        input_layer = layers.Input(shape=len(embeddings_train[0]), dtype="float32")
         x = layers.Dense(128, activation="relu")(input_layer)
         x = layers.Dense(32, activation="relu")(x)
         output_layer = layers.Dense(self.edge_features_count, activation="relu")(x)
@@ -238,20 +259,20 @@ class GraphEncoder:
             loss=keras.losses.BinaryCrossentropy())
 
         train_history = edge_model.fit(
-            embd_train, y_train,
-            validation_data=(embd_val, y_val),
+            embeddings_train, y_train,
+            validation_data=(embeddings_val, y_val),
             epochs=10, verbose=1)
 
         eval_history = edge_model.evaluate(
-            embd_eval, y_eval, return_dict=True)
+            embeddings_eval, y_eval, return_dict=True)
 
         self.serialize_history(
             train_history.history,
-            os.path.join(self.outputs_dir, "edge_predictor_model_training.tsv"))
+            os.path.join(self.data_dir, self.output_prefix, "edge_predictor_model_training.tsv"))
 
         self.serialize_history(
             eval_history,
-            os.path.join(self.outputs_dir, "edge_predictor_model_evaluation.tsv"))
+            os.path.join(self.data_dir, self.output_prefix, "edge_predictor_model_evaluation.tsv"))
 
     @staticmethod
     def serialize_history(history, filename):
@@ -259,15 +280,30 @@ class GraphEncoder:
         df.to_csv(filename, sep="\t")
 
 
-def main(graphs_filename, graph_for_embeddings_filename,
-         inputs_dir="..\\..\\data\\node_embedding\\inputs",
-         outputs_dir="..\\..\\data\\node_embedding\\outputs"):
+def main(data_dir,
+         graphs_for_classifier,
+         graphs_to_embed_filename,
+         graphs_for_train_edge_predictor_filename,
+         graphs_for_val_edge_predictor_filename,
+         graphs_for_eval_edge_predictor_filename,
+         output_prefix):
 
-    encoder = GraphEncoder(inputs_dir, outputs_dir)
-    encoder.run_pipeline(graphs_filename, graph_for_embeddings_filename)
+    encoder = GraphEncoder(
+        data_dir=data_dir,
+        graphs_for_classifier=graphs_for_classifier,
+        graphs_to_embed_filename=graphs_to_embed_filename,
+        graphs_for_train_edge_predictor_filename=graphs_for_train_edge_predictor_filename,
+        graphs_for_val_edge_predictor_filename=graphs_for_val_edge_predictor_filename,
+        graphs_for_eval_edge_predictor_filename=graphs_for_eval_edge_predictor_filename,
+        output_prefix=output_prefix)
+    encoder.run_pipeline()
 
 
 if __name__ == "__main__":
-    hdf5_filename = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
-    graph_for_embeddings_filename = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
-    main(hdf5_filename, graph_for_embeddings_filename)
+    main("..",
+         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5",
+         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5",
+         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\data\\node_embedding\\inputs\\sampled_graphs_for_edge_predict.hdf5",
+         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\data\\node_embedding\\inputs\\sampled_graphs_for_edge_predict.hdf5",
+         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\data\\node_embedding\\inputs\\sampled_graphs_for_edge_predict.hdf5",
+         "")
