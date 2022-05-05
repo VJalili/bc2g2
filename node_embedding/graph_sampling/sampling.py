@@ -261,33 +261,32 @@ class Sampler:
             max_retries -= 1
 
             neighbors = self.get_neighbors(root_node.id_generated, hops)
-            print("\t\tRetrieved neighbors.")
+
             if not neighbors:
+                print("\t\tNo neighbors, retrying.")
                 continue
+            print(f"\t\tRetrieved neighbors, count: {len(neighbors):,}")
 
             print(f"\t\tConstructing graph ... ", end="", flush=True)
             g1 = Graph(set(neighbors))
             print("Done.")
 
             if for_edge_prediction:
-                # TODO: there is a corner case where you may
-                #  remove the only not-to-self edge of a node,
-                #  hence you may end-up with a graph that not
-                #  all of its nodes are connected.
                 edges = []
                 extracted_edge = None
                 for edge in g1.edges:
-                    if edge.source.id_ != edge.target.id_ and extracted_edge is None:
+                    if edge.source.id_generated != edge.target.id_generated and extracted_edge is None:
                         extracted_edge = edge
                     else:
                         edges.append(edge)
 
                 g1.edges = edges
                 if extracted_edge is None:
+                    print("\t\tCould not extract any edge for prediction.")
                     continue
 
             if len(g1.edges) == 0:
-                print("\n\nGraph does not have any edges.")
+                print("\t\tGraph does not have any edges.")
                 continue
             g_hash = g1.__hash__()
             if g_hash in existing_graphs:
