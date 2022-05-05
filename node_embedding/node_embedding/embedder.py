@@ -147,24 +147,16 @@ class GraphEncoder:
 
         # Train/get embedder & and embed nodes in given graphs.
         self.embedder_model = keras.Model(inputs=model_input, outputs=embedder_output)
-        self.embed_graph(graphs_filename)  # fixme
+        self.embed_graph(graph_for_embeddings_filename)
+
+        self.make_edge_predictions()
 
     def train_classifier(self, graphs_filename, epochs=100, learning_rate=5e-4):
-        with h5py.File(graphs_filename, "r") as f:
-            indices = list(f.keys())
-        permuted_indices = np.random.permutation(indices)
-
-        pi1, pi2 = int(len(permuted_indices) * 0.8), int(len(permuted_indices) * 0.99)
-        train_index = permuted_indices[: pi1]
-        valid_index = permuted_indices[pi1: pi2]
-        test_index = permuted_indices[pi2:]
-
-        train_data_generator = GraphGenerator(graphs_filename, train_index)
-        val_data_generator = GraphGenerator(graphs_filename, valid_index)
-        eval_data_generator = GraphGenerator(graphs_filename, test_index)
+        train_gen, val_gen, eval_gen = self._get_generators(graphs_filename)
 
         bcgm, model_input, embedder_output = model.BlockChainGraphModel.get_model(
-            node_features_count=1, edge_features_count=4)
+            node_features_count=self.node_features_count,
+            edge_features_count=self.edge_features_count)
 
         bcgm.compile(
             loss=tf.keras.losses.BinaryCrossentropy(),
@@ -178,13 +170,13 @@ class GraphEncoder:
                 tf.keras.metrics.Recall()])
 
         train_history = bcgm.fit(
-            train_data_generator,
-            validation_data=val_data_generator,
+            train_gen,
+            validation_data=val_gen,
             epochs=epochs,
             verbose=1,
             class_weight={0: 2.0, 1: 0.5})  # hence the loss is a weighted average
 
-        eval_history = bcgm.evaluate(eval_data_generator, return_dict=True)
+        eval_history = bcgm.evaluate(eval_gen, return_dict=True)
 
         self.serialize_history(train_history.history, os.path.join(self.outputs_dir, "training_metrics.tsv"))
         self.serialize_history(eval_history, os.path.join(self.outputs_dir, "evaluation_metrics.tsv"))
@@ -216,20 +208,66 @@ class GraphEncoder:
         plt.legend([], [], frameon=False)  # hide legend
         plt.savefig(os.path.join(self.outputs_dir, "node_embedding_tsne.pdf"))
 
+    def make_edge_predictions(self):
+        # TODO: this can be abstracted/simplified using the _get_generators method.
+        def get_data(f_name):
+            with h5py.File(f_name, "r") as f:
+                indices = list(f.keys())
+            generator = GraphGenerator(f_name, indices, groups=["graph"])
+            _, y = generator.get_graphs(indices)
+            embeddings = self.embedder_model.predict(generator)
+
+            # It seems this conversion is essential as the model cannot train
+            # when x and y are of different types (ragged tensor and np array here).
+            y = y.to_list()
+            embeddings = embeddings.tolist()
+
+            return embeddings, y
+
+        embd_train, y_train = get_data(os.path.join(self.inputs_dir, "sampled_graphs_for_edge_predict_train.hdf5"))
+        embd_val, y_val = get_data(os.path.join(self.inputs_dir, "sampled_graphs_for_edge_predict_validation.hdf5"))
+        embd_eval, y_eval = get_data(os.path.join(self.inputs_dir, "sampled_graphs_for_edge_predict_evaluation.hdf5"))
+
+        input_layer = layers.Input(shape=len(embd_train[0]), dtype="float32")
+        x = layers.Dense(128, activation="relu")(input_layer)
+        x = layers.Dense(32, activation="relu")(x)
+        output_layer = layers.Dense(self.edge_features_count, activation="relu")(x)
+        edge_model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
+        edge_model.compile(
+            optimizer=keras.optimizers.Adam(learning_rate=5e-4),
+            loss=keras.losses.BinaryCrossentropy())
+
+        train_history = edge_model.fit(
+            embd_train, y_train,
+            validation_data=(embd_val, y_val),
+            epochs=10, verbose=1)
+
+        eval_history = edge_model.evaluate(
+            embd_eval, y_eval, return_dict=True)
+
+        self.serialize_history(
+            train_history.history,
+            os.path.join(self.outputs_dir, "edge_predictor_model_training.tsv"))
+
+        self.serialize_history(
+            eval_history,
+            os.path.join(self.outputs_dir, "edge_predictor_model_evaluation.tsv"))
+
     @staticmethod
     def serialize_history(history, filename):
         df = pd.DataFrame.from_dict(history, orient="index").transpose()
         df.to_csv(filename, sep="\t")
 
 
-def main(graphs_filename,
+def main(graphs_filename, graph_for_embeddings_filename,
          inputs_dir="..\\..\\data\\node_embedding\\inputs",
          outputs_dir="..\\..\\data\\node_embedding\\outputs"):
 
     encoder = GraphEncoder(inputs_dir, outputs_dir)
-    encoder.run_pipeline(graphs_filename)
+    encoder.run_pipeline(graphs_filename, graph_for_embeddings_filename)
 
 
 if __name__ == "__main__":
     hdf5_filename = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
-    main(hdf5_filename)
+    graph_for_embeddings_filename = "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5"
+    main(hdf5_filename, graph_for_embeddings_filename)
