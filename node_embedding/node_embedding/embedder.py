@@ -1,3 +1,5 @@
+import sys
+
 import h5py
 import logging
 import math
@@ -219,6 +221,8 @@ class GraphEncoder:
             "dim 2": emb_transformed[1],
             "label": emb_transformed["label"].astype("category")})
 
+        base_filename = os.path.join(self.data_dir, self.output_prefix, "node_embedding_tsne")
+        df.to_csv(base_filename + ".tsv", sep="\t")
         sns.set_theme()
         sns.set_context("paper")
         ax = sns.scatterplot(data=df, x="dim 1", y="dim 2", hue="label")
@@ -226,7 +230,7 @@ class GraphEncoder:
         ax.set_xlabel("Dimension 1")
         ax.set_ylabel("Dimension 2")
         plt.legend([], [], frameon=False)  # hide legend
-        plt.savefig(os.path.join(self.data_dir, self.output_prefix, "node_embedding_tsne.pdf"))
+        plt.savefig(base_filename + ".pdf")
 
     def make_edge_predictions(self):
         # TODO: this can be abstracted/simplified using the _get_generators method.
@@ -299,10 +303,15 @@ def main(data_dir,
 
 
 if __name__ == "__main__":
-    main("..",
-         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5",
-         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\node_embedding\\graph_sampling\\sampled_graphs.hdf5",
-         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\data\\node_embedding\\inputs\\sampled_graphs_for_edge_predict.hdf5",
-         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\data\\node_embedding\\inputs\\sampled_graphs_for_edge_predict.hdf5",
-         "C:\\Users\\Hamed\\Desktop\\code\\bitcoin_data\\data\\node_embedding\\inputs\\sampled_graphs_for_edge_predict.hdf5",
-         "")
+    if len(sys.argv) < 8:
+        print("\nMissing args ... usage example (all arguments are required):")
+        print("python embedder.py "
+              "[data directory] "
+              "[hdf5 containing graphs for classifier] "
+              "[hdf5 containing graphs for embedding] "
+              "[hdf5 containing graphs for training the edge predictor model] "
+              "[hdf5 containing graphs for validating the edge predictor model] "
+              "[hdf5 containing graphs for evaluating the edge predictor model] "
+              "[output prefix]")
+        exit()
+    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7])
