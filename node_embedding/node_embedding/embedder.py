@@ -2,8 +2,7 @@ import h5py
 import logging
 import math
 import matplotlib.pyplot as plt
-from . import model
-#import model
+import model
 import numpy as np
 import os
 import pandas as pd

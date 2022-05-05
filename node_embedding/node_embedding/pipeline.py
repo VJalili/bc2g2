@@ -1,4 +1,5 @@
 import argparse
+import embedder
 import os
 import sys
 
@@ -13,7 +14,6 @@ def end_to_end(data_dir):
     embedder_inputs_filename = os.path.join(data_dir, "sampled_graphs.hdf5")
     g4ep_train = os.path.join(data_dir, "sampled_graphs_for_edge_predict.hdf5")
 
-    from node_embedding import embedder
     embedder.main(
         data_dir=data_dir,
         graphs_for_classifier=classifier_inputs_filename,
@@ -46,7 +46,7 @@ def main():
     args = parser.parse_args()
 
     this_script_abs_path = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(os.path.dirname(this_script_abs_path), "data")
+    data_dir = os.path.join(os.path.dirname(os.path.dirname(this_script_abs_path)), "data")
 
     if args.commands == "normalize":
         normalize(data_dir)
