@@ -11,6 +11,7 @@ import warnings
 
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras import layers
 from tensorflow.keras.utils import Sequence
 
 from sklearn.manifold import TSNE
@@ -30,12 +31,18 @@ warnings.filterwarnings("ignore")
 
 class GraphGenerator(Sequence):
 
-    def __init__(self, filename: str, indices: list[int], batch_size=16, shuffle=True, to_fit=True):
+    def __init__(self, filename: str,
+                 indices: list[int],
+                 batch_size=16,
+                 shuffle=True,
+                 to_fit=True,
+                 groups=None):
         self.filename = filename
         self.indices = indices
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.to_fit = to_fit
+        self.groups = groups or ["graph", "random_edges"]
 
     def __len__(self):
         return math.ceil(len(self.indices) / self.batch_size)
@@ -48,7 +55,7 @@ class GraphGenerator(Sequence):
         node_features, edge_features, pair_indices, labels = [], [], [], []
         with h5py.File(self.filename, "r") as f:
             for idx in indices:
-                for group_key in ["graph", "random_edges"]:
+                for group_key in self.groups:
                     group = f[idx][group_key]
                     node_features.append(group["node_features"][...])
                     edge_features.append(group["edge_features"][...])
@@ -66,7 +73,7 @@ class GraphGenerator(Sequence):
              tf.ragged.constant(pair_indices, dtype=tf.int64))
 
         if self.to_fit:
-            y = tf.ragged.constant(labels, dtype=tf.int64)
+            y = tf.ragged.constant(labels, dtype=tf.float32)
             return self._transform(x, y)
         else:
             return x
@@ -106,8 +113,26 @@ class GraphEncoder:
         self.embedder_model = None
         self.inputs_dir = inputs_dir
         self.outputs_dir = outputs_dir
+        self.node_features_count = 1
+        self.edge_features_count = 4
 
-    def run_pipeline(self, graphs_filename):
+    @staticmethod
+    def _get_generators(graphs_filename, groups=None):
+        with h5py.File(graphs_filename, "r") as f:
+            indices = list(f.keys())
+        permuted_indices = np.random.permutation(indices)
+
+        pi1, pi2 = int(len(permuted_indices) * 0.75), int(len(permuted_indices) * 0.95)
+        train_index = permuted_indices[: pi1]
+        valid_index = permuted_indices[pi1: pi2]
+        test_index = permuted_indices[pi2:]
+
+        return \
+            GraphGenerator(graphs_filename, train_index, groups=groups), \
+            GraphGenerator(graphs_filename, valid_index, groups=groups), \
+            GraphGenerator(graphs_filename, test_index, groups=groups)
+
+    def run_pipeline(self, graphs_filename, graph_for_embeddings_filename):
         # Train/get classifier.
         classifier_model_dir = os.path.join(self.inputs_dir, "classifier_model")
         if os.path.isdir(classifier_model_dir):
@@ -147,8 +172,8 @@ class GraphEncoder:
             metrics=[
                 tf.keras.metrics.AUC(),
                 tf.keras.metrics.Accuracy(),
-                tf.keras.metrics.KLDivergence(),
-                tf.keras.metrics.MeanAbsoluteError(),
+                tf.keras.metrics.KLDivergence(name="kld"),
+                tf.keras.metrics.MeanAbsoluteError(name="mae"),
                 tf.keras.metrics.Precision(),
                 tf.keras.metrics.Recall()])
 
@@ -156,7 +181,7 @@ class GraphEncoder:
             train_data_generator,
             validation_data=val_data_generator,
             epochs=epochs,
-            verbose=2,
+            verbose=1,
             class_weight={0: 2.0, 1: 0.5})  # hence the loss is a weighted average
 
         eval_history = bcgm.evaluate(eval_data_generator, return_dict=True)
