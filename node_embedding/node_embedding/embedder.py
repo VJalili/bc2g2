@@ -130,7 +130,7 @@ class GraphEncoder:
         self.g4ep_val_filename = graphs_for_val_edge_predictor_filename
         self.g4ep_eval_filename = graphs_for_eval_edge_predictor_filename
         # TODO: should create a class for all the hyperparams and pass instances of the class around.
-        self.embedder_epochs = 2
+        self.embedder_epochs = 100
         self.embedder_learning_rate = 5e-4
 
     @staticmethod
@@ -289,7 +289,9 @@ def main(data_dir,
          graphs_for_train_edge_predictor_filename,
          graphs_for_val_edge_predictor_filename,
          graphs_for_eval_edge_predictor_filename,
-         output_prefix):
+         output_prefix,
+         embedder_epochs=100,
+         embedder_learning_rate=5e-4):
 
     encoder = GraphEncoder(
         data_dir=data_dir,
@@ -299,6 +301,8 @@ def main(data_dir,
         graphs_for_val_edge_predictor_filename=graphs_for_val_edge_predictor_filename,
         graphs_for_eval_edge_predictor_filename=graphs_for_eval_edge_predictor_filename,
         output_prefix=output_prefix)
+    encoder.embedder_epochs = embedder_epochs
+    encoder.embedder_learning_rate = embedder_learning_rate
     encoder.run_pipeline()
 
 

@@ -21,7 +21,9 @@ def end_to_end(data_dir):
         graphs_for_train_edge_predictor_filename=g4ep_train,
         graphs_for_val_edge_predictor_filename=g4ep_train,
         graphs_for_eval_edge_predictor_filename=g4ep_train,
-        output_prefix=output_prefix)
+        output_prefix=output_prefix,
+        embedder_epochs=10,
+        embedder_learning_rate=5e-4)
 
 
 def main():
