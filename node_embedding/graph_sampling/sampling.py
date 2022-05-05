@@ -5,7 +5,7 @@ import numpy as np
 import os
 import random
 
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import func, select
@@ -103,31 +103,31 @@ class Sampler:
         with Session(self.engine) as session:
             session.execute(f"select setseed({seed})")
 
-    def _get_edges(self, node_id: int):
+    def _get_edges(self, node_id: int, ignore_pair=-1):
         with Session(self.engine) as session:
             return session.query(models.Edge)\
                 .options(joinedload(models.Edge.source))\
                 .options(joinedload(models.Edge.target))\
                 .filter(or_(
-                    models.Edge.source_id == node_id,
-                    models.Edge.target_id == node_id)).all()
+                    and_(models.Edge.source_id == node_id, models.Edge.target_id != ignore_pair),
+                    and_(models.Edge.target_id == node_id, models.Edge.source_id != ignore_pair))).all()
 
     def sample_nodes(self, count: int, seed=None):
         with Session(self.engine) as session:
             self._set_sql_random_seed(seed or self.rnd_seed / 100)
             return session.query(models.Node).order_by(func.random()).limit(count).all()
 
-    def get_neighbors(self, node_id: int, hops: int):
+    def get_neighbors(self, node_id: int, hops: int, ignore_pair=-1):
         hops -= 1
-        edges = self._get_edges(node_id)
+        edges = self._get_edges(node_id, ignore_pair)
         if len(edges) == 0:
             # TODO: is this the best approach?
             return
 
         if hops > 0:
-            targets_ids = [e.target_id for e in edges]
+            targets_ids = [e.target_id if e.target_id != node_id else e.source_id for e in edges]
             for tid in targets_ids:
-                edges.extend(self.get_neighbors(tid, hops))
+                edges.extend(self.get_neighbors(tid, hops, node_id))
         return edges
 
     def get_neighbors_count(self, source_id, node_count, nodes_set=None, edges_set=None):
@@ -311,7 +311,7 @@ class Sampler:
             pair_indices.append(pi1)
             print("Done")
             if for_edge_prediction:
-                labels.append(extracted_edge)
+                labels.append(extracted_edge.get_features())
             else:
                 labels.append(0)
 
@@ -330,7 +330,7 @@ class Sampler:
 # TODO: in some cases the positive and negative graphs do not
 #  have the same number of nodes and/or edges. Is that a problem?
 
-def main(graph_count=100, hops=2, filename="sampled_graphs.hdf5"):
+def main(graph_count=1, hops=2, filename="sampled_graphs_for_edge_predict.hdf5"):
     if os.path.isfile(filename):
         # TODO: inform the user file already exist, and take actions based on their choices.
         os.remove(filename)
@@ -351,7 +351,7 @@ def main(graph_count=100, hops=2, filename="sampled_graphs.hdf5"):
         nodes, edges, pair_indices, labels = sampler.sample(
             root_node=root_node, hops=hops,
             include_random_edges=True,
-            for_edge_prediction=False,
+            for_edge_prediction=True,
             existing_graphs=existing_graphs)
 
         if nodes is not None:
