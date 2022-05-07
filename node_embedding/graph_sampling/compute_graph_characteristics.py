@@ -1,4 +1,8 @@
 from models import Edge, Degree, get_engine
+import math
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Session
 
@@ -57,14 +61,29 @@ def compute_node_degree_distribution(engine, degree_dist_filename):
         dist_df.to_csv(degree_dist_filename, index=False, sep="\t")
 
 
-def main(in_degree_filename, out_degree_filename, update_node_degrees=True):
+def plot_in_out_degree_dist(degree_dist_filename, plot_filename):
+    df = pd.read_csv(degree_dist_filename, sep="\t", header=0)
+    sns.set_theme()
+    sns.set_context("paper")
+    ax = sns.lineplot(data=df, x="Degree", y="InDegreeCount", label="In-degree")
+    ax = sns.lineplot(data=df, x="Degree", y="OutDegreeCount", label="Out-degree")
+    ax.legend()
+    ax.set(xscale='log')
+    ax.set(yscale='log')
+    ax.set_ylabel("Count")
+    ax.figure.savefig(plot_filename)
+
+
+def main(degree_dist_filename, degree_dist_plot_filename, update_node_degrees=True):
     engine = get_engine()
     if update_node_degrees:
         compute_node_degree(engine)
 
-    compute_node_degree_distribution(engine, in_degree_filename, out_degree_filename)
+    compute_node_degree_distribution(engine, degree_dist_filename)
+    plot_in_out_degree_dist(degree_dist_filename, degree_dist_plot_filename)
+
     print("\nAll process finished successfully.")
 
 
 if __name__ == "__main__":
-    main("in_degree_distribution.tsv", "out_degree_distribution.tsv")
+    main("degree_distribution.tsv", "degree_dist.pdf", update_node_degrees=False)
