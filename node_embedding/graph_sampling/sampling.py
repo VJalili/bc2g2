@@ -7,7 +7,7 @@ import random
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, subqueryload
 from sqlalchemy.sql.expression import func, select
 
 # NOTE: All the nodes a graph should be connected to at least one node.
@@ -40,21 +40,21 @@ class Graph(models.B64Hashable):
             self.update_degree(edge)
 
     def update_degree(self, edge: models.Edge):
-        if edge.source == edge.target:
-            if edge.source not in self._degrees:
-                self._degrees[edge.source] = Degree(0, 0, 1)
+        if edge.source_id == edge.target_id:
+            if edge.source_id not in self._degrees:
+                self._degrees[edge.source_id] = Degree(0, 0, 1)
             else:
-                self._degrees[edge.source].self_loop += 1
+                self._degrees[edge.source_id].self_loop += 1
 
-        if edge.source not in self._degrees:
-            self._degrees[edge.source] = Degree(0, 1, 0)
+        if edge.source_id not in self._degrees:
+            self._degrees[edge.source_id] = Degree(0, 1, 0)
         else:
-            self._degrees[edge.source].out_degree += 1
+            self._degrees[edge.source_id].out_degree += 1
 
-        if edge.target not in self._degrees:
-            self._degrees[edge.target] = Degree(1, 0, 0)
+        if edge.target_id not in self._degrees:
+            self._degrees[edge.target_id] = Degree(1, 0, 0)
         else:
-            self._degrees[edge.target].in_degree += 1
+            self._degrees[edge.target_id].in_degree += 1
 
     def pop_edge(self):
         """
@@ -64,10 +64,10 @@ class Graph(models.B64Hashable):
         None if such an edge cannot be found.
         """
         for edge in self.edges:
-            if edge.source == edge.target:
+            if edge.source_id == edge.target_id:
                 continue
-            sd = self._degrees[edge.source]
-            td = self._degrees[edge.target]
+            sd = self._degrees[edge.source_id]
+            td = self._degrees[edge.target_id]
 
             if sd.in_degree + sd.out_degree > 1 and td.in_degree + td.out_degree > 1:
                 self.edges.remove(edge)
@@ -86,6 +86,10 @@ class Sampler:
         if self.rnd_seed < 0 or self.rnd_seed > 99:
             raise ValueError(f"The given random seed {self.rnd_seed} is not in the 0<seed<100 range.")
         random.seed(self.rnd_seed)
+
+        # This is temporary and is used for performance reasons,
+        # search for its usage, and it should be replaced with a better solution.
+        self.edges_count = None
 
     def _set_sql_random_seed(self, seed):
         """
@@ -117,17 +121,55 @@ class Sampler:
             self._set_sql_random_seed(seed or self.rnd_seed / 100)
             return session.query(models.Node).order_by(func.random()).limit(count).all()
 
+    def sample_edges(self, count, seed):
+        with Session(self.engine) as session:
+            print(f"\n\t\tGetting random ids ... ", end="", flush=True)
+            # ids = session.query(models.Edge.id).all()
+            print("counting ...", end="", flush=True)
+
+            if self.edges_count is None:
+                self.edges_count = session.query(models.Edge).count()
+
+            print("done counting, selecting rnd ids ...", end="", flush=True)
+            random.seed(seed)
+            rnd_ids = random.sample(range(self.edges_count), count)
+            random.seed(self.rnd_seed)
+            print("Done")
+            edges = []
+
+            t_count = len(rnd_ids)
+            c = 1
+            for id_ in rnd_ids:
+                print(f"\r\t\tprocessing rand edge ... {c:,} / {t_count:,}", end="", flush=True)
+                edgs = self._get_edges(id_)
+                if edgs is not None:
+                    edges.extend(edgs)
+                c += 1
+            print("\n\t\tFinished getting random edges.")
+        return edges
+
+        # Do not use a method like the following as it is very slow.
+        #     self._set_sql_random_seed(seed)
+        #     return session.query(models.Edge)\
+        #         .order_by(func.random())\
+        #         .limit(count).all()
+        # # Do not use any of the following as they are super slow.
+        # # .options(subqueryload(models.Edge.source), subqueryload(models.Edge.target))\
+        # # .options(joinedload(models.Edge.source, models.Edge.target))\
+
     def get_neighbors(self, node_id: int, hops: int, ignore_pair=-1):
         hops -= 1
         edges = self._get_edges(node_id, ignore_pair)
-        if len(edges) == 0:
+        if edges is None or len(edges) == 0:
             # TODO: is this the best approach?
             return
 
         if hops > 0:
             targets_ids = [e.target_id if e.target_id != node_id else e.source_id for e in edges]
             for tid in targets_ids:
-                edges.extend(self.get_neighbors(tid, hops, node_id))
+                neighbors = self.get_neighbors(tid, hops, node_id)
+                if neighbors is not None:
+                    edges.extend(neighbors)
         return edges
 
     def get_neighbors_count(self, source_id, node_count, nodes_set=None, edges_set=None):
@@ -249,7 +291,7 @@ class Sampler:
                   f"found {int(len(node_features) / 2)} pairs, requested {graph_count}.")
         return node_features, edge_features, pair_indices, labels
 
-    def sample(self, root_node=None, hops=1, include_random_edges=True, for_edge_prediction=False, existing_graphs=None):
+    def sample(self, root_node=None, hops=1, include_random_edges=True, for_edge_prediction=False, existing_graphs=None, seed=0):
         node_features, edge_features, pair_indices, labels = [], [], [], []
         existing_graphs = existing_graphs or set()
         root_node = root_node or self.sample_nodes(1)[0]
@@ -295,7 +337,11 @@ class Sampler:
 
             if include_random_edges:
                 print("\t\tGetting random edges ... ", end="", flush=True)
-                g2 = Graph(self.get_random_edges(len(g1.edges)))
+                # g2 = Graph(self.get_random_edges(len(g1.edges)))
+                rnd_edges = self.sample_edges(len(g1.edges), seed=seed)
+                print("Done")
+                print("\t\tConstructing graph from random edges ... ", end="", flush=True)
+                g2 = Graph(rnd_edges)
                 print("Done.")
                 if len(g2.edges) == 0:
                     print("\t\tRandom edges list empty.")
@@ -329,7 +375,7 @@ class Sampler:
 # TODO: in some cases the positive and negative graphs do not
 #  have the same number of nodes and/or edges. Is that a problem?
 
-def main(graph_count=1, hops=2, filename="sampled_graphs_for_edge_predict.hdf5"):
+def main(graph_count=100, hops=2, filename="sampled_graphs_for_embedding.hdf5"):
     if os.path.isfile(filename):
         # TODO: inform the user file already exist, and take actions based on their choices.
         os.remove(filename)
@@ -339,19 +385,22 @@ def main(graph_count=1, hops=2, filename="sampled_graphs_for_edge_predict.hdf5")
     print(f"Sampling {graph_count} nodes ... ", end="", flush=True)
     root_nodes = sampler.sample_nodes(graph_count)
     root_nodes_count = len(root_nodes)
-    assert root_nodes_count == graph_count
+    # assert root_nodes_count == graph_count
     print("Done.")
 
     existing_graphs = set()
     root_node_counter, persisted_graphs_counter, missed = 0, -1, 0
+    counter_for_seed = 0  # tmp, should replace with a better solution.
     for root_node in root_nodes:
         root_node_counter += 1
         print(f"[{root_node_counter} / {root_nodes_count}] Processing root node {root_node.id_generated}:", flush=True)
         nodes, edges, pair_indices, labels = sampler.sample(
             root_node=root_node, hops=hops,
             include_random_edges=True,
-            for_edge_prediction=True,
-            existing_graphs=existing_graphs)
+            for_edge_prediction=False,
+            existing_graphs=existing_graphs,
+            seed=counter_for_seed)
+        counter_for_seed += 1
 
         if nodes is not None:
             print("\tPersisting ... ", end="", flush=True)
