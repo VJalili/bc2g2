@@ -390,6 +390,7 @@ def main(graph_count=100, hops=2, filename="sampled_graphs_for_embedding.hdf5"):
     # assert root_nodes_count == graph_count
     print("Done.")
 
+    for_edge_prediction = True
     existing_graphs = set()
     root_node_counter, persisted_graphs_counter, missed = 0, -1, 0
     counter_for_seed = 0  # tmp, should replace with a better solution.
@@ -398,17 +399,22 @@ def main(graph_count=100, hops=2, filename="sampled_graphs_for_embedding.hdf5"):
         print(f"[{root_node_counter} / {root_nodes_count}] Processing root node {root_node.id_generated}:", flush=True)
         nodes, edges, pair_indices, labels = sampler.sample(
             root_node=root_node, hops=hops,
-            include_random_edges=True,
-            for_edge_prediction=False,
+            include_random_edges=False,
+            for_edge_prediction=for_edge_prediction,
             existing_graphs=existing_graphs,
             seed=counter_for_seed)
         counter_for_seed += 1
 
+        if not for_edge_prediction:
+            groups = [("graph", 0), ("random_edges", 1)]
+        else:
+            groups = [("graph", 0)]
         if nodes is not None:
+
             print("\tPersisting ... ", end="", flush=True)
             persisted_graphs_counter += 1
             with h5py.File(filename, "a") as f:
-                for group, i in [("graph", 0), ("random_edges", 1)]:
+                for group, i in groups:
                     f.create_dataset(f"{persisted_graphs_counter}/{group}/node_features", data=nodes[i])
                     f.create_dataset(f"{persisted_graphs_counter}/{group}/edge_features", data=edges[i])
                     f.create_dataset(f"{persisted_graphs_counter}/{group}/pair_indices", data=pair_indices[i])
