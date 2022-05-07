@@ -1,13 +1,6 @@
-from models_v2 import Node, Edge, Degree, get_engine
+from models import Edge, Degree, get_engine
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Session
-import base64
-import pickle
-import sqlalchemy
-from sqlalchemy import create_engine, ForeignKey, Table, Column, Integer, String, Float, Time
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship
-from sqlalchemy.exc import OperationalError
 
 
 def compute_node_degree(engine):
