@@ -122,6 +122,8 @@ class Sampler:
             return session.query(models.Node).order_by(func.random()).limit(count).all()
 
     def sample_edges(self, count, seed):
+        # TODO: it is much better than the previous, but still terribly slow.
+
         with Session(self.engine) as session:
             print(f"\n\t\tGetting random ids ... ", end="", flush=True)
             # ids = session.query(models.Edge.id).all()
