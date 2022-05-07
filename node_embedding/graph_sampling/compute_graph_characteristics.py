@@ -28,25 +28,33 @@ def compute_node_degree(engine):
         print("Done")
 
 
-def compute_node_degree_distribution(engine, in_degree_filename, out_degree_filename):
+def compute_node_degree_distribution(engine, degree_dist_filename):
     with Session(engine) as session:
+        dist = {}
+
         print("\n\tGetting in-degree distribution ...")
         query = session.query(Degree.in_degree, func.count(Degree.in_degree)).group_by(Degree.in_degree)
-        print("\tWriting the distribution to the file ...")
-        with open(in_degree_filename, "w") as f:
-            f.write(f"degree\tcount\n")
-            for q in query.all():
-                f.write(f"{q[0]}\t{q[1]}\n")
-        print("\tDone!")
+
+        for q in query.all():
+            degree = q[0]
+            count = q[1]
+            if degree not in dist:
+                dist[degree] = [0, 0]
+            dist[degree][0] = count
 
         print("\n\tGetting out-degree distribution ...")
         query = session.query(Degree.out_degree, func.count(Degree.out_degree)).group_by(Degree.out_degree)
-        print("\tWriting the distribution to the file ...")
-        with open(out_degree_filename, "w") as f:
-            f.write(f"degree\tcount\n")
-            for q in query.all():
-                f.write(f"{q[0]}\t{q[1]}\n")
-        print("\tDone!")
+
+        for q in query.all():
+            degree = q[0]
+            count = q[1]
+            if degree not in dist:
+                dist[degree] = [0, 0]
+            dist[degree][1] = count
+
+        dist_df = pd.DataFrame([[int(k), v[0], v[1]] for k, v in dist.items()])
+        dist_df.rename(columns={0: "Degree", 1: "InDegreeCount", 2: "OutDegreeCount"}, inplace=True)
+        dist_df.to_csv(degree_dist_filename, index=False, sep="\t")
 
 
 def main(in_degree_filename, out_degree_filename, update_node_degrees=True):
