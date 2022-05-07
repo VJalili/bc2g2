@@ -101,6 +101,14 @@ class Edge(Base, B64Hashable):
         return [self.value, self.edge_type, self.time_offset, self.block_height]
 
 
+class Degree(Base):
+    __tablename__ = 'Degrees'
+
+    node_id = Column(Integer, primary_key=True)
+    in_degree = Column(Float, default=0)
+    out_degree = Column(Float, default=0)
+
+
 class BlockStatus(Base):
     __tablename__ = "BlocksStatus"
 
