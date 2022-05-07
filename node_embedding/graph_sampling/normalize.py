@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 #  functions, normalize abstracted, and columns min/max
 #  (or any other func) sliced from a collection.
 
+# TODO: Ideally you want to keep the normalized
+#  data separate from the original data.
+
 
 def normalize_nodes(engine):
     # Get min & max
