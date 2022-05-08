@@ -289,6 +289,17 @@ class GraphEncoder:
         df = pd.DataFrame.from_dict(history, orient="index").transpose()
         df.to_csv(filename, sep="\t")
 
+    @staticmethod
+    def plot_history(history_filename, filename):
+        history_df = pd.read_csv(history_filename, sep="\t", index_col=0)
+        sns.set_theme()
+        sns.set_context("paper")
+        ax = sns.lineplot(data=history_df, x=history_df.index, y="loss", label="Train Loss")
+        ax = sns.lineplot(data=history_df, x=history_df.index, y="val_loss", label="Validation Loss")
+        ax.legend()
+        ax.set_ylabel("Loss")
+        ax.figure.savefig(filename)
+
 
 def main(data_dir,
          graphs_for_classifier,
