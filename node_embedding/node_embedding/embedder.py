@@ -132,9 +132,9 @@ class GraphEncoder:
         # TODO: should create a class for all the hyperparams and pass instances of the class around.
         self.embedder_epochs = 100
         self.embedder_learning_rate = 5e-4
+        self.embedder_batch_size = 16
 
-    @staticmethod
-    def _get_generators(graphs_filename, groups=None):
+    def _get_generators(self, graphs_filename, groups=None):
         with h5py.File(graphs_filename, "r") as f:
             indices = list(f.keys())
         permuted_indices = np.random.permutation(indices)
@@ -145,9 +145,9 @@ class GraphEncoder:
         test_index = permuted_indices[pi2:]
 
         return \
-            GraphGenerator(graphs_filename, train_index, groups=groups), \
-            GraphGenerator(graphs_filename, valid_index, groups=groups), \
-            GraphGenerator(graphs_filename, test_index, groups=groups)
+            GraphGenerator(graphs_filename, train_index, groups=groups, batch_size=self.embedder_batch_size), \
+            GraphGenerator(graphs_filename, valid_index, groups=groups, batch_size=self.embedder_batch_size), \
+            GraphGenerator(graphs_filename, test_index, groups=groups, batch_size=self.embedder_batch_size)
 
     def run_pipeline(self):
         # Train/get classifier.
@@ -291,7 +291,8 @@ def main(data_dir,
          graphs_for_eval_edge_predictor_filename,
          output_prefix,
          embedder_epochs=100,
-         embedder_learning_rate=5e-4):
+         embedder_learning_rate=5e-4,
+         batch_size=16):
 
     encoder = GraphEncoder(
         data_dir=data_dir,
@@ -303,6 +304,7 @@ def main(data_dir,
         output_prefix=output_prefix)
     encoder.embedder_epochs = embedder_epochs
     encoder.embedder_learning_rate = embedder_learning_rate
+    encoder.embedder_batch_size = batch_size
     encoder.run_pipeline()
 
 
