@@ -48,12 +48,12 @@ class EdgeNetwork(layers.Layer):
         transformed_features = tf.matmul(edge_features, node_features_neighbors)
 
         transformed_features = tf.squeeze(transformed_features, axis=-1)
-        aggregated_features = tf.math.segment_sum(transformed_features, pair_indices[:, 0])
+        # aggregated_features = tf.math.segment_sum(transformed_features, pair_indices[:, 0])
+        aggregated_features = tf.math.unsorted_segment_sum(
+            transformed_features,
+            pair_indices[:, 0],
+            num_segments=tf.shape(node_features)[0])
 
-        # aggregated_features = tf.math.unsorted_segment_sum(
-        #     transformed_features,
-        #     pair_indices[:, 0],
-        #     num_segments=tf.shape(node_features)[0])
         return aggregated_features
 
 
