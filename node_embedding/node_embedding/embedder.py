@@ -195,13 +195,20 @@ class GraphEncoder:
 
         eval_history = bcgm.evaluate(eval_gen, return_dict=True)
 
+        training_metrics_filename = os.path.join(
+            self.data_dir, self.output_prefix + "training_metrics.tsv")
+
         self.serialize_history(
             train_history.history,
-            os.path.join(self.data_dir, self.output_prefix, "training_metrics.tsv"))
+            training_metrics_filename)
+
+        self.plot_history(
+            training_metrics_filename,
+            os.path.join(self.data_dir, self.output_prefix + "training_metrics.pdf"))
 
         self.serialize_history(
             eval_history,
-            os.path.join(self.data_dir, self.output_prefix, "evaluation_metrics.tsv"))
+            os.path.join(self.data_dir, self.output_prefix + "evaluation_metrics.tsv"))
 
         return bcgm, model_input, embedder_output
 
@@ -221,7 +228,7 @@ class GraphEncoder:
             "dim 2": emb_transformed[1],
             "label": emb_transformed["label"].astype("category")})
 
-        base_filename = os.path.join(self.data_dir, self.output_prefix, "node_embedding_tsne")
+        base_filename = os.path.join(self.data_dir, self.output_prefix + "node_embedding_tsne")
         df.to_csv(base_filename + ".tsv", sep="\t")
         sns.set_theme()
         sns.set_context("paper")
@@ -264,18 +271,18 @@ class GraphEncoder:
         train_history = edge_model.fit(
             embeddings_train, y_train,
             validation_data=(embeddings_val, y_val),
-            epochs=10, verbose=1)
+            epochs=100, verbose=1)
 
         eval_history = edge_model.evaluate(
             embeddings_eval, y_eval, return_dict=True)
 
         self.serialize_history(
             train_history.history,
-            os.path.join(self.data_dir, self.output_prefix, "edge_predictor_model_training.tsv"))
+            os.path.join(self.data_dir, self.output_prefix + "edge_predictor_model_training.tsv"))
 
         self.serialize_history(
             eval_history,
-            os.path.join(self.data_dir, self.output_prefix, "edge_predictor_model_evaluation.tsv"))
+            os.path.join(self.data_dir, self.output_prefix + "edge_predictor_model_evaluation.tsv"))
 
     @staticmethod
     def serialize_history(history, filename):
