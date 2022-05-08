@@ -2,3 +2,8 @@ psycopg2-binary
 sqlalchemy-utils
 h5py
 seaborn
+matplotlib
+tensorflow
+pandas
+seaborn
+sklearn
