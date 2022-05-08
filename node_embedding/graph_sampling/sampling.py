@@ -7,7 +7,7 @@ import random
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
-from sqlalchemy.orm import joinedload, subqueryload
+from sqlalchemy.orm import joinedload, subqueryload, selectinload
 from sqlalchemy.sql.expression import func, select
 
 # NOTE: All the nodes a graph should be connected to at least one node.
@@ -107,35 +107,47 @@ class Sampler:
         with Session(self.engine) as session:
             session.execute(f"select setseed({seed})")
 
-    def _get_edges(self, node_id: int, ignore_pair=-1):
+    def _get_edges(self, node_id: int, limit, ignore_pair=-1):
         with Session(self.engine) as session:
+            # TODO: you can do the following to load source and edge, but that is slow.
+            #  Can that be improved used lazy dynamic?! it may need some adjustments to the model as well.
+            #  https://docs.sqlalchemy.org/en/13/orm/collections.html#dynamic-relationship-loaders
+
+            if limit <= 0:
+                return []
+
             return session.query(models.Edge)\
                 .options(joinedload(models.Edge.source))\
                 .options(joinedload(models.Edge.target))\
                 .filter(or_(
                     and_(models.Edge.source_id == node_id, models.Edge.target_id != ignore_pair),
-                    and_(models.Edge.target_id == node_id, models.Edge.source_id != ignore_pair))).all()
+                    and_(models.Edge.target_id == node_id, models.Edge.source_id != ignore_pair)))\
+                .limit(limit).all()
+
+    def _get_edge_id(self, edge_id):
+        with Session(self.engine) as session:
+            return session.get(
+                models.Edge, edge_id,
+                options=[selectinload(models.Edge.source), selectinload(models.Edge.target)])
 
     def sample_nodes(self, count: int, seed=None):
         with Session(self.engine) as session:
             self._set_sql_random_seed(seed or self.rnd_seed / 100)
             return session.query(models.Node).order_by(func.random()).limit(count).all()
 
-    def sample_edges(self, count, seed):
+    def sample_edges(self, count):
         # TODO: it is much better than the previous, but still terribly slow.
 
         with Session(self.engine) as session:
-            print(f"\n\t\tGetting random ids ... ", end="", flush=True)
             # ids = session.query(models.Edge.id).all()
             print("counting ...", end="", flush=True)
 
+            # TODO: count is slow, why? any better approach? e.g., storing count somewhere?
             if self.edges_count is None:
                 self.edges_count = session.query(models.Edge).count()
 
             print("done counting, selecting rnd ids ...", end="", flush=True)
-            random.seed(seed)
             rnd_ids = random.sample(range(self.edges_count), count)
-            random.seed(self.rnd_seed)
             print("Done")
             edges = []
 
@@ -143,9 +155,9 @@ class Sampler:
             c = 1
             for id_ in rnd_ids:
                 print(f"\r\t\tprocessing rand edge ... {c:,} / {t_count:,}", end="", flush=True)
-                edgs = self._get_edges(id_)
-                if edgs is not None:
-                    edges.extend(edgs)
+                edge = self._get_edge_id(id_)
+                if edge is not None:
+                    edges.append(edge)
                 c += 1
             print("\n\t\tFinished getting random edges.")
         return edges
@@ -159,24 +171,38 @@ class Sampler:
         # # .options(subqueryload(models.Edge.source), subqueryload(models.Edge.target))\
         # # .options(joinedload(models.Edge.source, models.Edge.target))\
 
-    def get_neighbors(self, node_id: int, hops: int, ignore_pair=-1):
+    def get_neighbors(self, node_id: int, hops: int, max_neighbors, ignore_pair=-1):
         hops -= 1
-        edges = self._get_edges(node_id, ignore_pair)
+        edges = self._get_edges(node_id, ignore_pair=ignore_pair, limit=max_neighbors)
         if edges is None or len(edges) == 0:
             # TODO: is this the best approach?
             return
+        max_neighbors -= len(edges)
+        if max_neighbors <= 0:
+            return edges[: max_neighbors]
 
         if hops > 0:
             targets_ids = [e.target_id if e.target_id != node_id else e.source_id for e in edges]
+
             for tid in targets_ids:
-                neighbors = self.get_neighbors(tid, hops, node_id)
+                # while we could do something like the following to subset
+                # the list to iterate, it seems that leads sqlalchemy to load
+                # the relationships, hence a simple slice as the following
+                # takes a very long time to run.
+                #  targets_ids = [x for x in targets_ids if random.random() < 0.25]
+                if random.random() > 0.25:
+                    continue
+                neighbors = self.get_neighbors(tid, hops=hops, ignore_pair=node_id, max_neighbors=max_neighbors)
                 if neighbors is not None:
                     edges.extend(neighbors)
+
+                if len(edges) > max_neighbors:
+                    return edges[: max_neighbors]
         return edges
 
     def get_neighbors_count(self, source_id, node_count, nodes_set=None, edges_set=None):
         """samples a graph with the given number of nodes."""
-        edges = self._get_edges(source_id)
+        edges = self._get_edges(source_id, limit=10000)  # TODO: should limit the max neighbor count? if so, avoid limit.
         if len(edges) == 0:
             return
 
@@ -249,7 +275,7 @@ class Sampler:
             max_retries -= 1
             nodes = self.sample_nodes(int(math.ceil(edge_count / 2)), seed=(self.rnd_seed + 1) / 100)
             for node in nodes:
-                node_edges = self._get_edges(node.id_generated)
+                node_edges = self._get_edges(node.id_generated, limit=edge_count)
                 if len(node_edges) == 0:
                     continue
                 edges.add(node_edges[0])
@@ -293,21 +319,30 @@ class Sampler:
                   f"found {int(len(node_features) / 2)} pairs, requested {graph_count}.")
         return node_features, edge_features, pair_indices, labels
 
-    def sample(self, root_node=None, hops=1, include_random_edges=True, for_edge_prediction=False, existing_graphs=None, seed=0):
+    def sample(self, root_node=None, hops=3, include_random_edges=True, for_edge_prediction=False, existing_graphs=None, seed=0):
         node_features, edge_features, pair_indices, labels = [], [], [], []
         existing_graphs = existing_graphs or set()
         root_node = root_node or self.sample_nodes(1)[0]
 
         max_retries = 3
+        min_neighbors = 10
+        max_neighbors = 1000
+
+        # TODO: you might be able to improve the performance of getting nodes
+        #  and their neighbors using recursive queries:
+        #  https://stackoverflow.com/questions/54907495/postgresql-recursive-parent-child-query
 
         while max_retries > 0:
             print(f"\ttry {4 - max_retries}/3:")
             max_retries -= 1
 
-            neighbors = self.get_neighbors(root_node.id_generated, hops)
+            # max neighbor is used as a "helper" in this method, i.e., it is used as a
+            # early stopping criteria, this can be improved.
+            neighbors = self.get_neighbors(root_node.id_generated, hops, max_neighbors)
 
-            if not neighbors:
-                print("\t\tNo neighbors, retrying.")
+            if neighbors is None or len(neighbors) <= min_neighbors or len(neighbors) > max_neighbors:
+                print(f"\t\tNeighbor count not satisfying the given criteria, retrying "
+                      f"[neighbor count: {'None' if neighbors is None else len(neighbors)}; min: {min_neighbors}; max: {max_neighbors}]")
                 continue
             print(f"\t\tRetrieved neighbors, count: {len(neighbors):,}")
 
@@ -340,13 +375,19 @@ class Sampler:
             if include_random_edges:
                 print("\t\tGetting random edges ... ", end="", flush=True)
                 # g2 = Graph(self.get_random_edges(len(g1.edges)))
-                rnd_edges = self.sample_edges(len(g1.edges), seed=seed)
+                rnd_edges = self.sample_edges(len(g1.edges))
                 print("Done")
                 print("\t\tConstructing graph from random edges ... ", end="", flush=True)
                 g2 = Graph(rnd_edges)
                 print("Done.")
                 if len(g2.edges) == 0:
                     print("\t\tRandom edges list empty.")
+                    continue
+                g1ec = len(g1.edges)
+                g1ec_rang = g1ec * 0.5
+                if len(g2.edges) < g1ec - g1ec_rang or len(g2.edges) > g1ec + g1ec_rang:
+                    print(f"\t\trandom edges not in the +/-50% range as of the graph; g1: {g1ec} +/- {g1ec_rang}, g2: {len(g2.edges)}")
+                    exit()
                     continue
 
             existing_graphs.add(g_hash)
@@ -377,7 +418,7 @@ class Sampler:
 # TODO: in some cases the positive and negative graphs do not
 #  have the same number of nodes and/or edges. Is that a problem?
 
-def main(graph_count=100, hops=2, filename="sampled_graphs_for_embedding.hdf5"):
+def main(graph_count=2000, hops=3, filename="sampled_graphs_for_embedding_____test.hdf5"):
     if os.path.isfile(filename):
         # TODO: inform the user file already exist, and take actions based on their choices.
         os.remove(filename)
@@ -385,15 +426,16 @@ def main(graph_count=100, hops=2, filename="sampled_graphs_for_embedding.hdf5"):
     sampler = Sampler()
 
     print(f"Sampling {graph_count} nodes ... ", end="", flush=True)
+    # TODO: this is slow, the query randomly sorts the entire table and gets the top n items.
+    #  Sorting on such a large table is not the best approach, can we define a better sampling approach?
     root_nodes = sampler.sample_nodes(graph_count)
     root_nodes_count = len(root_nodes)
-    # assert root_nodes_count == graph_count
+    assert root_nodes_count == graph_count
     print("Done.")
 
     for_edge_prediction = True
     existing_graphs = set()
     root_node_counter, persisted_graphs_counter, missed = 0, -1, 0
-    counter_for_seed = 0  # tmp, should replace with a better solution.
     for root_node in root_nodes:
         root_node_counter += 1
         print(f"[{root_node_counter} / {root_nodes_count}] Processing root node {root_node.id_generated}:", flush=True)
@@ -401,15 +443,32 @@ def main(graph_count=100, hops=2, filename="sampled_graphs_for_embedding.hdf5"):
             root_node=root_node, hops=hops,
             include_random_edges=False,
             for_edge_prediction=for_edge_prediction,
-            existing_graphs=existing_graphs,
-            seed=counter_for_seed)
-        counter_for_seed += 1
+            existing_graphs=existing_graphs)
 
         if not for_edge_prediction:
             groups = [("graph", 0), ("random_edges", 1)]
         else:
             groups = [("graph", 0)]
+
         if nodes is not None:
+
+            # TODO: very big graphs cause various issues
+            #  with Tensorflow when training, such as out-of-memory
+            #  (hence radically slow process), or even trying to
+            #  multiple matrixes of very large size 2**32 or even
+            #  larger. There should be much better workarounds at
+            #  Tensorflow level, but for now, we limit the size of graphs.
+            if len(nodes[0]) > 200 or len(edges[0]) > 200:
+                continue
+            if not for_edge_prediction:
+                if len(nodes[1]) > 200 or len(edges[1]) > 200:
+                    continue
+
+            if len(nodes[0]) < 3 or len(edges[0]) < 3:
+                continue
+            if not for_edge_prediction:
+                if len(nodes[1]) < 3 or len(edges[1]) < 3:
+                    continue
 
             print("\tPersisting ... ", end="", flush=True)
             persisted_graphs_counter += 1
