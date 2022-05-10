@@ -79,7 +79,7 @@ class Graph(models.B64Hashable):
 class Sampler:
     def __init__(self):
         self.engine = models.get_engine()
-        self.rnd_seed = 4
+        self.rnd_seed = 16
         # The seed needs to be in this range, so we can safely divide
         # it by 100 to get a seed between 0 and 1 to be compatible with
         # SQLAlchemy/PostgreSQL.
@@ -319,7 +319,7 @@ class Sampler:
                   f"found {int(len(node_features) / 2)} pairs, requested {graph_count}.")
         return node_features, edge_features, pair_indices, labels
 
-    def sample(self, root_node=None, hops=3, include_random_edges=True, for_edge_prediction=False, existing_graphs=None, seed=0):
+    def sample(self, root_node=None, hops=3, include_random_edges=True, for_edge_prediction=False, existing_graphs=None):
         node_features, edge_features, pair_indices, labels = [], [], [], []
         existing_graphs = existing_graphs or set()
         root_node = root_node or self.sample_nodes(1)[0]
@@ -418,7 +418,7 @@ class Sampler:
 # TODO: in some cases the positive and negative graphs do not
 #  have the same number of nodes and/or edges. Is that a problem?
 
-def main(graph_count=2000, hops=3, filename="sampled_graphs_for_embedding_____test.hdf5"):
+def main(graph_count=20000, hops=3, filename="v3_sampled_graphs_for_test_embedding_tsne.hdf5", for_emgedding=True):
     if os.path.isfile(filename):
         # TODO: inform the user file already exist, and take actions based on their choices.
         os.remove(filename)
@@ -433,7 +433,15 @@ def main(graph_count=2000, hops=3, filename="sampled_graphs_for_embedding_____te
     assert root_nodes_count == graph_count
     print("Done.")
 
-    for_edge_prediction = True
+    if for_emgedding:
+        for_edge_prediction = False
+        include_random_edges = True
+        groups = [("graph", 0), ("random_edges", 1)]
+    else:
+        for_edge_prediction = True
+        include_random_edges = False
+        groups = [("graph", 0)]
+
     existing_graphs = set()
     root_node_counter, persisted_graphs_counter, missed = 0, -1, 0
     for root_node in root_nodes:
@@ -441,14 +449,9 @@ def main(graph_count=2000, hops=3, filename="sampled_graphs_for_embedding_____te
         print(f"[{root_node_counter} / {root_nodes_count}] Processing root node {root_node.id_generated}:", flush=True)
         nodes, edges, pair_indices, labels = sampler.sample(
             root_node=root_node, hops=hops,
-            include_random_edges=False,
+            include_random_edges=include_random_edges,
             for_edge_prediction=for_edge_prediction,
             existing_graphs=existing_graphs)
-
-        if not for_edge_prediction:
-            groups = [("graph", 0), ("random_edges", 1)]
-        else:
-            groups = [("graph", 0)]
 
         if nodes is not None:
 
