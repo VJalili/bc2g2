@@ -57,7 +57,7 @@ def main(filename, output_dir, groups=None, output_prefix=""):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Missing hdf5 filename.")
+    if len(sys.argv) < 4:
+        print("Missing arguments. Usage: [hdf5 filename] [output directory] [output prefix].")
         exit()
-    main(sys.argv[1], ".")
+    main(sys.argv[1], sys.argv[2], output_prefix=sys.argv[3])
