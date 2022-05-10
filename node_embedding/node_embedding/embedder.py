@@ -230,6 +230,7 @@ class GraphEncoder:
 
         base_filename = os.path.join(self.data_dir, self.output_prefix + "node_embedding_tsne")
         df.to_csv(base_filename + ".tsv", sep="\t")
+        plt.figure()
         sns.set_theme()
         sns.set_context("paper")
         ax = sns.scatterplot(data=df, x="dim 1", y="dim 2", hue="label")
@@ -237,7 +238,10 @@ class GraphEncoder:
         ax.set_xlabel("Dimension 1")
         ax.set_ylabel("Dimension 2")
         plt.legend([], [], frameon=False)  # hide legend
+        # plt.savefig(base_filename + ".pdf")
         plt.savefig(base_filename + ".pdf")
+        # plt.figure().clear()
+        # plt.close()
 
     def make_edge_predictions(self):
         # TODO: this can be abstracted/simplified using the _get_generators method.
@@ -292,13 +296,17 @@ class GraphEncoder:
     @staticmethod
     def plot_history(history_filename, filename):
         history_df = pd.read_csv(history_filename, sep="\t", index_col=0)
+        plt.figure()
         sns.set_theme()
         sns.set_context("paper")
         ax = sns.lineplot(data=history_df, x=history_df.index, y="loss", label="Train Loss")
         ax = sns.lineplot(data=history_df, x=history_df.index, y="val_loss", label="Validation Loss")
         ax.legend()
         ax.set_ylabel("Loss")
-        ax.figure.savefig(filename)
+        # ax.figure.savefig(filename)
+        plt.savefig(filename)
+        # plt.figure().clear()
+        # plt.close()
 
 
 def main(data_dir,
