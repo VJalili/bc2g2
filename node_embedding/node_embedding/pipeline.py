@@ -9,22 +9,24 @@ def normalize(data_dir):
 
 
 def end_to_end(data_dir):
-    output_prefix = ""
-    classifier_inputs_filename = os.path.join(data_dir, "sampled_graphs.hdf5")
-    embedder_inputs_filename = os.path.join(data_dir, "sampled_graphs.hdf5")
-    g4ep_train = os.path.join(data_dir, "sampled_graphs_for_edge_predict.hdf5")
+    output_prefix = "v3_"
+    classifier_inputs_filename = os.path.join(data_dir, "v3_sampled_graphs_for_learning_embeddings.hdf5")
+    embedder_inputs_filename = os.path.join(data_dir, "v3_sampled_graphs_for_test_embedding_tsne_plot.hdf5")
+    g4ep_train = os.path.join(data_dir, "sampled_graphs_for_label_prediction_training.hdf5")
+    g4ep_val = os.path.join(data_dir, "sampled_graphs_for_label_prediction_val.hdf5")
+    g4ep_eval = os.path.join(data_dir, "sampled_graphs_for_label_prediction_eval.hdf5")
 
     embedder.main(
         data_dir=data_dir,
         graphs_for_classifier=classifier_inputs_filename,
         graphs_to_embed_filename=embedder_inputs_filename,
         graphs_for_train_edge_predictor_filename=g4ep_train,
-        graphs_for_val_edge_predictor_filename=g4ep_train,
-        graphs_for_eval_edge_predictor_filename=g4ep_train,
+        graphs_for_val_edge_predictor_filename=g4ep_val,
+        graphs_for_eval_edge_predictor_filename=g4ep_eval,
         output_prefix=output_prefix,
-        embedder_epochs=100,
+        embedder_epochs=20,
         embedder_learning_rate=5e-4,
-        batch_size=8)
+        batch_size=16)
 
 
 def main():
