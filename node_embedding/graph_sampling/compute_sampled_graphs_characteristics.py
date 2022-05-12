@@ -24,16 +24,20 @@ def plot_graph_stats(stats_filename):
 
     sns.set_theme()
     sns.set_context("paper")
+    sns.set(rc={'figure.figsize': (6, 5)})
 
     ax = sns.histplot(data=stats_df, x="node_count", hue="group", element="step", log_scale=True)
+    ax.set_xlabel("Node Count")
     ax.figure.savefig(os.path.splitext(stats_filename)[0] + "_node_count.pdf")
     ax.clear()
 
     ax = sns.histplot(data=stats_df, x="edge_count", hue="group", element="step", log_scale=True)
+    ax.set_xlabel("Edge Count")
     ax.figure.savefig(os.path.splitext(stats_filename)[0] + "_edge_count.pdf")
     ax.clear()
 
     ax = sns.histplot(data=stats_df, x="radius", hue="group", element="step")
+    ax.set_xlabel("Radius")
     ax.figure.savefig(os.path.splitext(stats_filename)[0] + "_radius.pdf")
     ax.clear()
 
