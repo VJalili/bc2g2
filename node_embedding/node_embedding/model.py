@@ -8,6 +8,15 @@ The model is implemented based on original paper
 Neural Message Passing for Quantum Chemistry (https://arxiv.org/abs/1704.01212) and
 DeepChem's MPNNModel(https://deepchem.readthedocs.io/en/latest/api_reference/models.html#mpnnmodel), 
 and tutorials such as https://keras.io/examples/graph/mpnn-molecular-graphs/.
+
+
+
+
+
+
+Differente implementations of the MPNN model are available, e.g.,
+- the original implementation: https://github.com/brain-research/mpnn/blob/master/mpnn.py
+- https://github.com/deepchem/deepchem/tree/master/contrib/mpnn
 """
 
 
@@ -155,6 +164,8 @@ class BlockChainGraphModel:
         x = MessagePassing(message_units, message_steps)(
             [node_features, edge_features, pair_indices])
 
+        nds_embeddings = x
+
         x = PartitionPadding(batch_size)([x, node_partition_indices])
 
         x = layers.Masking()(x)
@@ -171,4 +182,4 @@ class BlockChainGraphModel:
             inputs=[node_features, edge_features, pair_indices, node_partition_indices],
             outputs=[x],
         )
-        return model, _inputs, _embeder_output
+        return model, _inputs, _embeder_output, nds_embeddings

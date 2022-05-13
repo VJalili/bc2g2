@@ -120,6 +120,7 @@ class GraphEncoder:
         self.data_dir = data_dir
         self.classifier_model = None
         self.embedder_model = None
+        self.node_embedder_model = None
         self.node_features_count = 1
         self.edge_features_count = 4
         self.output_prefix = output_prefix
@@ -157,7 +158,7 @@ class GraphEncoder:
             # self.classifier_model = keras.models.load_model(model_dir)
             raise NotImplemented()
         else:
-            self.classifier_model, model_input, embedder_output = self.train_classifier()
+            self.classifier_model, model_input, embedder_output, nodes_embeddings = self.train_classifier()
             # TODO: currently there are issues saving/loading this model.
             # self.classifier_model.save(classifier_model_dir)
         self.classifier_model.trainable = False
@@ -166,14 +167,26 @@ class GraphEncoder:
         self.embedder_model = keras.Model(inputs=model_input, outputs=embedder_output)
         self.embed_graph()
 
+        # self.node_embedder_model = keras.Model(inputs=model_input, outputs=nodes_embeddings)
+        # self.embed_nodes()
+
         self.make_edge_predictions()
 
     def train_classifier(self):
         train_gen, val_gen, eval_gen = self._get_generators(self.graphs_for_classifier)
 
-        bcgm, model_input, embedder_output = model.BlockChainGraphModel.get_model(
+        bcgm, model_input, embedder_output, nodes_embeddings = model.BlockChainGraphModel.get_model(
             node_features_count=self.node_features_count,
             edge_features_count=self.edge_features_count)
+
+        # plot model
+        keras.utils.plot_model(
+            bcgm,
+            to_file=os.path.join(self.data_dir, self.output_prefix + "mpnn_model.png"),
+            show_dtype=True,
+            show_shapes=True,
+            show_layer_names=True,
+            show_layer_activations=True)
 
         bcgm.compile(
             loss=tf.keras.losses.BinaryCrossentropy(),
@@ -210,7 +223,7 @@ class GraphEncoder:
             eval_history,
             os.path.join(self.data_dir, self.output_prefix + "evaluation_metrics.tsv"))
 
-        return bcgm, model_input, embedder_output
+        return bcgm, model_input, embedder_output, nodes_embeddings
 
     def embed_graph(self):
         with h5py.File(self.graphs_to_embed_filename, "r") as f:
@@ -234,14 +247,39 @@ class GraphEncoder:
         sns.set_theme()
         sns.set_context("paper")
         ax = sns.scatterplot(data=df, x="dim 1", y="dim 2", hue="label")
-        ax.set_title(f"{TSNE.__name__} visualization of node embeddings")
+        # ax.set_title(f"{TSNE.__name__} visualization of node embeddings")
         ax.set_xlabel("Dimension 1")
         ax.set_ylabel("Dimension 2")
         plt.legend([], [], frameon=False)  # hide legend
-        # plt.savefig(base_filename + ".pdf")
         plt.savefig(base_filename + ".pdf")
-        # plt.figure().clear()
-        # plt.close()
+
+    def embed_nodes(self):
+        with h5py.File(self.graphs_to_embed_filename, "r") as f:
+            indices = list(f.keys())
+        generator = GraphGenerator(self.graphs_to_embed_filename, indices)
+        x, y = generator.get_graphs(indices)
+        embeddings = self.node_embedder_model.predict(generator)
+
+        # tSNE plot the embeddings.
+        trans = TSNE(n_components=2)
+        emb_transformed = pd.DataFrame(trans.fit_transform(embeddings))  # TODO: , index=node_ids
+        emb_transformed["label"] = y
+        df = pd.DataFrame(data={
+            "dim 1": emb_transformed[0],
+            "dim 2": emb_transformed[1],
+            "label": emb_transformed["label"].astype("category")})
+
+        base_filename = os.path.join(self.data_dir, self.output_prefix + "node_embedding_tsne")
+        df.to_csv(base_filename + ".tsv", sep="\t")
+        plt.figure()
+        sns.set_theme()
+        sns.set_context("paper")
+        ax = sns.scatterplot(data=df, x="dim 1", y="dim 2", hue="label")
+        # ax.set_title(f"{TSNE.__name__} visualization of node embeddings")
+        ax.set_xlabel("Dimension 1")
+        ax.set_ylabel("Dimension 2")
+        plt.legend([], [], frameon=False)  # hide legend
+        plt.savefig(base_filename + ".pdf")
 
     def make_edge_predictions(self):
         # TODO: this can be abstracted/simplified using the _get_generators method.
@@ -303,10 +341,7 @@ class GraphEncoder:
         ax = sns.lineplot(data=history_df, x=history_df.index, y="val_loss", label="Validation Loss")
         ax.legend()
         ax.set_ylabel("Loss")
-        # ax.figure.savefig(filename)
         plt.savefig(filename)
-        # plt.figure().clear()
-        # plt.close()
 
 
 def main(data_dir,
