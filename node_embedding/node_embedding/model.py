@@ -164,7 +164,7 @@ class BlockChainGraphModel:
         x = MessagePassing(message_units, message_steps)(
             [node_features, edge_features, pair_indices])
 
-        nds_embeddings = x
+        node_embeddings = x
 
         x = PartitionPadding(batch_size)([x, node_partition_indices])
 
@@ -182,4 +182,4 @@ class BlockChainGraphModel:
             inputs=[node_features, edge_features, pair_indices, node_partition_indices],
             outputs=[x],
         )
-        return model, _inputs, _embeder_output, nds_embeddings
+        return model, _inputs, _embeder_output, node_embeddings
