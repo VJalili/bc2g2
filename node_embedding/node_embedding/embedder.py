@@ -158,16 +158,18 @@ class GraphEncoder:
             # self.classifier_model = keras.models.load_model(model_dir)
             raise NotImplemented()
         else:
-            self.classifier_model, model_input, embedder_output, nodes_embeddings = self.train_classifier()
+            self.classifier_model, model_input, embedder_output, node_embeddings = self.train_classifier()
             # TODO: currently there are issues saving/loading this model.
             # self.classifier_model.save(classifier_model_dir)
         self.classifier_model.trainable = False
 
         # Train/get embedder & and embed nodes in given graphs.
+        print("\n\nCreating embedder mode ... ", end="", flush=True)
         self.embedder_model = keras.Model(inputs=model_input, outputs=embedder_output)
+        print("Done.")
         self.embed_graph()
 
-        # self.node_embedder_model = keras.Model(inputs=model_input, outputs=nodes_embeddings)
+        # self.node_embedder_model = keras.Model(inputs=model_input, outputs=node_embeddings)
         # self.embed_nodes()
 
         self.make_edge_predictions()
@@ -175,7 +177,7 @@ class GraphEncoder:
     def train_classifier(self):
         train_gen, val_gen, eval_gen = self._get_generators(self.graphs_for_classifier)
 
-        bcgm, model_input, embedder_output, nodes_embeddings = model.BlockChainGraphModel.get_model(
+        bcgm, model_input, embedder_output, node_embeddings = model.BlockChainGraphModel.get_model(
             node_features_count=self.node_features_count,
             edge_features_count=self.edge_features_count)
 
@@ -223,7 +225,7 @@ class GraphEncoder:
             eval_history,
             os.path.join(self.data_dir, self.output_prefix + "evaluation_metrics.tsv"))
 
-        return bcgm, model_input, embedder_output, nodes_embeddings
+        return bcgm, model_input, embedder_output, node_embeddings
 
     def embed_graph(self):
         with h5py.File(self.graphs_to_embed_filename, "r") as f:
