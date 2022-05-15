@@ -65,8 +65,11 @@ def plot_in_out_degree_dist(degree_dist_filename, plot_filename):
     df = pd.read_csv(degree_dist_filename, sep="\t", header=0)
     sns.set_theme()
     sns.set_context("paper")
-    ax = sns.lineplot(data=df, x="Degree", y="InDegreeCount", label="In-degree")
-    ax = sns.lineplot(data=df, x="Degree", y="OutDegreeCount", label="Out-degree")
+    sns.set(rc={'figure.figsize': (6, 5)})
+    filtered_in_degree = df.loc[df["InDegreeCount"] > 0]
+    filtered_out_degree = df.loc[df["OutDegreeCount"] > 0]
+    ax = sns.lineplot(data=filtered_in_degree, x="Degree", y="InDegreeCount", label="In-degree")
+    ax = sns.lineplot(data=filtered_out_degree, x="Degree", y="OutDegreeCount", label="Out-degree")
     ax.legend()
     ax.set(xscale='log')
     ax.set(yscale='log')
