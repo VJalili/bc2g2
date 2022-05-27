@@ -1,4 +1,5 @@
 ﻿using BC2G.CLI;
+using BC2G.DAL;
 using BC2G.Exceptions;
 using BC2G.Graph;
 using BC2G.Logging;
@@ -13,6 +14,7 @@ namespace BC2G
     public class Orchestrator : IDisposable
     {
         private readonly HttpClient _client;
+        private readonly GraphDB _graphDb;
         private bool disposed = false;
 
         private readonly string _statusFilename;
@@ -68,6 +70,8 @@ namespace BC2G
                 Logger.LogExceptionStatic($"Logger setup failed: {e.Message}");
                 throw;
             }
+
+            _graphDb = new GraphDB(options.Neo4jUri, options.Neo4jUser, options.Neo4jPassword);
         }
 
         public async Task<bool> RunAsync(CancellationToken cT)

@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace BC2G.DAL
 {
-    public class Neo4j : IDisposable
+    public class GraphDB : IDisposable
     {
         private bool _disposed = false;
         private readonly IDriver _driver;
 
-        ~Neo4j() => Dispose(false);
+        ~GraphDB() => Dispose(false);
 
-        public Neo4j(string uri, string user, string password)
+        public GraphDB(string uri, string user, string password)
         {
             _driver = GraphDatabase.Driver(uri, AuthTokens.Basic(user, password));
         }
@@ -56,7 +56,7 @@ namespace BC2G.DAL
 
         public static void Run()
         {
-            using (var greeter = new Neo4j("bolt://localhost:7687", "neo4j", "password"))
+            using (var greeter = new GraphDB("bolt://localhost:7687", "neo4j", "password"))
             {
                 greeter.PrintGreeting("hello, world");
             }
