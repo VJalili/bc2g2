@@ -73,6 +73,8 @@ namespace BC2G
             }
 
             _graphDb = new GraphDB(options.Neo4jUri, options.Neo4jUser, options.Neo4jPassword);
+            _graphDb.AddNode(ScriptType.PubKeyHash, "abc").Wait();
+
         }
 
         public async Task<bool> RunAsync(CancellationToken cT)

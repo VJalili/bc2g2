@@ -1,4 +1,5 @@
-﻿using Neo4j.Driver;
+﻿using BC2G.Model;
+using Neo4j.Driver;
 
 namespace BC2G.DAL
 {
@@ -12,6 +13,37 @@ namespace BC2G.DAL
         public GraphDB(string uri, string user, string password)
         {
             _driver = GraphDatabase.Driver(uri, AuthTokens.Basic(user, password));
+        }
+
+        public async Task AddNode(ScriptType scriptType, string address)
+        {
+            using (var session = _driver.AsyncSession()                )
+            {
+                var x = session.WriteTransactionAsync(async tx =>
+                {
+                    var result = await tx.RunAsync(
+                        $"CREATE (a:{scriptType}:{address})");
+                });
+
+                await x;                
+            }
+
+            using(var session = _driver.AsyncSession())
+            {
+                var x = session.WriteTransactionAsync(async tx =>
+                {
+                    var result = await tx.RunAsync(
+                        "MATCH (p:abc) RETURN p");
+
+                    return result.SingleAsync().Result;
+                });
+
+                await x;
+
+                var z = 10;
+            }
+
+            var y = 10;
         }
 
         public async void PrintGreeting(string message)
