@@ -242,6 +242,7 @@ namespace BC2G
                 cT);
 
             using var gBuffer = new PersistentGraphBuffer(
+                _graphDb,
                 Path.Combine(_options.OutputDir, "nodes.tsv"),
                 Path.Combine(_options.OutputDir, "edges.tsv"),                
                 mapper,
