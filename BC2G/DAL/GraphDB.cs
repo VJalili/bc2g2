@@ -157,6 +157,7 @@ namespace BC2G.DAL
 
             var edgeBulkLoadResult = session.WriteTransactionAsync(async x =>
             {
+
                 var result = await x.RunAsync(
                     $"LOAD CSV WITH HEADERS FROM 'file:///{_edgesCSVFilename}' AS line " +
                     $"FIELDTERMINATOR '{_delimiter}' " +
@@ -164,9 +165,12 @@ namespace BC2G.DAL
                     "MERGE (target:Script {scriptType: line.TargetScriptType, address: line.TargetAddress}) " +
                     "WITH source, target, line " +
                     "MATCH (block:Block {height: line.BlockHeight}) " +
-                    "CREATE (source)-[:Sends {type: line.Type, value: line.Value, block: line.BlockHeight}]->(target) " +
+                    //"CREATE (source)-[:Sends {type: line.Type, value: line.Value, block: line.BlockHeight}]->(target) " +
                     "CREATE (source)-[:Redeems]->(block) " +
-                    "CREATE (block)-[:Creates]->(target)");
+                    "CREATE (block)-[:Creates]->(target) " +
+
+                    "WITH source, target, line " +
+                    "CALL apoc.create.relationship(source, line.Type, {}, target) YIELD rel RETURN distinct 'done'");
                 /*
                 var result = await x.RunAsync(
                     $"LOAD CSV WITH HEADERS FROM 'file:///{_edgesCSVFilename}' AS line " +
