@@ -190,7 +190,10 @@ namespace BC2G.DAL
                     $"FIELDTERMINATOR '{_delimiter}' " +
                     $"MATCH (coinbase:{Coinbase}) " +
                     "MERGE (target:Script {scriptType: line.TargetScriptType, address: line.TargetAddress}) " +
-                    "CREATE (coinbase)-[:Generation {type: line.Type, value: line.Value, block: line.BlockHeight}]->(target)");
+                    "WITH coinbase, target, line " +
+                    "MATCH (block:Block {height: line.BlockHeight}) " +
+                    "CREATE (coinbase)-[:Generation {type: line.Type, value: line.Value, block: line.BlockHeight}]->(target) " +
+                    "CREATE (block)-[:Creates]->(target)");
                 return result.ToListAsync();
             });
             coinbaseEdgeBulkLoadResult.Result.Wait();
@@ -310,8 +313,8 @@ namespace BC2G.DAL
             {
                 var result = await x.RunAsync(
                     "CREATE CONSTRAINT addressUniqueContraint " +
-                    "FOR (address:Address) " +
-                    "REQUIRE address.address IS UNIQUE");
+                    "FOR (script:Script) " +
+                    "REQUIRE script.address IS UNIQUE");
 
                 return result.ToListAsync();
             });
@@ -321,6 +324,12 @@ namespace BC2G.DAL
                 var result = await x.RunAsync(
                     "CREATE INDEX FOR (script:Script) " +
                     "ON (script.Address)");
+                return result.ToListAsync();
+            });
+
+            var indexBlockHeight = await session.WriteTransactionAsync(async x =>
+            {
+                var result = await x.RunAsync("CREATE INDEX FOR (block:Block) on (block.height)");
                 return result.ToListAsync();
             });
 
