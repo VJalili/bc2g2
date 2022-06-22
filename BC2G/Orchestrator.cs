@@ -72,8 +72,12 @@ namespace BC2G
                 throw;
             }
 
-            _graphDB = new GraphDB(options.Neo4jUri, options.Neo4jUser, options.Neo4jPassword, @"C:\Users\Hamed\.Neo4jDesktop\relate-data\dbmss\dbms-502b0f7e-04e2-4c24-9472-528775921429\import");
-            //_graphDB.TEST_LoadCSV().Wait();
+            _graphDB = new GraphDB(
+                options.Neo4jUri, 
+                options.Neo4jUser, 
+                options.Neo4jPassword, 
+                options.Neo4jImportDirectory,
+                options.Neo4jCypherImportPrefix);
         }
 
         public async Task<bool> RunAsync(CancellationToken cT)
