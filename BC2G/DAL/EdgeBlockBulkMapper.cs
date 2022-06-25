@@ -70,6 +70,20 @@ namespace BC2G.DAL
 
         protected override string ComposeCypherQuery(string filename)
         {
+            /// There are some corner cases where there exist
+            /// more than one transactions sending value between 
+            /// same input and output (and possibly same value). 
+            /// One of the design decisions of BC2G is to sum 
+            /// these transactions and represent them with only one.
+            /// However, in order to leave this design decision 
+            /// make in one place, we use `apoc.create.relationship` 
+            /// in the following where if two transfers between 
+            /// same inputs and outputs in a given block are given 
+            /// in the CSV file, that leads to the creation of two 
+            /// edges. Alternative is using `apoc.merge.relationship`
+            /// where it can ensure the source-target-properties 
+            /// tuple is unique. 
+
             return
                 $"LOAD CSV WITH HEADERS FROM '{filename}' AS line " +
                 $"FIELDTERMINATOR '{csvDelimiter}' " +
@@ -88,16 +102,14 @@ namespace BC2G.DAL
                 $"CREATE (source)-[:Redeems {{{Neo4jModel.height}: line.{CsvColumn.height}}}]->(block) " +
                 $"CREATE (block)-[:Creates {{{Neo4jModel.height}: line.{CsvColumn.height}}}]->(target) " +
                 "WITH source, target, line " +
-                "CALL apoc.merge.relationship(" +
-                "source, " + // [1/6] start node
-                $"line.{CsvColumn.edgeType}, " + // [2/6] relationship type
-                $"{{" + // [3/6] relationship properties
+                "CALL apoc.create.relationship(" +
+                "source, " +
+                $"line.{CsvColumn.edgeType}, " +
+                $"{{" + 
                 $"{Neo4jModel.value}: line.{CsvColumn.value}, " +
                 $"{Neo4jModel.height}: line.{CsvColumn.height}" +
                 $"}}, " +
-                $"{{}}, " + // [4/6] properties to set at create time (i.e., if the edge does not already exist)
-                $"target," + // [5/6] end node
-                $"{{}}) " + // [6/6] properties to set at update time (i.e., if the edge already exists)
+                $"target)" +
                 $"YIELD rel RETURN distinct 'done'";
         }
     }
