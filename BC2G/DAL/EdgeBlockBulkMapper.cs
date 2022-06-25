@@ -85,16 +85,20 @@ namespace BC2G.DAL
                 $"MATCH (block:{BlockBulkLoadMapper.Neo4jModel.label} {{" +
                 $"{Neo4jModel.height}: line.{CsvColumn.height}" +
                 "}) " +
-                "CREATE (source)-[:Redeems]->(block) " +
-                "CREATE (block)-[:Creates]->(target) " +
+                $"CREATE (source)-[:Redeems {{{Neo4jModel.height}: line.{CsvColumn.height}}}]->(block) " +
+                $"CREATE (block)-[:Creates {{{Neo4jModel.height}: line.{CsvColumn.height}}}]->(target) " +
                 "WITH source, target, line " +
-                "CALL apoc.create.relationship(" +
-                "source, " +
-                $"line.{CsvColumn.edgeType}, {{" +
+                "CALL apoc.merge.relationship(" +
+                "source, " + // [1/6] start node
+                $"line.{CsvColumn.edgeType}, " + // [2/6] relationship type
+                $"{{" + // [3/6] relationship properties
                 $"{Neo4jModel.value}: line.{CsvColumn.value}, " +
                 $"{Neo4jModel.height}: line.{CsvColumn.height}" +
                 $"}}, " +
-                $"target) YIELD rel RETURN distinct 'done'";
+                $"{{}}, " + // [4/6] properties to set at create time (i.e., if the edge does not already exist)
+                $"target," + // [5/6] end node
+                $"{{}}) " + // [6/6] properties to set at update time (i.e., if the edge already exists)
+                $"YIELD rel RETURN distinct 'done'";
         }
     }
 }
