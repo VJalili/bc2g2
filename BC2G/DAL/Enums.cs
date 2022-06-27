@@ -6,16 +6,24 @@ using System.Threading.Tasks;
 
 namespace BC2G.DAL
 {
-    public enum PropName
+    public enum Prop
     {
         Height,
+        ScriptAddress,
+        ScriptType,
         BlockMedianTime,
         BlockConfirmations,
         BlockDifficulty,
         BlockTxCount,
         BlockSize,
         BlockStrippedSize,
-        BlockWeight
+        BlockWeight,
+        EdgeSourceAddress,
+        EdgeSourceType,
+        EdgeTargetAddress,
+        EdgeTargetType,
+        EdgeType,
+        EdgeValue
     }
 
     public enum FieldType

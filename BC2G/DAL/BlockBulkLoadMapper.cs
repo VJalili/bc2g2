@@ -9,23 +9,20 @@ namespace BC2G.DAL
 {
     internal class BlockBulkLoadMapper : ModelMapper<Block>
     {
-        public class Neo4jModel : Neo4jModelBase
-        {
-            public const string label = "Block";
-        }
+        public const string label = "Block";
 
         /// Note that the ordre of the items in this array should 
         /// match those returned from the `ToCsv()` method.. 
-        private static readonly PropName[] _properties = new PropName[]
+        private static readonly Prop[] _properties = new Prop[]
         {
-            PropName.Height,
-            PropName.BlockMedianTime,
-            PropName.BlockConfirmations,
-            PropName.BlockDifficulty,
-            PropName.BlockTxCount,
-            PropName.BlockSize,
-            PropName.BlockStrippedSize,
-            PropName.BlockWeight
+            Prop.Height,
+            Prop.BlockMedianTime,
+            Prop.BlockConfirmations,
+            Prop.BlockDifficulty,
+            Prop.BlockTxCount,
+            Prop.BlockSize,
+            Prop.BlockStrippedSize,
+            Prop.BlockWeight
         };
 
         public BlockBulkLoadMapper(
@@ -39,7 +36,7 @@ namespace BC2G.DAL
         {
             return string.Join(
                 csvDelimiter,
-                from x in _properties select Properties[x].CsvHeader);
+                from x in _properties select Props[x].CsvHeader);
         }
 
         public override string ToCsv(Block block)
@@ -65,20 +62,20 @@ namespace BC2G.DAL
             builder.Append(
                 $"LOAD CSV WITH HEADERS FROM '{filename}' AS {Property.lineVarName} " +
                 $"FIELDTERMINATOR '{csvDelimiter}' " +
-                $"MERGE (b: {Neo4jModel.label} {{" +
-                $"{Properties[PropName.Height].GetLoadExp(":")}}})" +
+                $"MERGE (b: {label} {{" +
+                $"{Props[Prop.Height].GetLoadExp(":")}}})" +
                 $"ON CREATE SET ");
 
             string comma = "";
-            foreach (var p in _properties) if (p != PropName.Height)
+            foreach (var p in _properties) if (p != Prop.Height)
                 {
-                    builder.Append($"{comma}b.{Properties[p].GetLoadExp()}");
+                    builder.Append($"{comma}b.{Props[p].GetLoadExp()}");
                     comma = ", ";
                 }
 
             builder.Append(
                 " ON MATCH SET " +
-                $"b.{Properties[PropName.BlockConfirmations].GetLoadExp()}");
+                $"b.{Props[Prop.BlockConfirmations].GetLoadExp()}");
 
             return builder.ToString();
         }
