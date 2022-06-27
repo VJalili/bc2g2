@@ -9,6 +9,13 @@ namespace BC2G.DAL
     public enum PropName
     {
         Height,
+        BlockMedianTime,
+        BlockConfirmations,
+        BlockDifficulty,
+        BlockTxCount,
+        BlockSize,
+        BlockStrippedSize,
+        BlockWeight
     }
 
     public enum FieldType

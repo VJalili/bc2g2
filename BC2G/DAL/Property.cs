@@ -11,18 +11,23 @@ namespace BC2G.DAL
         public const string lineVarName = "line";
         public string Name { get; }
         public string CsvHeader { get; }
-        public string CsvToModelSnippet { get; }
 
-        public Property(string name, string csvHeader, FieldType type = FieldType.String)
+        private readonly FieldType _type;
+
+        public Property(string name, FieldType type = FieldType.String, string? csvHeader = null)
         {
             Name = name;
-            CsvHeader = csvHeader;
+            CsvHeader = csvHeader ?? Name;
+            _type = type;
+        }
 
-            CsvToModelSnippet = type switch
+        public string GetLoadExp(string assignment = "=")
+        {
+            return _type switch
             {
-                FieldType.Int => $"{name}: toInteger({lineVarName}.{csvHeader})",
-                FieldType.Float => $"{name}: toFloat({lineVarName}.{csvHeader})",
-                _ => $"{name}: {lineVarName}.{csvHeader}",
+                FieldType.Int => $"{Name}{assignment}toInteger({lineVarName}.{CsvHeader})",
+                FieldType.Float => $"{Name}{assignment}toFloat({lineVarName}.{CsvHeader})",
+                _ => $"{Name}{assignment}{lineVarName}.{CsvHeader}",
             };
         }
     }

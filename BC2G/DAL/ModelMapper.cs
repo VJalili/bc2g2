@@ -15,7 +15,14 @@ namespace BC2G.DAL
 
         public static Dictionary<PropName, Property> Properties = new()
         {
-            {PropName.Height, new Property("Height", "Height", FieldType.Int) }
+            {PropName.Height, new Property("Height", FieldType.Int) },
+            {PropName.BlockMedianTime, new Property("MedianTime")},
+            {PropName.BlockConfirmations, new Property("Confirmations", FieldType.Int) },
+            {PropName.BlockDifficulty, new Property("Difficulty" , FieldType.Float)},
+            {PropName.BlockTxCount, new Property("TransactionsCount", FieldType.Int) },
+            {PropName.BlockSize, new Property("Size", FieldType.Int) },
+            {PropName.BlockStrippedSize, new Property("StrippedSize")},
+            {PropName.BlockWeight, new Property("Weight", FieldType.Int) }
         };
 
 
