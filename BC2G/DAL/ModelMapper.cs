@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BC2G.Graph;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,13 +11,20 @@ namespace BC2G.DAL
     {
         public const string csvDelimiter = "\t";
         public const string labelsDelimiter = ":";
+        public const string lineVarName = "line";
+
+        public static Dictionary<PropName, Property> Properties = new()
+        {
+            {PropName.Height, new Property("Height", "Height", FieldType.Int) }
+        };
+
 
         public string Filename { get; }
         public string CypherQuery { get; }
 
         public class Neo4jModelBase
         {
-            public const string height = "Height";
+            //public const string height = "Height";
         }
 
         public ModelMapper(

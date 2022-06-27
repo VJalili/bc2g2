@@ -25,7 +25,7 @@ namespace BC2G.DAL
         /// match those returned from the `ToCsv()` method.. 
         private static readonly string[] _properties = new string[]
         {
-            Neo4jModel.height,
+            Properties[PropName.Height].Name,
             Neo4jModel.medianTime,
             Neo4jModel.confirmations,
             Neo4jModel.difficulty,
@@ -71,11 +71,11 @@ namespace BC2G.DAL
                 $"LOAD CSV WITH HEADERS FROM '{filename}' AS line " +
                 $"FIELDTERMINATOR '{csvDelimiter}' " +
                 $"MERGE (b: {Neo4jModel.label} {{" +
-                $"{Neo4jModel.height}: line.{Neo4jModel.height}}})" +
+                $"{Properties[PropName.Height].CsvToModelSnippet}}})" +
                 $"ON CREATE SET ");
 
             string comma = "";
-            foreach (var p in _properties) if (p != Neo4jModel.height)
+            foreach (var p in _properties) if (p != Properties[PropName.Height].Name)
                 {
                     builder.Append($"{comma}b.{p}=line.{p}");
                     comma = ", ";

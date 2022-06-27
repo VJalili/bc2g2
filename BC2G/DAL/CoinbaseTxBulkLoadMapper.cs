@@ -57,12 +57,12 @@ namespace BC2G.DAL
                 $"}}) " +
                 "WITH coinbase, target, line " +
                 $"MATCH (block:{BlockBulkLoadMapper.Neo4jModel.label} {{" +
-                $"{Neo4jModel.height}: line.{CsvColumn.height}" +
+                $"{Properties[PropName.Height].CsvToModelSnippet}" +
                 $"}}) " +
                 $"CREATE (coinbase)-[:Generation {{" +
                 $"{Neo4jModel.edgeType}: line.{CsvColumn.edgeType}, " +
                 $"{Neo4jModel.value}: line.{CsvColumn.value}, " +
-                $"{Neo4jModel.height}: line.{CsvColumn.height}" +
+                $"{Properties[PropName.Height].CsvToModelSnippet}" +
                 $"}}]->(target)" +
                 "CREATE (block)-[:Creates]->(target)";
         }

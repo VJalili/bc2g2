@@ -97,17 +97,17 @@ namespace BC2G.DAL
                 "}) " +
                 "WITH source, target, line " +
                 $"MATCH (block:{BlockBulkLoadMapper.Neo4jModel.label} {{" +
-                $"{Neo4jModel.height}: line.{CsvColumn.height}" +
+                $"{Properties[PropName.Height].CsvToModelSnippet}" +
                 "}) " +
-                $"CREATE (source)-[:Redeems {{{Neo4jModel.height}: line.{CsvColumn.height}}}]->(block) " +
-                $"CREATE (block)-[:Creates {{{Neo4jModel.height}: line.{CsvColumn.height}}}]->(target) " +
+                $"CREATE (source)-[:Redeems {{{Properties[PropName.Height].CsvToModelSnippet}}}]->(block) " +
+                $"CREATE (block)-[:Creates {{{Properties[PropName.Height].CsvToModelSnippet}}}]->(target) " +
                 "WITH source, target, line " +
                 "CALL apoc.create.relationship(" +
                 "source, " +
                 $"line.{CsvColumn.edgeType}, " +
                 $"{{" + 
                 $"{Neo4jModel.value}: line.{CsvColumn.value}, " +
-                $"{Neo4jModel.height}: line.{CsvColumn.height}" +
+                $"{Properties[PropName.Height].CsvToModelSnippet}" +
                 $"}}, " +
                 $"target)" +
                 $"YIELD rel RETURN distinct 'done'";
