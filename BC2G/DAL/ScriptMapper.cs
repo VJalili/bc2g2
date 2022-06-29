@@ -59,9 +59,9 @@ namespace BC2G.DAL
             /// more than one transactions sending value between 
             /// same input and output (and possibly same value). 
             /// One of the design decisions of BC2G is to sum 
-            /// these transactions and represent them with only one.
+            /// these transactions and represent them with one tx.
             /// However, in order to leave this design decision 
-            /// make in one place, we use `apoc.create.relationship` 
+            /// made in one place, we use `apoc.create.relationship` 
             /// in the following where if two transfers between 
             /// same inputs and outputs in a given block are given 
             /// in the CSV file, that leads to the creation of two 
@@ -73,20 +73,18 @@ namespace BC2G.DAL
                 $"LOAD CSV WITH HEADERS FROM '{filename}' AS {Property.lineVarName} " +
                 $"FIELDTERMINATOR '{csvDelimiter}' " +
                 $"MERGE (source:{labels} {{" +
-                $"{Props[Prop.EdgeSourceType].GetLoadExp(":")}, " +
-                $"{Props[Prop.EdgeSourceAddress].GetLoadExp(":")}" +
-                "}) " +
+                $"{Props[Prop.EdgeSourceAddress].GetLoadExp(":")}}}) " +
+                $"SET source.{Props[Prop.EdgeSourceType].GetLoadExp("=")} " +
                 $"MERGE (target:{labels} {{" +
-                $"{Props[Prop.EdgeTargetType].GetLoadExp(":")}, " +
-                $"{Props[Prop.EdgeTargetAddress].GetLoadExp(":")}" +
-                "}) " +
-                "WITH source, target, line " +
+                $"{Props[Prop.EdgeTargetAddress].GetLoadExp(":")}}}) " +
+                $"SET target.{Props[Prop.EdgeTargetType].GetLoadExp("=")} " +
+                $"WITH source, target, {Property.lineVarName} " +
                 $"MATCH (block:{BlockMapper.label} {{" +
                 $"{Props[Prop.Height].GetLoadExp(":")}" +
                 "}) " +
                 $"CREATE (source)-[:Redeems {{{Props[Prop.Height].GetLoadExp(":")}}}]->(block) " +
                 $"CREATE (block)-[:Creates {{{Props[Prop.Height].GetLoadExp(":")}}}]->(target) " +
-                "WITH source, target, line " +
+                $"WITH source, target, {Property.lineVarName} " +
                 "CALL apoc.create.relationship(" +
                 "source, " +
                 $"{Property.lineVarName}.{Props[Prop.EdgeType].CsvHeader}, " +

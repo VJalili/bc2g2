@@ -133,7 +133,7 @@ namespace BC2G.DAL
                 var result = await x.RunAsync(_scriptMapper.CypherQuery);
                 return result.ToListAsync();
             });
-            edgeBulkLoadResult.Result.Wait();
+            edgeBulkLoadResult.Wait();
 
             var coinbaseEdgeBulkLoadResult = session.WriteTransactionAsync(async x =>
             {
