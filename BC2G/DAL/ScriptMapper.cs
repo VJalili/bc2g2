@@ -1,4 +1,5 @@
 ﻿using BC2G.Graph;
+using BC2G.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -69,25 +70,33 @@ namespace BC2G.DAL
             /// where it can ensure the source-target-properties 
             /// tuple is unique. 
 
+            var l = Property.lineVarName;
+            var unknown = nameof(ScriptType.Unknown);
+
             return
-                $"LOAD CSV WITH HEADERS FROM '{filename}' AS {Property.lineVarName} " +
+                $"LOAD CSV WITH HEADERS FROM '{filename}' AS {l} " +
                 $"FIELDTERMINATOR '{csvDelimiter}' " +
                 $"MERGE (source:{labels} {{" +
                 $"{Props[Prop.EdgeSourceAddress].GetLoadExp(":")}}}) " +
-                $"SET source.{Props[Prop.EdgeSourceType].GetLoadExp("=")} " +
+                $"ON CREATE SET source.{Props[Prop.EdgeSourceType].GetLoadExp("=")} " +
+                $"ON MATCH SET source.{Props[Prop.EdgeSourceType].Name} = " +
+                $"CASE {l}.{Props[Prop.EdgeSourceType].CsvHeader} " +
+                $"WHEN '{unknown}' THEN source.{Props[Prop.EdgeSourceType].Name} " +
+                $"ELSE {l}.{Props[Prop.EdgeSourceType].CsvHeader} " +
+                $"END " +
                 $"MERGE (target:{labels} {{" +
                 $"{Props[Prop.EdgeTargetAddress].GetLoadExp(":")}}}) " +
                 $"SET target.{Props[Prop.EdgeTargetType].GetLoadExp("=")} " +
-                $"WITH source, target, {Property.lineVarName} " +
+                $"WITH source, target, {l} " +
                 $"MATCH (block:{BlockMapper.label} {{" +
                 $"{Props[Prop.Height].GetLoadExp(":")}" +
                 "}) " +
                 $"CREATE (source)-[:Redeems {{{Props[Prop.Height].GetLoadExp(":")}}}]->(block) " +
                 $"CREATE (block)-[:Creates {{{Props[Prop.Height].GetLoadExp(":")}}}]->(target) " +
-                $"WITH source, target, {Property.lineVarName} " +
+                $"WITH source, target, {l} " +
                 "CALL apoc.create.relationship(" +
                 "source, " +
-                $"{Property.lineVarName}.{Props[Prop.EdgeType].CsvHeader}, " +
+                $"{l}.{Props[Prop.EdgeType].CsvHeader}, " +
                 $"{{" +
                 $"{Props[Prop.EdgeValue].GetLoadExp(":")}, " +
                 $"{Props[Prop.Height].GetLoadExp(":")}" +
