@@ -86,7 +86,12 @@ namespace BC2G.DAL
                 $"END " +
                 $"MERGE (target:{labels} {{" +
                 $"{Props[Prop.EdgeTargetAddress].GetLoadExp(":")}}}) " +
-                $"SET target.{Props[Prop.EdgeTargetType].GetLoadExp("=")} " +
+                $"ON CREATE SET target.{Props[Prop.EdgeTargetType].GetLoadExp("=")} " +
+                $"ON MATCH SET target.{Props[Prop.EdgeTargetType].Name} = " +
+                $"CASE {l}.{Props[Prop.EdgeTargetType].CsvHeader} " +
+                $"WHEN '{unknown}' THEN target.{Props[Prop.EdgeTargetType].Name} " +
+                $"ELSE {l}.{Props[Prop.EdgeTargetType].CsvHeader} " +
+                $"END " +
                 $"WITH source, target, {l} " +
                 $"MATCH (block:{BlockMapper.label} {{" +
                 $"{Props[Prop.Height].GetLoadExp(":")}" +
