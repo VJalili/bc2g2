@@ -70,12 +70,26 @@ namespace BC2G.DAL
             /// where it can ensure the source-target-properties 
             /// tuple is unique. 
 
+            /// Loading `script` type: 
+            /// Script address should be unique. If simply 
+            /// merging on Script Type and Address, it may end-up
+            /// trying to create two nodes with the same address
+            /// (hence violating the address uniqueness requirment),
+            /// because it is possible to have two scripts with the 
+            /// same address one of type 'Unknown' and other of 
+            /// another type. Hence, we use the two logics for 
+            /// "ON CREATE" and "ON MATCH". The former creates 
+            /// the node as read from the CSV. The latter, merges
+            /// scripts by replacing 'Unknown' script type, with the 
+            /// type of the other script if it is not 'Unknown'.
+
             var l = Property.lineVarName;
             var unknown = nameof(ScriptType.Unknown);
 
             return
                 $"LOAD CSV WITH HEADERS FROM '{filename}' AS {l} " +
                 $"FIELDTERMINATOR '{csvDelimiter}' " +
+                // Load source
                 $"MERGE (source:{labels} {{" +
                 $"{Props[Prop.EdgeSourceAddress].GetLoadExp(":")}}}) " +
                 $"ON CREATE SET source.{Props[Prop.EdgeSourceType].GetLoadExp("=")} " +
@@ -84,6 +98,7 @@ namespace BC2G.DAL
                 $"WHEN '{unknown}' THEN source.{Props[Prop.EdgeSourceType].Name} " +
                 $"ELSE {l}.{Props[Prop.EdgeSourceType].CsvHeader} " +
                 $"END " +
+                // Load target
                 $"MERGE (target:{labels} {{" +
                 $"{Props[Prop.EdgeTargetAddress].GetLoadExp(":")}}}) " +
                 $"ON CREATE SET target.{Props[Prop.EdgeTargetType].GetLoadExp("=")} " +
@@ -93,12 +108,16 @@ namespace BC2G.DAL
                 $"ELSE {l}.{Props[Prop.EdgeTargetType].CsvHeader} " +
                 $"END " +
                 $"WITH source, target, {l} " +
+                // Find the block
                 $"MATCH (block:{BlockMapper.label} {{" +
                 $"{Props[Prop.Height].GetLoadExp(":")}" +
                 "}) " +
+                // Create relationship between the block node and the scripts nodes. 
                 $"CREATE (source)-[:Redeems {{{Props[Prop.Height].GetLoadExp(":")}}}]->(block) " +
                 $"CREATE (block)-[:Creates {{{Props[Prop.Height].GetLoadExp(":")}}}]->(target) " +
                 $"WITH source, target, {l} " +
+                // Create relationship between the source and target scripts,
+                // where the type of the relationship is read from the CSV file.
                 "CALL apoc.create.relationship(" +
                 "source, " +
                 $"{l}.{Props[Prop.EdgeType].CsvHeader}, " +
@@ -107,7 +126,7 @@ namespace BC2G.DAL
                 $"{Props[Prop.Height].GetLoadExp(":")}" +
                 $"}}, " +
                 $"target)" +
-                $"YIELD rel RETURN distinct 'done'";
+                $"YIELD rel RETURN distinct 'DONE'";
         }
     }
 }
