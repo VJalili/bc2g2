@@ -6,10 +6,6 @@ using Neo4j.Driver;
 
 namespace BC2G.DAL
 {
-
-    // TODO: Neo4j Fabric seems to be the feature that can help with sampling. 
-
-
     public class GraphDB : IDisposable
     {
         public static string Coinbase { get { return "Coinbase"; } }
