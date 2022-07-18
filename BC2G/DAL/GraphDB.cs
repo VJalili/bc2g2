@@ -322,6 +322,8 @@ namespace BC2G.DAL
                 return await result.ToListAsync();
             });
             blockBulkLoadResult.Wait();
+
+            var x = 10;
         }
 
         public async void PrintGreeting(string message)
