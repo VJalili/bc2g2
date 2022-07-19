@@ -315,10 +315,16 @@ namespace BC2G.DAL
             var blockBulkLoadResult = session.WriteTransactionAsync(async x =>
             {
                 var result = await x.RunAsync(
+                    "MATCH path = (p: Person { label: \"A\"}) -[:Knows * 1..3]->(p2: Person) " +
+                    "WITH[n in nodes(path) where n <> p | n] as nodes, relationships(path) as relationships " +
+                    "WITH size(nodes) as cnt, collect(nodes[-1]) as nodes, collect(distinct relationships[-1]) as relationships " +
+                    "RETURN nodes, relationships");
+
+                /*
                     "match (n:Script {address:\"A\"}) " +
                     "call apoc.neighbors.byhop(n, \"Sends\", 3) " +
                     "yield nodes " +
-                    "return nodes");
+                    "return nodes");*/
                 return await result.ToListAsync();
             });
             blockBulkLoadResult.Wait();
