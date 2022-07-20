@@ -6,6 +6,10 @@ using Neo4j.Driver;
 
 namespace BC2G.DAL
 {
+
+    // TODO: there is a bug: why many redeems per node in a given block? 
+    // TODO: add time stamp to edge. 
+
     public class GraphDB : IDisposable
     {
         public static string Coinbase { get { return "Coinbase"; } }
@@ -356,8 +360,8 @@ namespace BC2G.DAL
                         nodes[edge.StartNodeId],
                         nodes[edge.EndNodeId],
                         (double)edge.Properties["Value"],
-                        Enum.Parse<EdgeType>((string)edge.Type),
-                        999, // TODO: fixme. 
+                        Enum.Parse<EdgeType>(edge.Type),
+                        0, // TODO: fixme. 
                         (int)edge.Properties["Height"]));
                 }
             }
