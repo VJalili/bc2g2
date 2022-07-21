@@ -334,12 +334,14 @@ namespace BC2G.DAL
             });
             blockBulkLoadResult.Wait();
 
+            var nodes = new Dictionary<long, Node>();
+            var edges = new List<IRelationship>();
+
             foreach (var hop in blockBulkLoadResult.Result)
             {
                 var neo4jNodes = hop.Values["nodes"].As<List<object>>();
                 var neo4jEdges = hop.Values["relationships"].As<List<object>>();
 
-                var nodes = new Dictionary<long, Node>();
                 foreach(var neo4jNode in neo4jNodes)
                 {
                     var node = neo4jNode.As<INode>();
@@ -350,20 +352,33 @@ namespace BC2G.DAL
                         (string)props["Address"],
                         Enum.Parse<ScriptType>((string)props["Type"])));
                 }
-
-                var edges = new List<Edge>();
+                
                 foreach (var neo4jEdge in neo4jEdges)
-                {
-                    var edge = neo4jEdge.As<IRelationship>();
+                    edges.Add(neo4jEdge.As<IRelationship>());
+            }
 
-                    edges.Add(new Edge(
-                        nodes[edge.StartNodeId],
+            var nodeFeatures = new List<double[]>();
+            var nodeIdToIdx = new Dictionary<long, int>();
+            foreach (var node in nodes)
+            {
+                nodeFeatures.Add(node.Value.GetFeatures());
+                nodeIdToIdx.Add(node.Key, nodeIdToIdx.Count);
+            }
+
+            var edgeFeatures = new List<double[]>();
+            var pairIndices = new List<int[]>();
+            foreach (var edge in edges)
+            {
+                var e = new Edge(
+                    nodes[edge.StartNodeId],
                         nodes[edge.EndNodeId],
                         (double)edge.Properties["Value"],
                         Enum.Parse<EdgeType>(edge.Type),
                         0, // TODO: fixme. 
-                        (int)edge.Properties["Height"]));
-                }
+                        (int)edge.Properties["Height"]);
+
+                edgeFeatures.Add(e.GetFeatures());
+                pairIndices.Add(new int[] { nodeIdToIdx[edge.StartNodeId], nodeIdToIdx[edge.EndNodeId] });
             }
         }
 
