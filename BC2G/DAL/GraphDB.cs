@@ -387,7 +387,6 @@ namespace BC2G.DAL
                     return x[1].CompareTo(y[1]);
                 }));
 
-            var pairIndices = new List<int[]>();
             foreach (var edge in edges)
             {
                 var e = new Edge(
@@ -402,6 +401,8 @@ namespace BC2G.DAL
                     new long[] { nodeIdToIdx[edge.StartNodeId], nodeIdToIdx[edge.EndNodeId] },
                     e.GetFeatures());
             }
+
+            var pairIndices = edgeFeatures.Keys;
         }
 
         public async void PrintGreeting(string message)
