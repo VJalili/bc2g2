@@ -316,7 +316,18 @@ namespace BC2G.DAL
         {
             using var session = _driver.AsyncSession(x => x.WithDefaultAccessMode(AccessMode.Write));
 
-            //var rndRootNodesResult = session.ReadTransactionAsync
+            var rndRootNodesResult = session.ReadTransactionAsync(async x =>
+            {
+                var result = await x.RunAsync(
+                    "MATCH (rndScript:Script)-[:Transfer]->() WHERE rand() < 0.1 RETURN rndScript LIMIT 10");
+
+                return await result.ToListAsync();
+            });
+            rndRootNodesResult.Wait();
+
+            var randomRootNodes = new List<Node>();
+            foreach (var n in rndRootNodesResult.Result)
+                randomRootNodes.Add(parseNode(n.Values["rndScript"].As<INode>()));
 
             var samplingResult = session.ReadTransactionAsync(async x =>
             {
