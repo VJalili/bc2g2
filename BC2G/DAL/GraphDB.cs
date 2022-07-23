@@ -356,7 +356,7 @@ namespace BC2G.DAL
             var samplingResult = session.ReadTransactionAsync(async x =>
             {
                 var result = await x.RunAsync(
-                    "MATCH path = (p: Script { Address: \"AG_80ad2aa9d07f7bda19c32696767847ba2585602d8fc40b07cdd39d86423bdbaa\"}) -[:Transfer * 1..3]->(p2: Script) " +
+                    $"MATCH path = (p: Script {{ Address: \"{rootScriptAddress}\"}}) -[:Transfer * 1..{maxHops}]->(p2: Script) " +
                     "WITH p, [n in nodes(path) where n <> p | n] as nodes, relationships(path) as relationships " +
                     "WITH collect(distinct p) as root, size(nodes) as cnt, collect(nodes[-1]) as nodes, collect(distinct relationships[-1]) as relationships " +
                     "RETURN root, nodes, relationships");
