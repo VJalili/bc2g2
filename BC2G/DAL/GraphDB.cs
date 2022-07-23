@@ -319,7 +319,7 @@ namespace BC2G.DAL
             var blockBulkLoadResult = session.WriteTransactionAsync(async x =>
             {
                 var result = await x.RunAsync(
-                    "MATCH path = (p: Script { Address: \"A\"}) -[:Transfer * 1..3]->(p2: Script) " +
+                    "MATCH path = (p: Script { Address: \"AG_80ad2aa9d07f7bda19c32696767847ba2585602d8fc40b07cdd39d86423bdbaa\"}) -[:Transfer * 1..3]->(p2: Script) " +
                     "WITH p, [n in nodes(path) where n <> p | n] as nodes, relationships(path) as relationships " +
                     "WITH collect(distinct p) as root, size(nodes) as cnt, collect(nodes[-1]) as nodes, collect(distinct relationships[-1]) as relationships " +
                     "RETURN root, nodes, relationships");
@@ -350,7 +350,7 @@ namespace BC2G.DAL
                 return new Node(
                         node.Id.ToString(),
                         (string)props["Address"],
-                        Enum.Parse<ScriptType>((string)props["Type"]));
+                        Enum.Parse<ScriptType>((string)props["ScriptType"]));
             }
 
             foreach (var hop in blockBulkLoadResult.Result)
@@ -382,9 +382,13 @@ namespace BC2G.DAL
             var edgeFeatures = new SortedList<long[], double[]>(
                 Comparer<long[]>.Create((x, y) =>
                 {
+                    // This comparer allows duplicates,
+                    // and treats equal items as x greater than y.
                     var r = x[0].CompareTo(y[0]);
                     if (r != 0) return r;
-                    return x[1].CompareTo(y[1]);
+                    r = x[1].CompareTo(y[1]);
+                    if (r != 0) return r;
+                    return 1;
                 }));
 
             foreach (var edge in edges)
@@ -395,11 +399,12 @@ namespace BC2G.DAL
                         (double)edge.Properties["Value"],
                         Enum.Parse<EdgeType>(edge.Type),
                         0, // TODO: fixme. 
-                        1);//(int)edge.Properties["Height"]); // TODO: fixme. 
+                        (int)(long)edge.Properties["Height"]); // TODO: fixme: here we are casting from int64 to int32, how hard is it to change the type of Height in the Edge from 32-bit int to 64-bit int?
 
                 edgeFeatures.Add(
                     new long[] { nodeIdToIdx[edge.StartNodeId], nodeIdToIdx[edge.EndNodeId] },
                     e.GetFeatures());
+
             }
 
             var pairIndices = edgeFeatures.Keys;
