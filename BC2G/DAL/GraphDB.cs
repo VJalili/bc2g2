@@ -316,7 +316,9 @@ namespace BC2G.DAL
         {
             using var session = _driver.AsyncSession(x => x.WithDefaultAccessMode(AccessMode.Write));
 
-            var samplingResult = session.WriteTransactionAsync(async x =>
+            //var rndRootNodesResult = session.ReadTransactionAsync
+
+            var samplingResult = session.ReadTransactionAsync(async x =>
             {
                 var result = await x.RunAsync(
                     "MATCH path = (p: Script { Address: \"AG_80ad2aa9d07f7bda19c32696767847ba2585602d8fc40b07cdd39d86423bdbaa\"}) -[:Transfer * 1..3]->(p2: Script) " +
