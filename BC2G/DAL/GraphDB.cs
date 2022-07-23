@@ -316,7 +316,7 @@ namespace BC2G.DAL
         {
             using var session = _driver.AsyncSession(x => x.WithDefaultAccessMode(AccessMode.Write));
 
-            var blockBulkLoadResult = session.WriteTransactionAsync(async x =>
+            var samplingResult = session.WriteTransactionAsync(async x =>
             {
                 var result = await x.RunAsync(
                     "MATCH path = (p: Script { Address: \"AG_80ad2aa9d07f7bda19c32696767847ba2585602d8fc40b07cdd39d86423bdbaa\"}) -[:Transfer * 1..3]->(p2: Script) " +
@@ -338,7 +338,7 @@ namespace BC2G.DAL
                  */
                 return await result.ToListAsync();
             });
-            blockBulkLoadResult.Wait();
+            samplingResult.Wait();
 
             var nodes = new Dictionary<long, Node>();
             var edges = new List<IRelationship>();
@@ -353,7 +353,7 @@ namespace BC2G.DAL
                         Enum.Parse<ScriptType>((string)props["ScriptType"]));
             }
 
-            foreach (var hop in blockBulkLoadResult.Result)
+            foreach (var hop in samplingResult.Result)
             {
                 var root = hop.Values["root"].As<List<INode>>()[0];
                 nodes[root.Id] = parseNode(root);
