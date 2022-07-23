@@ -65,7 +65,7 @@ namespace BC2G.DAL
             var v = x.GetType().GetProperty("Id").GetValue(x);*/
 
             // TEMP
-            Sampling(3);
+            Sampling(10, 3);
         }
 
         /* TODO:
@@ -312,22 +312,46 @@ namespace BC2G.DAL
             });*/
         }
 
-        private async Task Sampling(int hops)
+        private async Task Sampling(int rootNodesCount, int hops, double rootNodesSelectProb = 0.1)
         {
-            using var session = _driver.AsyncSession(x => x.WithDefaultAccessMode(AccessMode.Write));
+            var rndRootNodes = await GetRandomNodes(rootNodesCount, rootNodesSelectProb);
 
-            var rndRootNodesResult = session.ReadTransactionAsync(async x =>
+            foreach (var rootNode in rndRootNodes)
+            {
+                (var nodes, var edges) = await GetNeighbors(rootNode.Address, hops);
+                (var nodeFeatures, var edgeFeature, var pairIndicies) = ToMatrix(nodes, edges);
+            }
+        }
+
+        private async Task<List<Node>> GetRandomNodes(
+            int nodesCount, double rootNodesSelectProb = 0.1)
+        {
+            using var session = _driver.AsyncSession(
+                x => x.WithDefaultAccessMode(AccessMode.Read));
+
+            var rndNodesResult = session.ReadTransactionAsync(async x =>
             {
                 var result = await x.RunAsync(
-                    "MATCH (rndScript:Script)-[:Transfer]->() WHERE rand() < 0.1 RETURN rndScript LIMIT 10");
+                    $"MATCH (rndScript:Script)-[:Transfer]->() " +
+                    $"WHERE rand() < {rootNodesSelectProb} " +
+                    $"RETURN rndScript LIMIT {nodesCount}");
 
                 return await result.ToListAsync();
             });
-            rndRootNodesResult.Wait();
+            await rndNodesResult;
 
-            var randomRootNodes = new List<Node>();
-            foreach (var n in rndRootNodesResult.Result)
-                randomRootNodes.Add(parseNode(n.Values["rndScript"].As<INode>()));
+            var rndNodes = new List<Node>();
+            foreach (var n in rndNodesResult.Result)
+                rndNodes.Add(ParseNode(n.Values["rndScript"].As<INode>()));
+
+            return rndNodes;
+        }
+
+        private async Task<(Dictionary<long, Node>, List<IRelationship>)> GetNeighbors(
+            string rootScriptAddress, int maxHops)
+        {
+            using var session = _driver.AsyncSession(
+                x => x.WithDefaultAccessMode(AccessMode.Read));
 
             var samplingResult = session.ReadTransactionAsync(async x =>
             {
@@ -351,39 +375,34 @@ namespace BC2G.DAL
                  */
                 return await result.ToListAsync();
             });
-            samplingResult.Wait();
+            await samplingResult;
 
             var nodes = new Dictionary<long, Node>();
             var edges = new List<IRelationship>();
 
-            Node parseNode(INode node)
-            {
-                var props = node.Properties;
-
-                return new Node(
-                        node.Id.ToString(),
-                        (string)props["Address"],
-                        Enum.Parse<ScriptType>((string)props["ScriptType"]));
-            }
-
             foreach (var hop in samplingResult.Result)
             {
                 var root = hop.Values["root"].As<List<INode>>()[0];
-                nodes[root.Id] = parseNode(root);
+                nodes[root.Id] = ParseNode(root);
 
                 var neo4jNodes = hop.Values["nodes"].As<List<object>>();
                 var neo4jEdges = hop.Values["relationships"].As<List<object>>();
 
-                foreach(var neo4jNode in neo4jNodes)
+                foreach (var neo4jNode in neo4jNodes)
                 {
                     var node = neo4jNode.As<INode>();
-                    nodes[node.Id] = parseNode(node);
+                    nodes[node.Id] = ParseNode(node);
                 }
-                
+
                 foreach (var neo4jEdge in neo4jEdges)
                     edges.Add(neo4jEdge.As<IRelationship>());
             }
 
+            return (nodes, edges);
+        }
+
+        private static (List<double[]>, List<double[]>, List<int[]>) ToMatrix(Dictionary<long, Node> nodes, List<IRelationship> edges)
+        {
             var nodeFeatures = new List<double[]>();
             var nodeIdToIdx = new Dictionary<long, int>();
             foreach (var node in nodes)
@@ -392,8 +411,8 @@ namespace BC2G.DAL
                 nodeIdToIdx.Add(node.Key, nodeIdToIdx.Count);
             }
 
-            var edgeFeatures = new SortedList<long[], double[]>(
-                Comparer<long[]>.Create((x, y) =>
+            var edgeFeatures = new SortedList<int[], double[]>(
+                Comparer<int[]>.Create((x, y) =>
                 {
                     // This comparer allows duplicates,
                     // and treats equal items as x greater than y.
@@ -415,12 +434,23 @@ namespace BC2G.DAL
                         (int)(long)edge.Properties["Height"]); // TODO: fixme: here we are casting from int64 to int32, how hard is it to change the type of Height in the Edge from 32-bit int to 64-bit int?
 
                 edgeFeatures.Add(
-                    new long[] { nodeIdToIdx[edge.StartNodeId], nodeIdToIdx[edge.EndNodeId] },
+                    new int[] { nodeIdToIdx[edge.StartNodeId], nodeIdToIdx[edge.EndNodeId] },
                     e.GetFeatures());
 
             }
 
-            var pairIndices = edgeFeatures.Keys;
+            var pairIndices = edgeFeatures.Keys.ToList();
+            return (nodeFeatures, edgeFeatures.Values.ToList(), pairIndices);
+        }
+
+        private static Node ParseNode(INode node)
+        {
+            var props = node.Properties;
+
+            return new Node(
+                    node.Id.ToString(),
+                    (string)props["Address"],
+                    Enum.Parse<ScriptType>((string)props["ScriptType"]));
         }
 
         public async void PrintGreeting(string message)
