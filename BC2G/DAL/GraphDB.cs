@@ -315,12 +315,22 @@ namespace BC2G.DAL
 
         private async Task Sampling(int rootNodesCount, int hops, double rootNodesSelectProb = 0.1)
         {
+            var allNodeFeatures = new List<List<double[]>>();
+            var allEdgeFeatures = new List<List<double[]>>();
+            var allPairIndices = new List<List<int[]>>();
+
             var rndRootNodes = await GetRandomNodes(rootNodesCount, rootNodesSelectProb);
 
             foreach (var rootNode in rndRootNodes)
             {
                 (var nodes, var edges) = await GetNeighbors(rootNode.Address, hops);
                 (var nodeFeatures, var edgeFeature, var pairIndices) = ToMatrix(nodes, edges);
+
+                // TODO: implement checks on the graph; e.g., graph size, or if it was already defined.
+
+                allNodeFeatures.Add(nodeFeatures);
+                allEdgeFeatures.Add(edgeFeature);
+                allPairIndices.Add(pairIndices);
             }
         }
 
