@@ -9,6 +9,7 @@ namespace BC2G.DAL
 
     // TODO: there is a bug: why many redeems per node in a given block? 
     // TODO: add time stamp to edge. 
+    //
 
     public class GraphDB : IDisposable
     {
