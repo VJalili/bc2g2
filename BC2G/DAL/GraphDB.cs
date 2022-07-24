@@ -320,7 +320,7 @@ namespace BC2G.DAL
             foreach (var rootNode in rndRootNodes)
             {
                 (var nodes, var edges) = await GetNeighbors(rootNode.Address, hops);
-                (var nodeFeatures, var edgeFeature, var pairIndicies) = ToMatrix(nodes, edges);
+                (var nodeFeatures, var edgeFeature, var pairIndices) = ToMatrix(nodes, edges);
             }
         }
 
