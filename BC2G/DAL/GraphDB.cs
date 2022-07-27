@@ -314,23 +314,31 @@ namespace BC2G.DAL
 
         private async Task Sampling(int rootNodesCount, int hops, double rootNodesSelectProb = 0.1)
         {
-            var allNodeFeatures = new List<List<double[]>>();
-            var allEdgeFeatures = new List<List<double[]>>();
-            var allPairIndices = new List<List<int[]>>();
-
             var rndRootNodes = await GetRandomNodes(rootNodesCount, rootNodesSelectProb);
 
+            var baseOutputDir = @"C:\Users\Hamed\Desktop\";
+            var counter = -1;
             foreach (var rootNode in rndRootNodes)
             {
+                counter++;
                 (var nodes, var edges) = await GetNeighbors(rootNode.Address, hops);
                 (var nodeFeatures, var edgeFeature, var pairIndices) = ToMatrix(nodes, edges);
 
                 // TODO: implement checks on the graph; e.g., graph size, or if it was already defined.
 
-                allNodeFeatures.Add(nodeFeatures);
-                allEdgeFeatures.Add(edgeFeature);
-                allPairIndices.Add(pairIndices);
+                var outputDir = Path.Join(baseOutputDir, counter.ToString());
+                Directory.CreateDirectory(outputDir);
+                ToTSV(nodeFeatures, Path.Join(outputDir, "node_features.tsv"));
+                ToTSV(edgeFeature, Path.Join(outputDir, "edge_features.tsv"));
+                ToTSV(pairIndices, Path.Join(outputDir, "pair_indices.tsv"));
             }
+        }
+
+        private void ToTSV<T>(List<T[]> data, string filename)
+        {
+            using var writer = new StreamWriter(filename);
+            foreach (var x in data)
+                writer.WriteLine(string.Join("\t", x));
         }
 
         private async Task<List<Node>> GetRandomNodes(
