@@ -2,7 +2,6 @@
 using BC2G.DAL.Bulkload;
 using BC2G.Graph;
 using BC2G.Model;
-using HDF5CSharp;
 using Neo4j.Driver;
 
 namespace BC2G.DAL
@@ -319,9 +318,6 @@ namespace BC2G.DAL
             var allEdgeFeatures = new List<List<double[]>>();
             var allPairIndices = new List<List<int[]>>();
 
-            string filename = Path.Combine(@"C:\Users\Hamed\Desktop", "testChunks.H5");
-            long fileId = Hdf5.CreateFile(filename);
-
             var rndRootNodes = await GetRandomNodes(rootNodesCount, rootNodesSelectProb);
 
             foreach (var rootNode in rndRootNodes)
@@ -334,18 +330,6 @@ namespace BC2G.DAL
                 allNodeFeatures.Add(nodeFeatures);
                 allEdgeFeatures.Add(edgeFeature);
                 allPairIndices.Add(pairIndices);
-
-
-                try
-                {
-                    var aaa = allNodeFeatures[0].ToArray();
-                    Hdf5.WriteObject(fileId, aaa, "test");
-                    Hdf5.CloseFile(fileId);
-                }
-                catch(Exception e)
-                {
-
-                }
             }
         }
 
