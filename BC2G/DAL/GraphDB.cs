@@ -334,6 +334,16 @@ namespace BC2G.DAL
                 if (nodes.Count > 200 || edges.Count > 200)
                     continue;
 
+                if (includeRndEdges)
+                {
+                    (var rnodes, var redges) = await GetRandomEdges(edges.Count);
+
+                    if (rnodes.Count > 200 || redges.Count > 200)
+                        continue;
+
+                    (var rnodeFeatures, var redgeFeatures, var rpairIndices) = ToMatrix(rnodes, redges);
+                }
+
                 (var nodeFeatures, var edgeFeature, var pairIndices) = ToMatrix(nodes, edges);
 
                 // TODO: implement checks on the graph; e.g., graph size, or if it was already defined.
@@ -347,11 +357,6 @@ namespace BC2G.DAL
                 ToTSV(edgeFeature, Path.Join(outputDir, "edge_features.tsv"));
                 ToTSV(pairIndices, Path.Join(outputDir, "pair_indices.tsv"));
                 ToTSV(new List<int[]> { new int[] { 0 } }, Path.Join(outputDir, "labels.tsv"));
-
-                if (includeRndEdges)
-                {
-                    var x = await GetRandomEdges(edgeFeature.Count);
-                }
             }
         }
 
@@ -386,7 +391,7 @@ namespace BC2G.DAL
             return rndNodes;
         }
 
-        private async Task<List<Edge>> GetRandomEdges(int edgeCount, double edgeSelectProb = 0.1)
+        private async Task<(Dictionary<long, Node>, List<IRelationship>)> GetRandomEdges(int edgeCount, double edgeSelectProb = 0.1)
         {
             using var session = _driver.AsyncSession(
                 x => x.WithDefaultAccessMode(AccessMode.Read));
@@ -402,14 +407,21 @@ namespace BC2G.DAL
             });
             await rndNodesResult;
 
-            var rndEdges = new List<Edge>();
+            var rndNodes = new Dictionary<long, Node>();
+            var rndEdges = new List<IRelationship>();
             foreach (var n in rndNodesResult.Result)
-                rndEdges.Add(ParseEdge(
-                    n.Values["edge"].As<IRelationship>(), 
-                    ParseNode(n.Values["source"].As<INode>()), 
-                    ParseNode(n.Values["target"].As<INode>())));
+            {
+                var isource = n.Values["source"].As<INode>();
+                var itarget = n.Values["target"].As<INode>();
+                var source = ParseNode(isource);
+                var target = ParseNode(itarget);
 
-            return rndEdges;
+                rndNodes[isource.Id] = source;
+                rndNodes[itarget.Id] = target;
+                rndEdges.Add(n.Values["edge"].As<IRelationship>());
+            }
+
+            return (rndNodes, rndEdges);
         }
 
         private async Task<(Dictionary<long, Node>, List<IRelationship>)> GetNeighbors(
@@ -516,16 +528,6 @@ namespace BC2G.DAL
                     node.Id.ToString(),
                     (string)props["Address"],
                     Enum.Parse<ScriptType>((string)props["ScriptType"]));
-        }
-
-        private static Edge ParseEdge(IRelationship edge, Node source, Node target, EdgeType edgeType = EdgeType.Transfer)
-        {
-            var props = edge.Properties;
-
-            // TODO:
-            // 1: fix timestamp
-            // 2: should not need to first cast to long then to int.
-            return new Edge(source, target, (double)props["Value"], edgeType, 0, (int)(long)props["Height"]);
         }
 
         public async void PrintGreeting(string message)
