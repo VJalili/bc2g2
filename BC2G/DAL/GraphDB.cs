@@ -314,6 +314,8 @@ namespace BC2G.DAL
 
         private async Task Sampling(int rootNodesCount, int hops, double rootNodesSelectProb = 0.1)
         {
+            var includeRndEdges = true;
+
             var rndRootNodes = await GetRandomNodes(rootNodesCount, rootNodesSelectProb);
 
             var baseOutputDir = @"C:\Users\Hamed\Desktop\";
@@ -322,15 +324,34 @@ namespace BC2G.DAL
             {
                 counter++;
                 (var nodes, var edges) = await GetNeighbors(rootNode.Address, hops);
+                
+                // TODO: very big graphs cause various issues
+                // with Tensorflow when training, such as out-of-memory
+                // (hence radically slow process), or even trying to
+                // multiply matrixes of very large size 2**32 or even
+                // larger. There should be much better workarounds at
+                // Tensorflow level, but for now, we limit the size of graphs.
+                if (nodes.Count > 200 || edges.Count > 200)
+                    continue;
+
                 (var nodeFeatures, var edgeFeature, var pairIndices) = ToMatrix(nodes, edges);
 
                 // TODO: implement checks on the graph; e.g., graph size, or if it was already defined.
+
+
+
 
                 var outputDir = Path.Join(baseOutputDir, counter.ToString());
                 Directory.CreateDirectory(outputDir);
                 ToTSV(nodeFeatures, Path.Join(outputDir, "node_features.tsv"));
                 ToTSV(edgeFeature, Path.Join(outputDir, "edge_features.tsv"));
                 ToTSV(pairIndices, Path.Join(outputDir, "pair_indices.tsv"));
+                ToTSV(new List<int[]> { new int[] { 0 } }, Path.Join(outputDir, "labels.tsv"));
+
+                if (includeRndEdges)
+                {
+
+                }
             }
         }
 
