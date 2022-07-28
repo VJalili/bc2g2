@@ -350,7 +350,7 @@ namespace BC2G.DAL
 
                 if (includeRndEdges)
                 {
-
+                    var x = await GetRandomEdges(edgeFeature.Count);
                 }
             }
         }
@@ -384,6 +384,32 @@ namespace BC2G.DAL
                 rndNodes.Add(ParseNode(n.Values["rndScript"].As<INode>()));
 
             return rndNodes;
+        }
+
+        private async Task<List<Edge>> GetRandomEdges(int edgeCount, double edgeSelectProb = 0.1)
+        {
+            using var session = _driver.AsyncSession(
+                x => x.WithDefaultAccessMode(AccessMode.Read));
+
+            var rndNodesResult = session.ReadTransactionAsync(async x =>
+            {
+                var result = await x.RunAsync(
+                    $"Match (source)-[edge:Transfer]->(target) " +
+                    $"where rand() < {edgeSelectProb} " +
+                    $"return source, edge, target  limit {edgeCount}");
+
+                return await result.ToListAsync();
+            });
+            await rndNodesResult;
+
+            var rndEdges = new List<Edge>();
+            foreach (var n in rndNodesResult.Result)
+                rndEdges.Add(ParseEdge(
+                    n.Values["edge"].As<IRelationship>(), 
+                    ParseNode(n.Values["source"].As<INode>()), 
+                    ParseNode(n.Values["target"].As<INode>())));
+
+            return rndEdges;
         }
 
         private async Task<(Dictionary<long, Node>, List<IRelationship>)> GetNeighbors(
@@ -490,6 +516,16 @@ namespace BC2G.DAL
                     node.Id.ToString(),
                     (string)props["Address"],
                     Enum.Parse<ScriptType>((string)props["ScriptType"]));
+        }
+
+        private static Edge ParseEdge(IRelationship edge, Node source, Node target, EdgeType edgeType = EdgeType.Transfer)
+        {
+            var props = edge.Properties;
+
+            // TODO:
+            // 1: fix timestamp
+            // 2: should not need to first cast to long then to int.
+            return new Edge(source, target, (double)props["Value"], edgeType, 0, (int)(long)props["Height"]);
         }
 
         public async void PrintGreeting(string message)
