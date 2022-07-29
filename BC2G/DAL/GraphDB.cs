@@ -504,11 +504,11 @@ namespace BC2G.DAL
             {
                 var e = new Edge(
                     nodes[edge.StartNodeId],
-                        nodes[edge.EndNodeId],
-                        (double)edge.Properties["Value"],
-                        Enum.Parse<EdgeType>(edge.Type),
-                        0, // TODO: fixme. 
-                        (int)(long)edge.Properties["Height"]); // TODO: fixme: here we are casting from int64 to int32, how hard is it to change the type of Height in the Edge from 32-bit int to 64-bit int?
+                    nodes[edge.EndNodeId],
+                    (double)edge.Properties["Value"],
+                    Enum.Parse<EdgeType>(edge.Type),
+                    0, // TODO: fixme.
+                    (int)(long)edge.Properties["Height"]); // TODO: fixme: here we are casting from int64 to int32, how hard is it to change the type of Height in the Edge from 32-bit int to 64-bit int?
 
                 edgeFeatures.Add(
                     new int[] { nodeIdToIdx[edge.StartNodeId], nodeIdToIdx[edge.EndNodeId] },
@@ -525,9 +525,9 @@ namespace BC2G.DAL
             var props = node.Properties;
 
             return new Node(
-                    node.Id.ToString(),
-                    (string)props["Address"],
-                    Enum.Parse<ScriptType>((string)props["ScriptType"]));
+                node.Id.ToString(),
+                (string)props["Address"],
+                Enum.Parse<ScriptType>((string)props["ScriptType"]));
         }
 
         public async void PrintGreeting(string message)
