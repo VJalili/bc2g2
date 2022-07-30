@@ -500,6 +500,7 @@ namespace BC2G.DAL
                     return 1;
                 }));
 
+
             foreach (var edge in edges)
             {
                 var e = new Edge(
