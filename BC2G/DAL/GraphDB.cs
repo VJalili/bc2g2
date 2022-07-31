@@ -349,8 +349,6 @@ namespace BC2G.DAL
                 // TODO: implement checks on the graph; e.g., graph size, or if it was already defined.
 
 
-
-
                 var outputDir = Path.Join(baseOutputDir, counter.ToString());
                 Directory.CreateDirectory(outputDir);
                 ToTSV(nodeFeatures, Path.Join(outputDir, "node_features.tsv"));
