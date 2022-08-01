@@ -318,7 +318,7 @@ namespace BC2G.DAL
 
             var rndRootNodes = await GetRandomNodes(rootNodesCount, rootNodesSelectProb);
 
-            var baseOutputDir = @"C:\Users\Hamed\Desktop\";
+            var baseOutputDir = @"C:\Users\Hamed\Desktop\SampledGraphs\";
             var counter = -1;
             foreach (var rootNode in rndRootNodes)
             {
