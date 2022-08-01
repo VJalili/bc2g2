@@ -65,7 +65,7 @@ namespace BC2G.DAL
             var v = x.GetType().GetProperty("Id").GetValue(x);*/
 
             // TEMP
-            Sampling(10, 3);
+            Sampling(10, 3).Wait();
         }
 
         /* TODO:
