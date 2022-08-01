@@ -322,23 +322,16 @@ namespace BC2G.DAL
             var counter = -1;
             foreach (var rootNode in rndRootNodes)
             {
-                counter++;
                 (var nodes, var edges) = await GetNeighbors(rootNode.Address, hops);
-                
-                // TODO: very big graphs cause various issues
-                // with Tensorflow when training, such as out-of-memory
-                // (hence radically slow process), or even trying to
-                // multiply matrixes of very large size 2**32 or even
-                // larger. There should be much better workarounds at
-                // Tensorflow level, but for now, we limit the size of graphs.
-                if (nodes.Count > 200 || edges.Count > 200)
+
+                if (!CanUseGraph(nodes, edges))
                     continue;
 
                 if (includeRndEdges)
                 {
                     (var rnodes, var redges) = await GetRandomEdges(edges.Count);
 
-                    if (rnodes.Count > 200 || redges.Count > 200)
+                    if (!CanUseGraph(rnodes, redges))
                         continue;
 
                     (var rnodeFeatures, var redgeFeatures, var rpairIndices) = ToMatrix(rnodes, redges);
@@ -349,6 +342,7 @@ namespace BC2G.DAL
                 // TODO: implement checks on the graph; e.g., graph size, or if it was already defined.
 
 
+                counter++;
                 var outputDir = Path.Join(baseOutputDir, counter.ToString());
                 Directory.CreateDirectory(outputDir);
                 ToTSV(nodeFeatures, Path.Join(outputDir, "node_features.tsv"));
@@ -356,6 +350,20 @@ namespace BC2G.DAL
                 ToTSV(pairIndices, Path.Join(outputDir, "pair_indices.tsv"));
                 ToTSV(new List<int[]> { new int[] { 0 } }, Path.Join(outputDir, "labels.tsv"));
             }
+        }
+
+        private static bool CanUseGraph(Dictionary<long, Node> nodes, List<IRelationship> edges)
+        {
+            // TODO: very big graphs cause various issues
+            // with Tensorflow when training, such as out-of-memory
+            // (hence radically slow process), or even trying to
+            // multiply matrixes of very large size 2**32 or even
+            // larger. There should be much better workarounds at
+            // Tensorflow level, but for now, we limit the size of graphs.
+            if (nodes.Count > 200 || edges.Count > 200)
+                return false;
+
+            return true;
         }
 
         private void ToTSV<T>(List<T[]> data, string filename)
