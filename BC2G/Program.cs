@@ -53,7 +53,7 @@ namespace BC2G
 
             try
             {
-                var cliOptions = new CommandLineOptions();
+                var cliOptions = new CommandLineOptionsOld();
                 var options = cliOptions.Parse(args, out bool helpOrVersionIsDisplayed);
                 if (helpOrVersionIsDisplayed)
                     return;
