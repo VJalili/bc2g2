@@ -14,9 +14,6 @@ namespace BC2G.CLI
         {
 
         }
-
-
-
         public void Invoke()
         {
             var rootCommand = new RootCommand("...");
