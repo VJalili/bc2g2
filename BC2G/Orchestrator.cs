@@ -28,17 +28,17 @@ namespace BC2G
 
         private readonly CommandLineInterface _cli;
 
-        public Orchestrator(Options options, HttpClient client, string statusFilename)
+        public Orchestrator(/*Options options,*/ HttpClient client)//, string statusFilename)
         {
-            _cli = new CommandLineInterface(Sample);
+            _cli = new CommandLineInterface(Traverse, Sample);
 
             _client = client;
-            _options = options;
-            _statusFilename = statusFilename;
+            //_options = options;
+            //_statusFilename = statusFilename;
 
             // Create the output directory if it does not exist,
             // and assert if can write to the given directory.
-            try
+            /*try
             {
                 Directory.CreateDirectory(_options.OutputDir);
 
@@ -52,8 +52,19 @@ namespace BC2G
                     $"Require write access to the path {_options.OutputDir}: " +
                     $"{e.Message}");
                 throw;
-            }
+            }*/
 
+            /*
+            _graphDB = new GraphDB(
+                options.Neo4jUri, 
+                options.Neo4jUser, 
+                options.Neo4jPassword, 
+                options.Neo4jImportDirectory,
+                options.Neo4jCypherImportPrefix);*/
+        }
+
+        private void SetupLogger(Options options)
+        {
             // Set up logger. 
             try
             {
@@ -64,10 +75,10 @@ namespace BC2G
                         CultureInfo.InvariantCulture);
 
                 Logger = new Logger(
-                    Path.Join(_options.OutputDir, _loggerRepository + ".txt"),
+                    Path.Join(options.OutputDir, _loggerRepository + ".txt"),
                     _loggerRepository,
                     Guid.NewGuid().ToString(),
-                    _options.OutputDir,
+                    options.OutputDir,
                     _maxLogfileSize);
             }
             catch (Exception e)
@@ -75,13 +86,6 @@ namespace BC2G
                 Logger.LogExceptionStatic($"Logger setup failed: {e.Message}");
                 throw;
             }
-
-            _graphDB = new GraphDB(
-                options.Neo4jUri, 
-                options.Neo4jUser, 
-                options.Neo4jPassword, 
-                options.Neo4jImportDirectory,
-                options.Neo4jCypherImportPrefix);
         }
 
         public void Invoke(string[] args)
@@ -89,9 +93,14 @@ namespace BC2G
             _cli.InvokeAsync(args).Wait();
         }
 
-        private async Task Sample(DirectoryInfo dirInfo, int graphCount, string? mode)
+        private async Task Sample(Options options)
         {
+            SetupLogger(options);
+        }
 
+        private async Task Traverse(Options options)
+        {
+            SetupLogger(options);
         }
 
 

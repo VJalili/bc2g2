@@ -53,13 +53,13 @@ namespace BC2G
 
             try
             {
-                var cliOptions = new CommandLineOptionsOld();
+                /*var cliOptions = new CommandLineOptionsOld();
                 var options = cliOptions.Parse(args, out bool helpOrVersionIsDisplayed);
                 if (helpOrVersionIsDisplayed)
-                    return;
+                    return;*/
 
                 var orchestrator = new Orchestrator(
-                    options, client, cliOptions.StatusFilename);
+                    /*options,*/ client);//, cliOptions.StatusFilename);
 
                 orchestrator.Invoke(args);
 

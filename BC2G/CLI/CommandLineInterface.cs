@@ -11,11 +11,13 @@ namespace BC2G.CLI
     {
         private readonly RootCommand rootCmd = new("TODO: some description ...");
 
-        public CommandLineInterface(Func<DirectoryInfo, int, string?, Task> SampleCmdHandler)
+        public CommandLineInterface(
+            Func<Options, Task> BitcoinTraverseCmdHandler, 
+            Func<Options, Task> SampleCmdHandler)
         {
-            var sampleCmd = GetSampleCommand(SampleCmdHandler);
+            var sampleCmd = GetSampleCmd(SampleCmdHandler);
             rootCmd.AddCommand(sampleCmd);
-            rootCmd.AddCommand(GetTraverseCmd());
+            rootCmd.AddCommand(GetTraverseCmd(BitcoinTraverseCmdHandler));
         }
 
         public async Task InvokeAsync(string[] args)
@@ -23,7 +25,7 @@ namespace BC2G.CLI
             await rootCmd.InvokeAsync(args);
         }
 
-        private static Command GetSampleCommand(Func<DirectoryInfo, int, string?, Task> handler)
+        private static Command GetSampleCmd(Func<Options, Task> handler)
         {
             var countOption = new Option<int>(
                 name: "--count",
@@ -33,6 +35,7 @@ namespace BC2G.CLI
                 name: "--output",
                 description: "The directory to store the sampled graph(s).");
 
+            // TODO: rework this option.
             var modeOption = new Option<string?>(
                 name: "--mode",
                 description: "Valid values are: " +
@@ -65,24 +68,31 @@ namespace BC2G.CLI
 
             cmd.SetHandler(async (outputDir, count, mode) =>
             {
-                await handler(outputDir, count, mode);
+                var options = new Options()
+                {
+                    OutputDirectory = outputDir,
+                    GraphSampleCount = count,
+                    GraphSampleMode = mode ?? "A"
+                };
+
+                await handler(options);
             },
             outputDirOption, countOption, modeOption);
 
             return cmd;
         }
 
-        private static Command GetTraverseCmd()
+        private static Command GetTraverseCmd(Func<Options, Task> handler)
         {
             var cmd = new Command(
                 name: "traverse",
                 description: "TODO: add some description");
-            cmd.AddCommand(GetBitcoinCmd());
+            cmd.AddCommand(GetBitcoinCmd(handler));
 
             return cmd;
         }
 
-        private static Command GetBitcoinCmd()
+        private static Command GetBitcoinCmd(Func<Options, Task> handler)
         {
             var fromOption = new Option<int>(
                 name: "--from",
@@ -124,6 +134,21 @@ namespace BC2G.CLI
                 resumeFromOption,
                 granularityOption
             };
+
+            // TODO: move resume to the root command and load all command snd configs from the given file.
+
+            cmd.SetHandler(async (from, to, status, granularity) =>
+            {
+                var options = new Options()
+                {
+                    FromInclusive = from,
+                    ToExclusive = to,
+                    StatusFilename = status.FullName,
+                    Granularity = granularity
+                };
+                await handler(options);
+            },
+            fromOption, toOption, statusFilenameOption, granularityOption);
 
             return cmd;
         }
