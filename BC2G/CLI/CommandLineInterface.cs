@@ -26,8 +26,6 @@ namespace BC2G.CLI
             };
             sampleCmd.SetHandler()
 
-                
-
 
             rootCommand.AddCommand(sampleCmd);
 
