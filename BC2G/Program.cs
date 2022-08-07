@@ -61,6 +61,8 @@ namespace BC2G
                 var orchestrator = new Orchestrator(
                     options, client, cliOptions.StatusFilename);
 
+                orchestrator.Invoke(args);
+
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(
                     (sender, e) => CancelKeyPressHandler(
                         e, _tokenSource, orchestrator.Logger));

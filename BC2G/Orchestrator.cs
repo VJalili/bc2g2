@@ -26,8 +26,12 @@ namespace BC2G
         private readonly string _loggerTimeStampFormat = "yyyyMMdd_HHmmssfffffff";
         private readonly string _maxLogfileSize = "2GB";
 
+        private readonly CommandLineInterface _cli;
+
         public Orchestrator(Options options, HttpClient client, string statusFilename)
         {
+            _cli = new CommandLineInterface(Sample);
+
             _client = client;
             _options = options;
             _statusFilename = statusFilename;
@@ -79,6 +83,17 @@ namespace BC2G
                 options.Neo4jImportDirectory,
                 options.Neo4jCypherImportPrefix);
         }
+
+        public void Invoke(string[] args)
+        {
+            _cli.InvokeAsync(args).Wait();
+        }
+
+        private async Task Sample(DirectoryInfo dirInfo, int graphCount, string? mode)
+        {
+
+        }
+
 
         public async Task<bool> RunAsync(CancellationToken cT)
         {

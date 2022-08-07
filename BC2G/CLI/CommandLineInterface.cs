@@ -9,51 +9,58 @@ namespace BC2G.CLI
 {
     internal class CommandLineInterface
     {
-        private Options<int> 
-        public CommandLineInterface(Action<DirectoryInfo, int> SampleCmdHandler)
-        {
+        private readonly Option<int> _sampleGraphCount = new(
+            name: "--count",
+            description: "The number of graphs to sample.");
 
-        }
-        public void Invoke()
-        {
-            var rootCommand = new RootCommand("...");
+        private readonly Option<DirectoryInfo> _sampledGraphOutputDirOption = new(
+            name: "--output", 
+            description: "The directory to store the sampled graph(s).");
 
-
-            var opt1 = new Option<int>(name: "--opt1", description: "description ... ", getDefaultValue: () => 0);
-            var sampleCmd = new Command("sample", "sample the graph")
+        private readonly Option<string?> _sampleModeOption = new(
+            name: "--mode",
+            description: "Valid values are: " +
+            "`A` to generate graph and random edge pairs where the number of random edges equal the number of edges in the graph;" +
+            "`B` ",
+            isDefault: true,
+            parseArgument: x =>
             {
-                opt1
+                var value = x.Tokens.Single().Value;
+                switch (value)
+                {
+                    case "A":
+                        return value;
+                    case "B":
+                        return value;
+                    default:
+                        x.ErrorMessage = $"Invalid mode; provided `{value}`, expected `A` or `B`";
+                        return null;
+                }
+            });
+
+        private readonly RootCommand rootCmd = new("TODO: some description ...");
+
+        public CommandLineInterface(Func<DirectoryInfo, int, string?, Task> SampleCmdHandler)
+        {
+            var sampleCmd = new Command("sample", "sample graph")
+            {
+                _sampleGraphCount,
+                _sampledGraphOutputDirOption,
+                _sampleModeOption
             };
-            sampleCmd.SetHandler()
+            sampleCmd.SetHandler(async (outputDir, count, mode) =>
+            {
+                await SampleCmdHandler(outputDir, count, mode);
+            }, 
+            _sampledGraphOutputDirOption, _sampleGraphCount, _sampleModeOption);
 
 
-            rootCommand.AddCommand(sampleCmd);
-
-        }
-    }
-
-
-    public class T1
-    {
-        public void X(Func<int, string> method)
-        {
-            var result = method(10);
-        }
-    }
-
-    public class T2
-    {
-        string aa = "00";
-        public string Y(int a)
-        {
-            return aa + a;
+            rootCmd.AddCommand(sampleCmd);
         }
 
-        public void test()
+        public async Task InvokeAsync(string[] args)
         {
-            var t1 = new T1();
-            t1.X(Y);
-            
+            await rootCmd.InvokeAsync(args);
         }
     }
 }
