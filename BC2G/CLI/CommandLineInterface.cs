@@ -4,39 +4,65 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.CommandLine;
+using BC2G.DAL;
 
 namespace BC2G.CLI
 {
     internal class CommandLineInterface
     {
-        private readonly RootCommand rootCmd = new("TODO: some description ...");
+        private readonly RootCommand _rootCmd;
+        private readonly Option<DirectoryInfo?> _workingDirOption = new(
+            name: "--working-dir",
+            description: "The directory where all the data related " +
+            "to this execution will be stored.");
+
+        private readonly Option<FileInfo?> _resumeOption = new(
+            name: "--resume",
+            description: "The absoloute path to the `status` file " +
+            "that can be used to resume a canceled task.");
+
+        private readonly Option<FileInfo?> statusFilenameOption = new(
+            name: "--status-filename",
+            description: "The JSON file to store the execution status.",
+            isDefault: true,
+            parseArgument: x =>
+            {
+                if (x.Tokens.Count == 0)
+                    return new FileInfo("abc.json"); // TODO: fixme. 
+
+                var filePath = x.Tokens.Single().Value;
+                return new FileInfo(filePath);
+            });
 
         public CommandLineInterface(
             Func<Options, Task> BitcoinTraverseCmdHandler, 
             Func<Options, Task> SampleCmdHandler)
         {
+            _rootCmd = new RootCommand(description: "TODO: some description ...")
+            {
+                _resumeOption
+            };
+            _rootCmd.AddGlobalOption(_workingDirOption);
+            _rootCmd.AddGlobalOption(statusFilenameOption);
+
             var sampleCmd = GetSampleCmd(SampleCmdHandler);
-            rootCmd.AddCommand(sampleCmd);
-            rootCmd.AddCommand(GetTraverseCmd(BitcoinTraverseCmdHandler));
+            _rootCmd.AddCommand(sampleCmd);
+            _rootCmd.AddCommand(GetTraverseCmd(BitcoinTraverseCmdHandler));
         }
 
         public async Task InvokeAsync(string[] args)
         {
-            await rootCmd.InvokeAsync(args);
+            await _rootCmd.InvokeAsync(args);
         }
 
-        private static Command GetSampleCmd(Func<Options, Task> handler)
+        private Command GetSampleCmd(Func<Options, Task> handler)
         {
             var countOption = new Option<int>(
                 name: "--count",
                 description: "The number of graphs to sample.");
 
-            var outputDirOption = new Option<DirectoryInfo>(
-                name: "--output",
-                description: "The directory to store the sampled graph(s).");
-
             // TODO: rework this option.
-            var modeOption = new Option<string?>(
+            var modeOption = new Option<GraphSampleMode>(
                 name: "--mode",
                 description: "Valid values are: " +
                 "`A` to generate graph and random edge pairs where the number of random edges equal the number of edges in the graph;" +
@@ -44,17 +70,10 @@ namespace BC2G.CLI
                 isDefault: true,
                 parseArgument: x =>
                 {
-                    var value = x.Tokens.Single().Value;
-                    switch (value)
-                    {
-                        case "A":
-                            return value;
-                        case "B":
-                            return value;
-                        default:
-                            x.ErrorMessage = $"Invalid mode; provided `{value}`, expected `A` or `B`";
-                            return null;
-                    }
+                    var valid = Enum.TryParse(x.Tokens.Single().Value, out GraphSampleMode value);
+                    if (!valid)
+                        x.ErrorMessage = $"Invalid mode; provided `{value}`, expected `A` or `B`";
+                    return value;
                 });
 
             var cmd = new Command(
@@ -62,22 +81,19 @@ namespace BC2G.CLI
                 description: "TODO: add some description")
             {
                 countOption,
-                outputDirOption,
+                //outputDirOption,
                 modeOption
             };
 
-            cmd.SetHandler(async (outputDir, count, mode) =>
+            cmd.SetHandler(async (workingDir, options) =>
             {
-                var options = new Options()
-                {
-                    OutputDirectory = outputDir,
-                    GraphSampleCount = count,
-                    GraphSampleMode = mode ?? "A"
-                };
-
+                options.OutputDirectory = workingDir;
                 await handler(options);
             },
-            outputDirOption, countOption, modeOption);
+            _workingDirOption,
+            new OptionsBinder(
+                graphSampleCountOption: countOption,
+                graphSampleModeOption: modeOption));
 
             return cmd;
         }
@@ -102,23 +118,6 @@ namespace BC2G.CLI
                 name: "--to",
                 description: "The exclusive height of the block where the traverse should end (exclusive).");
 
-            var statusFilenameOption = new Option<FileInfo?>(
-                name: "--status-filename",
-                description: "The JSON file to store the execution status.",
-                isDefault: true,
-                parseArgument: x =>
-                {
-                    if (x.Tokens.Count == 0)
-                        return new FileInfo("abc.json"); // TODO: fixme. 
-
-                    var filePath = x.Tokens.Single().Value;
-                    return new FileInfo(filePath);
-                });
-
-            var resumeFromOption = new Option<int>(
-                name: "--resume-from",
-                description: "Resumes a canceled execution based on the given status filename.");
-
             var granularityOption = new Option<int>(
                 name: "--granularity",
                 description: "Set the blockchain traversal granularity (default is 1)." +
@@ -130,25 +129,17 @@ namespace BC2G.CLI
             {
                 fromOption,
                 toOption,
-                statusFilenameOption,
-                resumeFromOption,
                 granularityOption
             };
 
-            // TODO: move resume to the root command and load all command snd configs from the given file.
-
-            cmd.SetHandler(async (from, to, status, granularity) =>
+            cmd.SetHandler(async (options) =>
             {
-                var options = new Options()
-                {
-                    FromInclusive = from,
-                    ToExclusive = to,
-                    StatusFilename = status.FullName,
-                    Granularity = granularity
-                };
                 await handler(options);
             },
-            fromOption, toOption, statusFilenameOption, granularityOption);
+            new OptionsBinder(
+                fromInclusiveOption: fromOption,
+                toExclusiveOption: toOption, 
+                granularityOption: granularityOption));
 
             return cmd;
         }
