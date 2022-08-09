@@ -19,7 +19,7 @@ namespace BC2G
         private bool disposed = false;
 
         private readonly string _statusFilename;
-        private readonly Options _options;
+        private Options _options;
 
         public Logger Logger { set; get; }
         private const string _defaultLoggerRepoName = "events_log";
@@ -70,10 +70,10 @@ namespace BC2G
                         CultureInfo.InvariantCulture);
 
                 Logger = new Logger(
-                    Path.Join(options.OutputDir, _loggerRepository + ".txt"),
+                    Path.Join(options.WorkingDir.FullName, _loggerRepository + ".txt"),
                     _loggerRepository,
                     Guid.NewGuid().ToString(),
-                    options.OutputDir,
+                    options.WorkingDir.FullName,
                     _maxLogfileSize);
             }
             catch (Exception e)
@@ -102,6 +102,8 @@ namespace BC2G
 
         private async Task<bool> TraverseAsync(Options options)
         {
+            _options = options;
+
             SetupLogger(options);
 
             if (!TryGetBitCoinAgent(_ct, out var agent, out var txCache))
@@ -187,7 +189,7 @@ namespace BC2G
         {
             try
             {
-                txCache = new TxCache(_options.OutputDir, cT);
+                txCache = new TxCache(_options.WorkingDir.FullName, cT);
                 agent = new BitcoinAgent(_client, txCache, Logger, cT);
 
                 if (!agent.IsConnected)
@@ -244,7 +246,7 @@ namespace BC2G
         private async Task TraverseBlocksAsync(
             BitcoinAgent agent, CancellationToken cT)
         {
-            var individualBlocksDir = Path.Combine(_options.OutputDir, "individual_blocks");
+            var individualBlocksDir = Path.Combine(_options.WorkingDir.FullName, "individual_blocks");
             if (_options.CreatePerBlockFiles && !Directory.Exists(individualBlocksDir))
                 Directory.CreateDirectory(individualBlocksDir);
 
@@ -264,13 +266,13 @@ namespace BC2G
             using var serializer = new CSVSerializer(mapper);
 
             using var pGraphStat = new PersistentGraphStatistics(
-                Path.Combine(_options.OutputDir, "blocks_stats.tsv"),
+                Path.Combine(_options.WorkingDir.FullName, "blocks_stats.tsv"),
                 cT);
 
             using var gBuffer = new PersistentGraphBuffer(
                 _graphDB,
-                Path.Combine(_options.OutputDir, "nodes.tsv"),
-                Path.Combine(_options.OutputDir, "edges.tsv"),                
+                Path.Combine(_options.WorkingDir.FullName, "nodes.tsv"),
+                Path.Combine(_options.WorkingDir.FullName, "edges.tsv"),                
                 mapper,
                 pGraphStat,
                 Logger,

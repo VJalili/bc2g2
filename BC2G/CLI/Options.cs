@@ -34,9 +34,7 @@ namespace BC2G.CLI
         }
         private int _granularity = 1;
 
-        public string OutputDir { get; set; } = Environment.CurrentDirectory;
-
-        public DirectoryInfo OutputDirectory { set; get; } = new DirectoryInfo(Environment.CurrentDirectory);
+        public DirectoryInfo WorkingDir { set; get; } = new DirectoryInfo(Environment.CurrentDirectory);
         public int GraphSampleCount { set; get; }
         public GraphSampleMode GraphSampleMode { set; get; } = GraphSampleMode.A;
 

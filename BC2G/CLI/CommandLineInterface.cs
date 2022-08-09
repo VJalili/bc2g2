@@ -89,7 +89,7 @@ namespace BC2G.CLI
 
             cmd.SetHandler(async (workingDir, options) =>
             {
-                options.OutputDirectory = workingDir;
+                options.WorkingDir = workingDir;
                 await handler(options);
             },
             _workingDirOption,

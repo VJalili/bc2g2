@@ -210,7 +210,7 @@ namespace BC2G.CLI
                 try
                 {
                     output = Path.GetFullPath(_outputOption.Value());
-                    _parsedOptions.OutputDir = output;
+                    //_parsedOptions.OutputDir = output;
                 }
                 catch (Exception e)
                 {
