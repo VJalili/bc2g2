@@ -102,6 +102,11 @@ namespace BC2G
 
         private async Task<bool> TraverseAsync(Options options)
         {
+            // important TODO:
+            // The booleans returns of this method are ignored.
+            // At the time of writing this, there are limited options
+            // in the system.commandline to implement this properly. 
+
             _options = options;
 
             SetupLogger(options);
