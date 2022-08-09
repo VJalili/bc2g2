@@ -44,6 +44,8 @@ namespace BC2G.CLI
             };
             _rootCmd.AddGlobalOption(_workingDirOption);
             _rootCmd.AddGlobalOption(statusFilenameOption);
+            // This is required to allow using options without specifying any of the subcommands. 
+            _rootCmd.SetHandler(x => { });
 
             var sampleCmd = GetSampleCmd(SampleCmdHandler);
             _rootCmd.AddCommand(sampleCmd);
@@ -98,7 +100,7 @@ namespace BC2G.CLI
             return cmd;
         }
 
-        private static Command GetTraverseCmd(Func<Options, Task> handler)
+        private Command GetTraverseCmd(Func<Options, Task> handler)
         {
             var cmd = new Command(
                 name: "traverse",
@@ -108,7 +110,7 @@ namespace BC2G.CLI
             return cmd;
         }
 
-        private static Command GetBitcoinCmd(Func<Options, Task> handler)
+        private Command GetBitcoinCmd(Func<Options, Task> handler)
         {
             var fromOption = new Option<int>(
                 name: "--from",
@@ -138,7 +140,7 @@ namespace BC2G.CLI
             },
             new OptionsBinder(
                 fromInclusiveOption: fromOption,
-                toExclusiveOption: toOption, 
+                toExclusiveOption: toOption,
                 granularityOption: granularityOption));
 
             return cmd;

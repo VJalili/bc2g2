@@ -15,7 +15,7 @@ namespace BC2G
     public class Orchestrator : IDisposable
     {
         private readonly HttpClient _client;
-        private readonly GraphDB _graphDB;
+        private GraphDB _graphDB;
         private bool disposed = false;
 
         private readonly string _statusFilename;
@@ -27,12 +27,15 @@ namespace BC2G
         private readonly string _maxLogfileSize = "2GB";
 
         private readonly CommandLineInterface _cli;
+        private readonly CancellationToken _ct;
 
-        public Orchestrator(/*Options options,*/ HttpClient client)//, string statusFilename)
+        public Orchestrator(HttpClient client, CancellationToken ct)
         {
-            _cli = new CommandLineInterface(Traverse, Sample);
-
+            _ct = ct;
             _client = client;
+            _cli = new CommandLineInterface(TraverseAsync, Sample);
+
+            
             //_options = options;
             //_statusFilename = statusFilename;
 
@@ -53,14 +56,6 @@ namespace BC2G
                     $"{e.Message}");
                 throw;
             }*/
-
-            /*
-            _graphDB = new GraphDB(
-                options.Neo4jUri, 
-                options.Neo4jUser, 
-                options.Neo4jPassword, 
-                options.Neo4jImportDirectory,
-                options.Neo4jCypherImportPrefix);*/
         }
 
         private void SetupLogger(Options options)
@@ -96,24 +91,26 @@ namespace BC2G
         private async Task Sample(Options options)
         {
             SetupLogger(options);
+
+            _graphDB = new GraphDB(
+                options.Neo4jUri, 
+                options.Neo4jUser, 
+                options.Neo4jPassword, 
+                options.Neo4jImportDirectory,
+                options.Neo4jCypherImportPrefix);
         }
 
-        private async Task Traverse(Options options)
+        private async Task<bool> TraverseAsync(Options options)
         {
             SetupLogger(options);
-        }
 
-
-        public async Task<bool> RunAsync(CancellationToken cT)
-        {
-            // TODO: these two may better to move the constructor. 
-            if (!TryGetBitCoinAgent(cT, out var agent, out var txCache))
+            if (!TryGetBitCoinAgent(_ct, out var agent, out var txCache))
                 return false;
 
             if (!AssertChain(agent, out ChainInfo chaininfo))
                 return false;
 
-            if (cT.IsCancellationRequested)
+            if (_ct.IsCancellationRequested)
                 return false;
 
             if (_options.FromInclusive == -1)
@@ -136,7 +133,7 @@ namespace BC2G
                 return false;
             }
 
-            if(_options.ToExclusive < 0)
+            if (_options.ToExclusive < 0)
             {
                 Logger.LogException($"Invalid To block height {_options.ToExclusive}");
                 return false;
@@ -146,7 +143,7 @@ namespace BC2G
             try
             {
                 stopwatch.Start();
-                await TraverseBlocksAsync(agent, cT);
+                await TraverseBlocksAsync(agent, _ct);
 
                 while (true)
                 {
@@ -156,7 +153,7 @@ namespace BC2G
                 }
 
                 stopwatch.Stop();
-                if (cT.IsCancellationRequested)
+                if (_ct.IsCancellationRequested)
                 {
                     Logger.Log(
                         $"Cancelled successfully.",
