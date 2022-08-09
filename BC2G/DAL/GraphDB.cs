@@ -65,7 +65,7 @@ namespace BC2G.DAL
             var v = x.GetType().GetProperty("Id").GetValue(x);*/
 
             // TEMP
-            Sampling(10, 3).Wait();
+            
         }
 
         /* TODO:
@@ -312,7 +312,7 @@ namespace BC2G.DAL
             });*/
         }
 
-        private async Task Sampling(int rootNodesCount, int hops, double rootNodesSelectProb = 0.1)
+        public async Task Sampling(int rootNodesCount, int hops, double rootNodesSelectProb = 0.1)
         {
             var includeRndEdges = true;
 

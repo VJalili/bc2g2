@@ -83,6 +83,16 @@ namespace BC2G
             }
         }
 
+        private void SetupGraphDB(Options options)
+        {
+            _graphDB = new GraphDB(
+                options.Neo4jUri,
+                options.Neo4jUser,
+                options.Neo4jPassword,
+                options.Neo4jImportDirectory,
+                options.Neo4jCypherImportPrefix);
+        }
+
         public async Task<int> InvokeAsync(string[] args)
         {
             return await _cli.InvokeAsync(args);
@@ -91,13 +101,9 @@ namespace BC2G
         private async Task Sample(Options options)
         {
             SetupLogger(options);
+            SetupGraphDB(options);
 
-            _graphDB = new GraphDB(
-                options.Neo4jUri, 
-                options.Neo4jUser, 
-                options.Neo4jPassword, 
-                options.Neo4jImportDirectory,
-                options.Neo4jCypherImportPrefix);
+            await _graphDB.Sampling(10, 3);
         }
 
         private async Task<bool> TraverseAsync(Options options)
@@ -110,6 +116,7 @@ namespace BC2G
             _options = options;
 
             SetupLogger(options);
+            SetupGraphDB(options);
 
             if (!TryGetBitCoinAgent(_ct, out var agent, out var txCache))
                 return false;
