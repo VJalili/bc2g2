@@ -118,7 +118,7 @@ namespace BC2G
             SetupLogger(options);
             SetupGraphDB(options);
 
-            if (!TryGetBitCoinAgent(_ct, out var agent, out var txCache))
+            if (!TryGetBitCoinAgent(_ct, out var agent))
                 return false;
 
             if (!AssertChain(agent, out ChainInfo chaininfo))
@@ -159,13 +159,6 @@ namespace BC2G
                 stopwatch.Start();
                 await TraverseBlocksAsync(agent, _ct);
 
-                while (true)
-                {
-                    if (txCache.CanClose)
-                        break;
-                    Thread.Sleep(500);
-                }
-
                 stopwatch.Stop();
                 if (_ct.IsCancellationRequested)
                 {
@@ -191,18 +184,16 @@ namespace BC2G
             {
                 stopwatch.Stop();
                 agent.Dispose();
-                txCache.Dispose();
             }
 
             return true;
         }
 
-        private bool TryGetBitCoinAgent(CancellationToken cT, out BitcoinAgent agent, out TxCache txCache)
+        private bool TryGetBitCoinAgent(CancellationToken cT, out BitcoinAgent agent)
         {
             try
             {
-                txCache = new TxCache(_options.WorkingDir.FullName, cT);
-                agent = new BitcoinAgent(_client, txCache, Logger, cT);
+                agent = new BitcoinAgent(_client, Logger, cT);
 
                 if (!agent.IsConnected)
                     throw new ClientInaccessible();
@@ -214,10 +205,7 @@ namespace BC2G
                     $"Failed to create/access BitcoinAgent: " +
                     $"{e.Message}");
 
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                agent = null;
-                txCache = null;
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+                agent = default;
                 return false;
             }
         }

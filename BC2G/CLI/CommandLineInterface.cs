@@ -8,6 +8,8 @@ using BC2G.DAL;
 
 namespace BC2G.CLI
 {
+    // TODO: CLI and the Options type need to be re-writtent for clarity. 
+
     internal class CommandLineInterface
     {
         private readonly RootCommand _rootCmd;
