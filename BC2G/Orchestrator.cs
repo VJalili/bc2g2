@@ -70,10 +70,10 @@ namespace BC2G
                         CultureInfo.InvariantCulture);
 
                 Logger = new Logger(
-                    Path.Join(options.WorkingDir.FullName, _loggerRepository + ".txt"),
+                    Path.Join(options.WorkingDir, _loggerRepository + ".txt"),
                     _loggerRepository,
                     Guid.NewGuid().ToString(),
-                    options.WorkingDir.FullName,
+                    options.WorkingDir,
                     _maxLogfileSize);
             }
             catch (Exception e)
@@ -246,7 +246,7 @@ namespace BC2G
         private async Task TraverseBlocksAsync(
             BitcoinAgent agent, CancellationToken cT)
         {
-            var individualBlocksDir = Path.Combine(_options.WorkingDir.FullName, "individual_blocks");
+            var individualBlocksDir = Path.Combine(_options.WorkingDir, "individual_blocks");
             if (_options.CreatePerBlockFiles && !Directory.Exists(individualBlocksDir))
                 Directory.CreateDirectory(individualBlocksDir);
 
@@ -257,23 +257,24 @@ namespace BC2G
              * a better solution for running on machines with 
              * less than 16GB of RAM?! 
              */
+            /*
             using var mapper = new AddressToIdMapper(
                 _options.AddressIdMappingFilename,
                 AddressToIdMapper.Deserialize(_options.AddressIdMappingFilename),
-                cT);
-            agent.AddressToIdMapper = mapper;
+                cT);*/
+            //agent.AddressToIdMapper = mapper;
 
-            using var serializer = new CSVSerializer(mapper);
+            using var serializer = new CSVSerializer();//mapper);
 
             using var pGraphStat = new PersistentGraphStatistics(
-                Path.Combine(_options.WorkingDir.FullName, "blocks_stats.tsv"),
+                Path.Combine(_options.WorkingDir, "blocks_stats.tsv"),
                 cT);
 
             using var gBuffer = new PersistentGraphBuffer(
                 _graphDB,
-                Path.Combine(_options.WorkingDir.FullName, "nodes.tsv"),
-                Path.Combine(_options.WorkingDir.FullName, "edges.tsv"),                
-                mapper,
+                Path.Combine(_options.WorkingDir, "nodes.tsv"),
+                Path.Combine(_options.WorkingDir, "edges.tsv"),                
+                //mapper,
                 pGraphStat,
                 Logger,
                 cT);
@@ -297,7 +298,7 @@ namespace BC2G
 
             // Persist the start point so to at least have the starting point
             // in case the program fails without a chance to persist the current status.
-            await JsonSerializer<Options>.SerializeAsync(_options, _statusFilename);
+            await JsonSerializer<Options>.SerializeAsync(_options, _options.StatusFile);
 
             // Have tested TPL dataflow as alternative to Parallel.For,
             // it adds more complexity with little performance improvements,
@@ -333,7 +334,7 @@ namespace BC2G
             // will never end.
             while(true)
             {
-                if (mapper.CanDispose && gBuffer.CanDispose)
+                if (/*mapper.CanDispose &&*/ gBuffer.CanDispose)
                     break;
                 Thread.Sleep(500);
             }

@@ -34,7 +34,7 @@ namespace BC2G.CLI
         }
         private int _granularity = 1;
 
-        public DirectoryInfo WorkingDir { set; get; } = new DirectoryInfo(Environment.CurrentDirectory);
+        public string WorkingDir { set; get; } = Environment.CurrentDirectory;
         public int GraphSampleCount { set; get; }
         public GraphSampleMode GraphSampleMode { set; get; } = GraphSampleMode.A;
 
@@ -55,12 +55,12 @@ namespace BC2G.CLI
 
         public string Neo4jImportDirectory { set; get; } =
             Environment.GetEnvironmentVariable("NEO4J_IMPORTDIRECTORY") ??
-            @"C:\Users\Hamed\.Neo4jDesktop\relate-data\dbmss\dbms-ff193aad-d42a-4cf2-97b5-e7fe6b52b161\import";
+            @"C:\Users\Hamed\.Neo4jDesktop\relate-data\dbmss\dbms-b63fe6db-72a8-484e-ac23-fc7774e32984\import";
 
         public string Neo4jCypherImportPrefix { set; get; } =
             Environment.GetEnvironmentVariable("NEO4J_CYPHERIMPORTPREFIX") ??
             "file:///";
 
-        public string StatusFilename { set; get; }
+        public string StatusFile { set; get; } = Path.Combine(Environment.CurrentDirectory, "status.json");
     }
 }

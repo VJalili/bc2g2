@@ -13,27 +13,27 @@ namespace BC2G.CLI
     internal class CommandLineInterface
     {
         private readonly RootCommand _rootCmd;
-        private readonly Option<DirectoryInfo?> _workingDirOption = new(
+        private readonly Option<string?> _workingDirOption = new(
             name: "--working-dir",
             description: "The directory where all the data related " +
             "to this execution will be stored.");
 
-        private readonly Option<FileInfo?> _resumeOption = new(
+        private readonly Option<string?> _resumeOption = new(
             name: "--resume",
             description: "The absoloute path to the `status` file " +
             "that can be used to resume a canceled task.");
 
-        private readonly Option<FileInfo?> statusFilenameOption = new(
+        private readonly Option<string?> _statusFilenameOption = new(
             name: "--status-filename",
             description: "The JSON file to store the execution status.",
             isDefault: true,
             parseArgument: x =>
             {
                 if (x.Tokens.Count == 0)
-                    return new FileInfo("abc.json"); // TODO: fixme. 
+                    return "status.json";
 
                 var filePath = x.Tokens.Single().Value;
-                return new FileInfo(filePath);
+                return filePath;
             });
 
         public CommandLineInterface(
@@ -45,7 +45,7 @@ namespace BC2G.CLI
                 _resumeOption
             };
             _rootCmd.AddGlobalOption(_workingDirOption);
-            _rootCmd.AddGlobalOption(statusFilenameOption);
+            _rootCmd.AddGlobalOption(_statusFilenameOption);
             // This is required to allow using options without specifying any of the subcommands. 
             _rootCmd.SetHandler(x => { });
 
@@ -143,7 +143,9 @@ namespace BC2G.CLI
             new OptionsBinder(
                 fromInclusiveOption: fromOption,
                 toExclusiveOption: toOption,
-                granularityOption: granularityOption));
+                granularityOption: granularityOption,
+                workingDirOption: _workingDirOption,
+                statusFilenameOption: _statusFilenameOption));
 
             return cmd;
         }
