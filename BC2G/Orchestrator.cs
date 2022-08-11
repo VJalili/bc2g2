@@ -18,7 +18,6 @@ namespace BC2G
         private GraphDB _graphDB;
         private bool disposed = false;
 
-        private readonly string _statusFilename;
         private Options _options;
 
         public Logger Logger { set; get; }
@@ -324,7 +323,7 @@ namespace BC2G
             // the types wrapped in `using` will be called that
             // finalizes persisting output.
             Logger.Log("Finalizing serialized files.");
-            await JsonSerializer<Options>.SerializeAsync(_options, _statusFilename);
+            await JsonSerializer<Options>.SerializeAsync(_options, _options.StatusFile);
 
             // TODO: this is not a good strategy, it has two drawbacks: 
             // - it is an infinite loop with the assumption that the
