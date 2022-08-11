@@ -246,9 +246,10 @@ namespace BC2G
         private async Task TraverseBlocksAsync(
             BitcoinAgent agent, CancellationToken cT)
         {
+            /*
             var individualBlocksDir = Path.Combine(_options.WorkingDir, "individual_blocks");
             if (_options.CreatePerBlockFiles && !Directory.Exists(individualBlocksDir))
-                Directory.CreateDirectory(individualBlocksDir);
+                Directory.CreateDirectory(individualBlocksDir);*/
 
             /* TODO: This object does not scale, 
              * its memory requirement grows linearly w.r.t. to 
@@ -309,7 +310,7 @@ namespace BC2G
                     state.Stop();
 
                 blockHeightQueue.TryDequeue(out var h);
-                ProcessBlock(agent, gBuffer, serializer, h, individualBlocksDir, cT).Wait();
+                ProcessBlock(agent, gBuffer, serializer, h, /*individualBlocksDir,*/ cT).Wait();
 
                 if (cT.IsCancellationRequested)
                     state.Stop();
@@ -351,7 +352,7 @@ namespace BC2G
             PersistentGraphBuffer gBuffer,
             CSVSerializer serializer,
             int height,
-            string individualBlocksDir,
+            //string individualBlocksDir,
             CancellationToken cT)
         {
             if (cT.IsCancellationRequested) return;

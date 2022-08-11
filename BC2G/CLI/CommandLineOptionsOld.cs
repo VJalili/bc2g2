@@ -276,8 +276,9 @@ namespace BC2G.CLI
             }
 
 
+            /*
             if (_createPerBlockFilesOption.HasValue())
-                _parsedOptions.CreatePerBlockFiles = true;
+                _parsedOptions.CreatePerBlockFiles = true;*/
         }
     }
 }

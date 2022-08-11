@@ -39,7 +39,7 @@ namespace BC2G.CLI
         public GraphSampleMode GraphSampleMode { set; get; } = GraphSampleMode.A;
 
         public string AddressIdMappingFilename { set; get; } = "id_to_address_mapping.tsv";
-        public bool CreatePerBlockFiles { get; set; } = false;
+        //public bool CreatePerBlockFiles { get; set; } = false;
         public int MaxConcurrentBlocks { get; set; } = 1;// Environment.ProcessorCount / 2;
 
         public string Neo4jUri { get; set; } =
@@ -55,7 +55,7 @@ namespace BC2G.CLI
 
         public string Neo4jImportDirectory { set; get; } =
             Environment.GetEnvironmentVariable("NEO4J_IMPORTDIRECTORY") ??
-            @"C:\Users\Hamed\.Neo4jDesktop\relate-data\dbmss\dbms-b63fe6db-72a8-484e-ac23-fc7774e32984\import";
+            @"C:\Users\Hamed\.Neo4jDesktop\relate-data\dbmss\dbms-dfe3bce4-2784-49f7-b5d3-397718a7e6f5\import";
 
         public string Neo4jCypherImportPrefix { set; get; } =
             Environment.GetEnvironmentVariable("NEO4J_CYPHERIMPORTPREFIX") ??

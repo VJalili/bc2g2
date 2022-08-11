@@ -75,6 +75,10 @@ namespace BC2G.DAL
          * - When using MERGE or MATCH with LOAD CSV, make sure you have an index or a 
          * unique constraint on the property that you are merging on. This will 
          * ensure that the query executes in a performant way.
+         * 
+         * - make sure apoc and all the necessary plug-ins are installed on the given
+         * Neo4j database at the time of initialization. Currently if any of the plug 
+         * ins are not installed it fails at the load time. 
          */
 
         public void BulkImport(BlockGraph graph, CancellationToken cT)
