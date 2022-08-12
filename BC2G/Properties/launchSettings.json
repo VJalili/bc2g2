@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "traverse bitcoin --from 1000 --to 100000 --working-dir C:\\Users\\Hamed\\Desktop\\test\\ --granularity 10000"
+      "commandLineArgs": "--from 0 --to 719010 --output C:\\Users\\Hamed\\Desktop\\test\\ -g 10000"
     },
     "Docker": {
       "commandName": "Docker"
