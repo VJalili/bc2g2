@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "--from 0 --to 719010 --output C:\\Users\\Hamed\\Desktop\\test\\ -g 10000"
+      "commandLineArgs": "sample --count 10 -h 3"
     },
     "Docker": {
       "commandName": "Docker"

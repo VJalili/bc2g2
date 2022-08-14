@@ -33,7 +33,6 @@ namespace BC2G
             _ct = ct;
             _client = client;
             _cli = new CommandLineInterface(TraverseAsync, Sample);
-
             
             //_options = options;
             //_statusFilename = statusFilename;
