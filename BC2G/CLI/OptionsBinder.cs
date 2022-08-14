@@ -81,6 +81,11 @@ namespace BC2G.CLI
             if (option == null)
                 return defaultValue;
 
+            var valueGiven = context.ParseResult.FindResultFor(option) != null;
+
+            if (!valueGiven)
+                return defaultValue;
+
             var value = context.ParseResult.GetValueForOption(option);
             if (value == null)
                 return defaultValue;
