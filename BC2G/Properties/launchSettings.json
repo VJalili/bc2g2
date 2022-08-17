@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "sample --count 10 -h 3"
+      "commandLineArgs": "sample --count 2 -h 3 --min-node-count 1 --min-edge-count 1 --root-node-select-prob 1000"
     },
     "Docker": {
       "commandName": "Docker"
