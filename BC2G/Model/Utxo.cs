@@ -19,5 +19,22 @@ namespace BC2G.Model
         public string Address { set; get; } = string.Empty;
         [Required]
         public double Value { set; get; }
+
+        // This constructor is required by EF.
+        public Utxo(string id, string address, double value)
+        {
+            Id = id;
+            Address = address;
+            Value = value;
+        }
+
+        public Utxo(string txid, int voutN, string address, double value) : 
+            this(GetId(txid, voutN), address, value) 
+        { }
+
+        public static string GetId(string txid, int voutN)
+        {
+            return $"{voutN}-{txid}";
+        }
     }
 }
