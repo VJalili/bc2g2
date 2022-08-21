@@ -11,7 +11,7 @@ namespace BC2G.Model
     // TODO: can this be merged with the Output type?!
 
     [Table("Utxo")]
-    internal class Utxo
+    public class Utxo
     {
         [Required]
         public string Id { set; get; } = string.Empty;
