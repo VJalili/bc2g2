@@ -45,7 +45,9 @@ namespace BC2G.Blockchains
             _cT = ct;
 
             _cachedOutputDb = new DatabaseContext(
-                options.PsqlHost, options.PsqlDatabase, options.PsqlUsername, options.PsqlPassword);            
+                options.PsqlHost, options.PsqlDatabase, options.PsqlUsername, options.PsqlPassword);
+
+            _cachedOutputDb.Database.EnsureCreated();
         }
 
         /// <summary>
@@ -137,6 +139,8 @@ namespace BC2G.Blockchains
             var graph = new BlockGraph(block);
             await ProcessTxes(graph, block);
 
+            await _cachedOutputDb.SaveChangesAsync();
+
             return graph;
         }
 
@@ -163,6 +167,7 @@ namespace BC2G.Blockchains
                 rewardAddresses.Add(node);
                 g.Stats.AddInputTxCount(1);
 
+                _cachedOutputDb.Utxos.Add(new Utxo(coinbaseTx.Txid, output.Index, address, output.Value));
                 //_txCache.Add(coinbaseTx.Txid, output.Index, address, output.Value);
             }
 
@@ -235,6 +240,7 @@ namespace BC2G.Blockchains
                         address,
                         output.GetScriptType()),
                     output.Value);
+                _cachedOutputDb.Utxos.Add(new Utxo(tx.Txid, output.Index, address, output.Value));
                 //_txCache.Add(tx.Txid, output.Index, address, output.Value);
             }
 
