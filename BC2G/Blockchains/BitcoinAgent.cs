@@ -218,6 +218,10 @@ namespace BC2G.Blockchains
 
                 double value;
                 string address;
+                // TODO:
+                // creating a separate context for each operation is not ideal, though
+                // EF does not currently support concurrency on a context. Therefore, 
+                // a context cannot be re-used on multi-thread setup. 
                 using var context = GetDbContext();
                 var utxo = await context.Utxos.FindAsync(Utxo.GetId(input.TxId, input.OutputIndex));
                 if (utxo != null)
