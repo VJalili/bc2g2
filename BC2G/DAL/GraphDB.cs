@@ -58,14 +58,15 @@ namespace BC2G.DAL
                 // stacktrace. Check if there is a better way of throwing an error with a message
                 // that indicates not able to connect to the Neo4j database.
 
-                var batch = CurrentTimeStamp;
-                _blockMapper = new BlockMapper(neo4jCypherImportPrefix, neo4jImportDirectory) { Batch = batch };
-                _scriptMapper = new ScriptMapper(neo4jCypherImportPrefix, neo4jImportDirectory) { Batch = batch };
-                _coinbaseMapper = new CoinbaseMapper(neo4jCypherImportPrefix, neo4jImportDirectory) { Batch = batch };
-
                 EnsureCoinbaseNode().Wait();
                 EnsureConstraints().Wait();
             }
+
+            var batch = CurrentTimeStamp;
+            _blockMapper = new BlockMapper(neo4jCypherImportPrefix, neo4jImportDirectory) { Batch = batch };
+            _scriptMapper = new ScriptMapper(neo4jCypherImportPrefix, neo4jImportDirectory) { Batch = batch };
+            _coinbaseMapper = new CoinbaseMapper(neo4jCypherImportPrefix, neo4jImportDirectory) { Batch = batch };
+
             /*
             var script = new NodeMapping();
             script.Labels.Add("Script");
