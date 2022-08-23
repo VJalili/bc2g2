@@ -135,19 +135,21 @@ namespace BC2G.Blockchains
 
         public async Task<BlockGraph> GetGraph(int height)
         {
+            // All the logging in this section are disabled because 
+            // CPU profiling shows ~%24 of the process time is spent on them.
             if (_cT.IsCancellationRequested) throw new OperationCanceledException();
 
-            _logger.Log($"Getting block hash; height {height}.");
+            //_logger.Log($"Getting block hash; height {height}.");
             var blockHash = await GetBlockHash(height);
 
             if (_cT.IsCancellationRequested) throw new OperationCanceledException();
 
-            _logger.Log($"Getting block; height: {height}.");
+            //_logger.Log($"Getting block; height: {height}.");
             var block = await GetBlock(blockHash);
 
             if (_cT.IsCancellationRequested) throw new OperationCanceledException();
 
-            _logger.Log($"Getting graph; height: {height}.");
+            //_logger.Log($"Getting graph; height: {height}.");
             var graph = new BlockGraph(block);
             await ProcessTxes(graph, block);
 
