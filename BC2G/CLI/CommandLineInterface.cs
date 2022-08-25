@@ -202,5 +202,25 @@ namespace BC2G.CLI
 
             return cmd;
         }
+
+        private Command GetLoadGraphCmd(Func<Options, Task> handler)
+        {
+            var o = new Options();
+
+            var cmd = new Command(
+                name: "load-graph",
+                description: "loads the graph from the CSV files created while traversing the blockchain. This command should be used when --skip-graph-load flag was used.")
+            { };
+
+            cmd.SetHandler(async (options) =>
+            {
+                await handler(options);
+            },
+            new OptionsBinder(
+                workingDirOption: _workingDirOption,
+                statusFilenameOption: _statusFilenameOption));
+
+            return cmd;
+        }
     }
 }
