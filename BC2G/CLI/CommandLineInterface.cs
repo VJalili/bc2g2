@@ -31,7 +31,8 @@ namespace BC2G.CLI
 
         public CommandLineInterface(
             Func<Options, Task> BitcoinTraverseCmdHandler,
-            Func<Options, Task> SampleCmdHandler)
+            Func<Options, Task> SampleCmdHandler,
+            Func<Options, Task> LoadGraphCmdHandler)
         {
             _rootCmd = new RootCommand(description: "TODO: some description ...")
             {
@@ -45,6 +46,7 @@ namespace BC2G.CLI
             var sampleCmd = GetSampleCmd(SampleCmdHandler);
             _rootCmd.AddCommand(sampleCmd);
             _rootCmd.AddCommand(GetTraverseCmd(BitcoinTraverseCmdHandler));
+            _rootCmd.AddCommand(GetLoadGraphCmd(LoadGraphCmdHandler));
         }
 
         public async Task<int> InvokeAsync(string[] args)

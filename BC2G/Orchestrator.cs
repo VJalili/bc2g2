@@ -32,7 +32,7 @@ namespace BC2G
         {
             _ct = ct;
             _client = client;
-            _cli = new CommandLineInterface(TraverseAsync, Sample);
+            _cli = new CommandLineInterface(TraverseAsync, Sample, LoadGraphAsync);
             
             //_options = options;
             //_statusFilename = statusFilename;
@@ -103,6 +103,12 @@ namespace BC2G
             SetupGraphDB(options);
 
             await _graphDB.Sampling(options);
+        }
+
+        private async Task LoadGraphAsync(Options options)
+        {
+
+        
         }
 
         private async Task<bool> TraverseAsync(Options options)
