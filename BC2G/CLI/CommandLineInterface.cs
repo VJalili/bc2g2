@@ -30,9 +30,9 @@ namespace BC2G.CLI
             getDefaultValue: () => new Options().StatusFile);
 
         public CommandLineInterface(
-            Func<Options, Task> BitcoinTraverseCmdHandler,
-            Func<Options, Task> SampleCmdHandler,
-            Func<Options, Task> LoadGraphCmdHandler)
+            Func<Options, Task> bitcoinTraverseCmdHandler,
+            Func<Options, Task> sampleCmdHandler,
+            Func<Options, Task> loadGraphCmdHandler)
         {
             _rootCmd = new RootCommand(description: "TODO: some description ...")
             {
@@ -43,10 +43,10 @@ namespace BC2G.CLI
             // This is required to allow using options without specifying any of the subcommands. 
             _rootCmd.SetHandler(x => { });
 
-            var sampleCmd = GetSampleCmd(SampleCmdHandler);
+            var sampleCmd = GetSampleCmd(sampleCmdHandler);
             _rootCmd.AddCommand(sampleCmd);
-            _rootCmd.AddCommand(GetTraverseCmd(BitcoinTraverseCmdHandler));
-            _rootCmd.AddCommand(GetLoadGraphCmd(LoadGraphCmdHandler));
+            _rootCmd.AddCommand(GetTraverseCmd(bitcoinTraverseCmdHandler));
+            _rootCmd.AddCommand(GetLoadGraphCmd(loadGraphCmdHandler));
         }
 
         public async Task<int> InvokeAsync(string[] args)
