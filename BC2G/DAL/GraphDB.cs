@@ -170,6 +170,7 @@ namespace BC2G.DAL
                         batchNames[batchName]++;
             }
 
+            int counter = 0;
             foreach(var batch in batchNames)
             {
                 if (batch.Value != 3)
@@ -182,7 +183,9 @@ namespace BC2G.DAL
                 _blockMapper.Batch = batch.Key;
                 _scriptMapper.Batch = batch.Key;
                 _coinbaseMapper.Batch = batch.Key;
+                Console.Write($"Loading batch {batch.Key} [{++counter}/{batchNames.Count}] ... ");
                 BulkImport();
+                Console.WriteLine("Done!");
             }
         }
 
@@ -235,25 +238,25 @@ namespace BC2G.DAL
             });
             blockBulkLoadResult.Wait();
 
-            if (_scriptEdgesInCsvCount > 0)
+            //if (_scriptEdgesInCsvCount > 0)
+            //{
+            var edgeBulkLoadResult = session.WriteTransactionAsync(async x =>
             {
-                var edgeBulkLoadResult = session.WriteTransactionAsync(async x =>
-                {
-                    var result = await x.RunAsync(_scriptMapper.CypherQuery);
-                    return result.SingleAsync().Result[0].As<string>();
-                });
-                edgeBulkLoadResult.Wait();
-            }
+                var result = await x.RunAsync(_scriptMapper.CypherQuery);
+                return result.SingleAsync().Result[0].As<string>();
+            });
+            edgeBulkLoadResult.Wait();
+            //}
 
-            if (_coinbaseEdgesInCsvCount > 0)
+            //if (_coinbaseEdgesInCsvCount > 0)
+            //{
+            var coinbaseEdgeBulkLoadResult = session.WriteTransactionAsync(async x =>
             {
-                var coinbaseEdgeBulkLoadResult = session.WriteTransactionAsync(async x =>
-                {
-                    var result = await x.RunAsync(_coinbaseMapper.CypherQuery);
-                    return await result.ToListAsync();
-                });
-                coinbaseEdgeBulkLoadResult.Wait();
-            }
+                var result = await x.RunAsync(_coinbaseMapper.CypherQuery);
+                return await result.ToListAsync();
+            });
+            coinbaseEdgeBulkLoadResult.Wait();
+            //}
 
             // File deleted before the above query is finished?!!! 
             // One or more errors occurred. (Couldn't load the external resource at:
