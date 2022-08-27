@@ -154,6 +154,11 @@ namespace BC2G.DAL
         public void BulkImport(string directory)
         {
             var batchNames = new SortedDictionary<string, int>();
+
+            // TODO: is there a case where sorting numbers/datetime
+            // represented as string would lead to a different ordering
+            // than if they were represented as numbers/datetime?
+            // if so, change the dictionary key from string to number/datetime.
             foreach (var file in Directory.GetFiles(directory))
             {
                 if (_coinbaseMapper.TryParseFilename(file, out string? batchName) ||
