@@ -153,18 +153,31 @@ namespace BC2G.DAL
 
         public void BulkImport(string directory)
         {
-            var coinbaseFilesBatches = new Dictionary<string, string>();
-            var blockFilesBatches = new Dictionary<string, string>();
-            var scriptFilesBatches = new Dictionary<string, string>();
-
-            foreach(var file in Directory.GetFiles(directory))
+            var batchNames = new SortedDictionary<string, int>();
+            foreach (var file in Directory.GetFiles(directory))
             {
-                if (_coinbaseMapper.TryParseFilename(file, out string? batchName))
-                    coinbaseFilesBatches[batchName] = file;
-                else if (_blockMapper.TryParseFilename(file, out batchName))
-                    blockFilesBatches[batchName] = file;
-                else if (_scriptMapper.TryParseFilename(file, out batchName))
-                    scriptFilesBatches[batchName] = file;
+                if (_coinbaseMapper.TryParseFilename(file, out string? batchName) ||
+                    _blockMapper.TryParseFilename(file, out batchName) ||
+                    _scriptMapper.TryParseFilename(file, out batchName))
+                    if (!batchNames.ContainsKey(batchName))
+                        batchNames.Add(batchName, 1);
+                    else
+                        batchNames[batchName]++;
+            }
+
+            foreach(var batch in batchNames)
+            {
+                if (batch.Value != 3)
+                    // TODO: log this.
+                    // This happens if in the given directory,
+                    // some batches miss either coinbase,
+                    // block, or scripts CSV file.
+                    continue;
+
+                _blockMapper.Batch = batch.Key;
+                _scriptMapper.Batch = batch.Key;
+                _coinbaseMapper.Batch = batch.Key;
+                BulkImport();
             }
         }
 
