@@ -243,7 +243,7 @@ namespace BC2G.DAL
             var edgeBulkLoadResult = session.WriteTransactionAsync(async x =>
             {
                 var result = await x.RunAsync(_scriptMapper.CypherQuery);
-                return result.SingleAsync().Result[0].As<string>();
+                return await result.ToListAsync();//.SingleAsync().Result[0].As<string>();
             });
             edgeBulkLoadResult.Wait();
             //}
