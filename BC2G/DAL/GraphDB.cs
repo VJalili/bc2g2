@@ -645,23 +645,6 @@ namespace BC2G.DAL
                 Enum.Parse<ScriptType>((string)props["ScriptType"]));
         }
 
-        public async void PrintGreeting(string message)
-        {
-            using (var session = _driver.AsyncSession())
-            {
-                var greeting = session.WriteTransactionAsync(async tx =>
-                {
-                    var result = await tx.RunAsync("CREATE (a:Greeting) " +
-                                        "SET a.message = $message " +
-                                        "RETURN a.message + ', from node ' + id(a)",
-                        new { message });
-                    return result.SingleAsync().Result[0].As<string>();
-                });
-                var xxx = await greeting;
-                Console.WriteLine(await greeting);
-            }
-        }
-
         public void Dispose()
         {
             Dispose(true);
