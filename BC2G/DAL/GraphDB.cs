@@ -231,6 +231,8 @@ namespace BC2G.DAL
             // The type of inner exception is: 
             // "Neo.TransientError.Transaction.DeadlockDetected"
 
+            // TODO: check if an exception raised in Neo4j triggers an exception in the following awaits.
+
             var blockBulkLoadResult = session.WriteTransactionAsync(async x =>
             {
                 var result = await x.RunAsync(_blockMapper.CypherQuery);
