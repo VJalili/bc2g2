@@ -117,6 +117,39 @@ namespace BC2G.Blockchains
 
         public async Task<Block> GetBlock(string hash)
         {
+            /// Implementation note. 
+            /// There is a possibility of deadlock in the following code. 
+            ///
+            ///  return
+            ///      await JsonSerializer.DeserializeAsync<Block>(
+            ///      await GetResource("block", hash))
+            ///      ?? throw new Exception("Invalid block.");
+            ///
+            /// Therefore, it is replaced by the following. 
+            /// This could possibly be improved by first identifying
+            /// the corner cases that cause deadlock and try to avoid 
+            /// them. 
+            /// See the following blog post and SO question for 
+            /// implementaiton details.
+            ///
+            /// https://stackoverflow.com/a/11191070/947889
+            /// https://devblogs.microsoft.com/pfxteam/crafting-a-task-timeoutafter-method/
+
+            int millisecondsDelay = 10000;
+            var getBlockTask = GetResource("block", hash);
+            if (await Task.WhenAny(getBlockTask, Task.Delay(millisecondsDelay, _cT)) == getBlockTask)
+            {
+                // Re-wating will cause throwing any caugh exception. 
+                var blockStream = await getBlockTask;
+                return 
+                    JsonSerializer.Deserialize<Block>(blockStream) 
+                    ?? throw new Exception("Invalid block.");
+            }
+            else
+            {
+                throw new ResourceInaccessible(
+                    $"Cannot block hash in the given time frame, hash: {hash}");
+            }
             /*
             Stream s = null;
             try
@@ -137,10 +170,11 @@ namespace BC2G.Blockchains
                 _logger.Log($"-------- 2 {hash}; {e.Message}");
             }*/
 
+            /*
             return
                 await JsonSerializer.DeserializeAsync<Block>(
                     await GetResource("block", hash))
-                ?? throw new Exception("Invalid block.");
+                ?? throw new Exception("Invalid block.");*/
         }
 
         public async Task<Transaction> GetTransaction(string hash)
