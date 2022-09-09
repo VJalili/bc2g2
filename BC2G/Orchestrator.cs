@@ -378,30 +378,31 @@ namespace BC2G
             if (cT.IsCancellationRequested) return;
 
             BlockGraph graph;
+            int tries = 0;
             try
             {
-                int tries = 0;
-                do
+                while (++tries <= maxRetries)
                 {
                     var blockGraphTask = agent.GetGraph(height);
                     if (await Task.WhenAny(blockGraphTask, Task.Delay(getBlockGraphMaxWaitTimeMilliseconds, cT)) == blockGraphTask)
                     {
                         // Re-wating will cause throwing any caugh exception. 
                         graph = await blockGraphTask;
-                        break;
+                        gBuffer.Enqueue(graph);
+                        _options.LastProcessedBlock = height;
+
+                        return;
                     }
                     else
                     {
-                        throw new TimeoutException(
-                            $"Failed to get the graph of block at height {height}, retries {tries} of {maxRetries}.");
+                        Logger.Log($"Failed to get the graph of block at height {height}, retries {tries} of {maxRetries}.");
                     }
                 }
-                while (++tries < maxRetries);
+
+                throw new TimeoutException($"Failed to get the graph of block at height {height} after {tries} unsuccessful tries.");
             }
             catch (OperationCanceledException) { return; }
-            catch { throw; }
-
-            gBuffer.Enqueue(graph);
+            
             /*try
             {
                 graph.MergeQueuedTxGraphs(cT);
@@ -424,7 +425,7 @@ namespace BC2G
             /*if (_options.CreatePerBlockFiles)
                 serializer.Serialize(graph, Path.Combine(individualBlocksDir, $"{height}"));*/
 
-            _options.LastProcessedBlock = height;
+            //_options.LastProcessedBlock = height;
         }
 
         // The IDisposable interface is implemented following .NET docs:
