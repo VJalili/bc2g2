@@ -415,7 +415,7 @@ namespace BC2G.Blockchains
             try
             {
                 // See the comment in the GetBlock method for implementation details.
-                var streamTask = _client.GetStreamAsync(new Uri(_baseUri, endpoint));
+                var streamTask = _client.GetStreamAsync(new Uri(_baseUri, endpoint), _cT);
                 if (await Task.WhenAny(streamTask, Task.Delay(_waitTimeoutMilliseconds, _cT)) == streamTask)
                 {
                     var stream = await streamTask;
