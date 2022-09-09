@@ -37,6 +37,8 @@ namespace BC2G.Blockchains
         private readonly string _psqlUsername;
         private readonly string _psqlPassword;
 
+        private readonly int _waitTimeoutMilliseconds = 60000;
+
         public BitcoinAgent(HttpClient client, Options options, Logger logger, CancellationToken ct)
         {
             _client = client;
@@ -135,9 +137,8 @@ namespace BC2G.Blockchains
             /// https://stackoverflow.com/a/11191070/947889
             /// https://devblogs.microsoft.com/pfxteam/crafting-a-task-timeoutafter-method/
 
-            int millisecondsDelay = 10000;
             var getBlockTask = GetResource("block", hash);
-            if (await Task.WhenAny(getBlockTask, Task.Delay(millisecondsDelay, _cT)) == getBlockTask)
+            if (await Task.WhenAny(getBlockTask, Task.Delay(_waitTimeoutMilliseconds, _cT)) == getBlockTask)
             {
                 // Re-wating will cause throwing any caugh exception. 
                 var blockStream = await getBlockTask;
@@ -147,7 +148,7 @@ namespace BC2G.Blockchains
             }
             else
             {
-                throw new ResourceInaccessible(
+                throw new TimeoutException(
                     $"Cannot block hash in the given time frame, hash: {hash}");
             }
             /*
@@ -179,10 +180,26 @@ namespace BC2G.Blockchains
 
         public async Task<Transaction> GetTransaction(string hash)
         {
+            // See the comment in the GetBlock method for implementation details.
+            var streamTask = GetResource("tx", hash);
+            if (await Task.WhenAny(streamTask, Task.Delay(_waitTimeoutMilliseconds, _cT)) == streamTask)
+            {
+                var stream = await streamTask;
+
+                return
+                    JsonSerializer.Deserialize<Transaction>(stream)
+                    ?? throw new Exception("Invalid transaction.");
+            }
+            else
+            {
+                throw new TimeoutException($"Cannot get the transaction in the given timeframe; hash: {hash}");
+            }
+
+            /*
             return
                 await JsonSerializer.DeserializeAsync<Transaction>(
                     await GetResource("tx", hash))
-                ?? throw new Exception("Invalid transaction.");
+                ?? throw new Exception("Invalid transaction.");*/
         }
 
         public async Task<BlockGraph> GetGraph(int height)
@@ -397,8 +414,21 @@ namespace BC2G.Blockchains
         {
             try
             {
+                // See the comment in the GetBlock method for implementation details.
+                var streamTask = _client.GetStreamAsync(new Uri(_baseUri, endpoint));
+                if (await Task.WhenAny(streamTask, Task.Delay(_waitTimeoutMilliseconds, _cT)) == streamTask)
+                {
+                    var stream = await streamTask;
+                    return stream;
+                }
+                else
+                {
+                    throw new TimeoutException($"Cannot query the endpoint in the given timeframe; endpoint: {endpoint}");
+                }
+
+                /*
                 return await _client.GetStreamAsync(
-                    new Uri(_baseUri, endpoint));
+                    new Uri(_baseUri, endpoint));*/
             }
             catch (TaskCanceledException e)
             {
