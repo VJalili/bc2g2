@@ -129,7 +129,7 @@ namespace BC2G
             // in the system.commandline to implement this properly. 
 
             _options = options;
-            Client.Timeout = TimeSpan.FromSeconds(options.HttpClientTimeout);
+            Client.Timeout = options.HttpRequestTimeout;
 
             SetupLogger(options);
             SetupGraphDB(options);
@@ -364,7 +364,7 @@ namespace BC2G
          * object is updated, in particular, the status is updated. 
          */
 
-        int getBlockGraphMaxWaitTimeMilliseconds = 180000;
+        int getBlockGraphMaxWaitTimeMilliseconds = 300000;
         int maxRetries = 3;
 
         private async Task ProcessBlock(

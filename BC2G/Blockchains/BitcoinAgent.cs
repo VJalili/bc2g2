@@ -37,7 +37,7 @@ namespace BC2G.Blockchains
         private readonly string _psqlUsername;
         private readonly string _psqlPassword;
 
-        private readonly int _waitTimeoutMilliseconds = 60000;
+        private readonly int _waitTimeoutMilliseconds;
 
         public BitcoinAgent(HttpClient client, Options options, Logger logger, CancellationToken ct)
         {
@@ -50,6 +50,7 @@ namespace BC2G.Blockchains
             //_txCache = txCache;
             _logger = logger;
             _cT = ct;
+            _waitTimeoutMilliseconds = options.HttpRequestTimeout.Milliseconds;
 
             _psqlHost = options.PsqlHost;
             _psqlDatabase = options.PsqlDatabase;
@@ -423,6 +424,8 @@ namespace BC2G.Blockchains
                 }
                 else
                 {
+                    if (maxRetries >= 1)
+                        return await SendGet(endpoint, --maxRetries);
                     throw new TimeoutException($"Cannot query the endpoint in the given timeframe; endpoint: {endpoint}");
                 }
 
