@@ -7,10 +7,12 @@ using BC2G.Logging;
 using BC2G.Model;
 using BC2G.PersistentObject;
 using BC2G.Serializers;
+using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BC2G
 {
@@ -29,14 +31,31 @@ namespace BC2G
         private readonly CLI.CLI _cli;
         private readonly CancellationToken _ct;
 
-        private HttpClient Client { get; }
+        //private HttpClient Client { get; }
+
+        private readonly IHost _host;
 
         public Orchestrator(CancellationToken ct)
         {
-            Client = new HttpClient();
-            Client.DefaultRequestHeaders.Accept.Clear();
+            _host = new HostBuilder().ConfigureServices(services =>
+            {
+                services.AddHttpClient();
+
+                // TODO: this is not an elegent way of passing constructor arguments!
+                // instead, options should be static and accessed throughout the program, 
+                // and all other arguments should be injected using DI. 
+                services.AddTransient<BitcoinAgent>(x =>
+                new BitcoinAgent(
+                    x.GetRequiredService<IHttpClientFactory>(),
+                    options: _options, ct: ct,
+                    logger: Logger));
+            })
+                .Build();
+
+            //Client = new HttpClient();
+            //Client.DefaultRequestHeaders.Accept.Clear();
             //client.DefaultRequestHeaders.UserAgent.Clear();
-            Client.DefaultRequestHeaders.Add("User-Agent", "BC2G");
+            //Client.DefaultRequestHeaders.Add("User-Agent", "BC2G");
 
             _ct = ct;
             _cli = new CLI.CLI(this.TraverseAsync, this.Sample, this.LoadGraphAsync);
@@ -129,7 +148,7 @@ namespace BC2G
             // in the system.commandline to implement this properly. 
 
             _options = options;
-            Client.Timeout = options.HttpRequestTimeout;
+            //Client.Timeout = options.HttpRequestTimeout;
 
             SetupLogger(options);
             SetupGraphDB(options);
@@ -182,7 +201,7 @@ namespace BC2G
             try
             {
                 stopwatch.Start();
-                await TraverseBlocksAsync(agent, _ct);
+                await TraverseBlocksAsync(_ct);
 
                 stopwatch.Stop();
                 if (_ct.IsCancellationRequested)
@@ -219,7 +238,7 @@ namespace BC2G
         {
             try
             {
-                var agent = new BitcoinAgent(Client, options, Logger, cT);
+                var agent = _host.Services.GetRequiredService<BitcoinAgent>();//  new BitcoinAgent(Client, options, Logger, cT);
 
                 if (!(await agent.IsConnectedAsync()))
                     throw new ClientInaccessible();
@@ -267,8 +286,7 @@ namespace BC2G
             }
         }
 
-        private async Task TraverseBlocksAsync(
-            BitcoinAgent agent, CancellationToken cT)
+        private async Task TraverseBlocksAsync(CancellationToken cT)
         {
             /*
             var individualBlocksDir = Path.Combine(_options.WorkingDir, "individual_blocks");
@@ -336,7 +354,7 @@ namespace BC2G
 
                 blockHeightQueue.TryDequeue(out var h);
                 Logger.LogStartProcessingBlock(h);
-                ProcessBlock(agent, gBuffer, /*serializer,*/ h, /*individualBlocksDir,*/ cT).Wait();
+                ProcessBlock(gBuffer, /*serializer,*/ h, /*individualBlocksDir,*/ cT).Wait();
 
                 if (cT.IsCancellationRequested)
                     state_33.Stop();
@@ -377,7 +395,6 @@ namespace BC2G
         int maxRetries = 3;
 
         private async Task ProcessBlock(
-            BitcoinAgent agent,
             PersistentGraphBuffer gBuffer,
             //CSVSerializer serializer,
             int height,
@@ -392,6 +409,7 @@ namespace BC2G
             {
                 while (++tries < maxRetries)
                 {
+                    var agent = _host.Services.GetRequiredService<BitcoinAgent>();
                     var blockGraphTask = agent.GetGraph(height);
                     if (await Task.WhenAny(blockGraphTask, Task.Delay(getBlockGraphMaxWaitTimeMilliseconds, cT)) == blockGraphTask)
                     {

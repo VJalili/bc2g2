@@ -23,6 +23,8 @@ namespace BC2G.Blockchains
 
         private readonly HttpClient _client;
 
+        private readonly IHttpClientFactory _httpClientFactory;
+
         private readonly Logger _logger;
 
         //private readonly TxCache _txCache;
@@ -39,9 +41,13 @@ namespace BC2G.Blockchains
 
         private readonly int _waitTimeoutMilliseconds;
 
-        public BitcoinAgent(HttpClient client, Options options, Logger logger, CancellationToken ct)
+        public BitcoinAgent(IHttpClientFactory httpClientFactory, CancellationToken ct, Options options=null, Logger logger=null)
         {
-            _client = client;
+            _httpClientFactory = httpClientFactory;
+
+            // TODO: create client when needed, not just at the initialization.
+            _client = httpClientFactory.CreateClient();
+
             _baseUri = new Uri(options.BitcoinClientUri, "/rest/");
 
             // the use of Tx cache is disabled since it is not clear 
