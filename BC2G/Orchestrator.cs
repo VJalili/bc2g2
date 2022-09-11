@@ -39,7 +39,13 @@ namespace BC2G
         {
             _host = new HostBuilder().ConfigureServices(services =>
             {
-                services.AddHttpClient();
+                services.AddHttpClient<BitcoinAgent>(client =>
+                {
+                    client.BaseAddress = _options.BitcoinClientUri;
+                    client.DefaultRequestHeaders.Accept.Clear();
+                    client.DefaultRequestHeaders.Add("User-Agent", "BC2G");
+                    client.Timeout = _options.HttpRequestTimeout;
+                });
 
                 // TODO: this is not an elegent way of passing constructor arguments!
                 // instead, options should be static and accessed throughout the program, 
