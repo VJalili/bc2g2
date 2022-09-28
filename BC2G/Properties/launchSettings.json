@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "traverse bitcoin --from 0 --to 750033 --granularity 1 --skip-graph-load"
+      "commandLineArgs": "traverse bitcoin --skip-graph-load --from 600000"
     },
     "Docker": {
       "commandName": "Docker"
