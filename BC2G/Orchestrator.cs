@@ -189,6 +189,9 @@ namespace BC2G
 
             await strategy.ExecuteAsync(async (_ct) =>
             {
+                // Note that _ct is linked cancellation token, linking
+                // user's token and the timeout policy's cancellation token.
+
                 Logger.Information("Trying processing block {height}.", height);
                 var agent = _host.Services.GetRequiredService<BitcoinAgent>();
                 var blockGraph = await agent.GetGraph(height, _ct);
