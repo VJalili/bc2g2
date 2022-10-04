@@ -1,7 +1,7 @@
 ﻿using BC2G.Graph;
 using BC2G.Infrastructure;
+using BC2G.Infrastructure.StartupSolutions;
 using BC2G.Model;
-using BC2G.StartupSolutions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
