@@ -1,6 +1,7 @@
 ﻿using BC2G.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Design;
 using Npgsql;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
@@ -12,6 +13,42 @@ using System.Threading.Tasks;
 
 namespace BC2G.Infrastructure
 {
+/*
+    public class BloggingContextFactory : IDesignTimeDbContextFactory<DatabaseContext>
+    {
+        public DatabaseContext CreateDbContext(string[] args)
+        {
+            Console.WriteLine("I am used.------------------");
+            var optionsBuilder = new DbContextOptionsBuilder<DatabaseContext>();
+            optionsBuilder.UseNpgsql("Data Source=blog.db");
+
+            return new DatabaseContext(optionsBuilder.Options);
+        }
+    }*/
+
+    /*
+    public class DatabaseContext : DbContext
+    {
+        public DatabaseContext(DbContextOptions<DatabaseContext> options)
+            : base(options)
+        {
+        }
+
+        private readonly string _connectionString;
+
+        public DatabaseContext(string connectionString)
+        {
+            _connectionString = connectionString;
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            Console.WriteLine("I am called ***********************");
+            optionsBuilder.UseNpgsql("Host=localhost");
+        }
+    }*/
+
+
     public class DatabaseContext : DbContext
     {
         /*
@@ -21,11 +58,18 @@ namespace BC2G.Infrastructure
         private readonly string _password;*/
 
         public DbSet<Utxo> Utxos => Set<Utxo>();
+        //public DbSet<UtxoB> UtxosB;
 
         // TODO: Currently this constructor is needed to add migration scripts, 
         // see how this requirement can be better addressed. 
-        public DatabaseContext() { }
-        public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
+        /*public DatabaseContext() : base()
+        {
+            Console.WriteLine("I am called 2");
+        }*/
+
+        // Needed by the migration scripts
+        public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options)
+        { }
 
         /*
         public DatabaseContext(string host, string database, string username, string password)
@@ -48,25 +92,16 @@ namespace BC2G.Infrastructure
             // https://www.npgsql.org/efcore/modeling/concurrency.html
             builder.Entity<Utxo>().UseXminAsConcurrencyToken();
         }
-        /*
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseNpgsql(
-                $"Host={_host};" +
-                $"Database={_database};" +
-                $"Username={_username};" +
-                $"Password={_password}");
-        }*/
 
         public static async Task OptimisticAddOrUpdate(
-            DatabaseContext context, 
-            IDbContextFactory<DatabaseContext> contextFactory, 
+            DatabaseContext context,
+            IDbContextFactory<DatabaseContext> contextFactory,
             CancellationToken ct)
         {
             await OptimisticTx(async () =>
             {
                 await context.SaveChangesAsync(ct);
-            }, 
+            },
             async () =>
             {
                 var enties = context.ChangeTracker.Entries<Utxo>();
@@ -148,3 +183,8 @@ namespace BC2G.Infrastructure
         }
     }
 }
+
+
+
+
+
