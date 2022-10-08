@@ -112,7 +112,7 @@ namespace BC2G.Model.Config
 
         public ResilienceStrategyOptions BitcoinAgentResilienceStrategy { set; get; } = new()
         {
-            Timeout = TimeSpan.FromMinutes(10),
+            Timeout = TimeSpan.FromMinutes(3),
             RetryCount = 3,
             MedianFirstRetryDelay = TimeSpan.FromSeconds(15),
             SamplingDuration = TimeSpan.FromMinutes(10),
