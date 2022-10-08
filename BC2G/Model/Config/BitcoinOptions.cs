@@ -100,7 +100,7 @@ namespace BC2G.Model.Config
 
         public bool SkipGraphLoad { get; set; }
 
-        public int MaxUtxoBufferSize { set; get; } = 10000;
+        public int DbCommitAtUtxoBufferSize { set; get; } = 2000000;
 
         // null default lets runtime decide on max concurrency which is not static and changes w.r.t the load.
         public int? MaxConcurrentBlocks { get; set; } = null;
