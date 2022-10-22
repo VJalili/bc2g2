@@ -8,6 +8,7 @@
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 	<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+	<AssemblyName>$(MSBuildProjectName.ToLower())</AssemblyName>
   </PropertyGroup>
   
 
