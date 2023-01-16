@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "traverse bitcoin --skip-graph-load"
+      "commandLineArgs": "load-graph"
     },
     "Docker": {
       "commandName": "Docker"
