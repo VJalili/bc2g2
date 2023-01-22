@@ -1,6 +1,3 @@
-﻿using BC2G.Graph;
-using System.Diagnostics.Metrics;
-
 namespace BC2G.DAL;
 
 
@@ -50,11 +47,15 @@ public class GraphDB : IDisposable
                 _options.Neo4j.Uri,
                 AuthTokens.Basic(_options.Neo4j.User, _options.Neo4j.Password));
 
-            try { _driver.VerifyConnectivityAsync().Wait(); }
-            catch (AggregateException) { Dispose(true); throw; }
-            // TODO: it seems message of an exception cannot be modified without impacting 
-            // stacktrace. Check if there is a better way of throwing an error with a message
-            // that indicates not able to connect to the Neo4j database.
+            try
+            {
+                _driver.VerifyConnectivityAsync().Wait();
+            }
+            catch (AggregateException)
+            {
+                Dispose(true);
+                throw;
+            }
 
             EnsureCoinbaseNodeAsync().Wait();
             EnsureConstraintsAsync().Wait();

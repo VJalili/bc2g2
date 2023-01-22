@@ -25,7 +25,10 @@ public class Orchestrator : IDisposable
             TraverseAsync,
             SampleGraphAsync,
             LoadGraphAsync,
-            (e, c) => { Logger?.LogCritical("{error}", e.Message); });
+            (e, c) =>
+            {
+                Logger?.LogCritical("{error}", e.Message);
+            });
     }
 
     public async Task<int> InvokeAsync(string[] args)
