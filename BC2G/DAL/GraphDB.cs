@@ -1,4 +1,4 @@
-namespace BC2G.DAL;
+﻿namespace BC2G.DAL;
 
 
 // TODO: there is a bug: why many redeems per node in a given block? 
@@ -444,7 +444,7 @@ public class GraphDB : IDisposable
                     Path.Join(baseOutputDir, sampledGraphsCounter.ToString())))
                 {
                     sampledGraphsCounter++;
-        }
+                }
             }
         }
 
@@ -616,7 +616,7 @@ public class GraphDB : IDisposable
             g.AddNode(root);
             g.AddNodes(hop.Values["nodes"].As<List<INode>>());
             g.AddEdges(hop.Values["relationships"].As<List<IRelationship>>());
-            }
+        }
 
         return g;
     }

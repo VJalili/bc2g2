@@ -40,7 +40,9 @@ public class Orchestrator : IDisposable
     {
         await JsonSerializer<Options>.SerializeAsync(_options, _options.StatusFile, _cT);
         var graphDb = _host.Services.GetRequiredService<GraphDB>();
-        await graphDb.TrySampleAsync();
+        var successfull = await graphDb.TrySampleAsync();
+        if (successfull)
+            Logger.LogInformation("Successfully completed sampling graphs.");
     }
 
     private async Task LoadGraphAsync()
