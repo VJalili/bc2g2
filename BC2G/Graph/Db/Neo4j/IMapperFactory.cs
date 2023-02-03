@@ -2,5 +2,5 @@
 
 public interface IMapperFactory
 {
-    public IMapper<T> Get<T>(T entity);
+    public IMapper Get(Type type);
 }
