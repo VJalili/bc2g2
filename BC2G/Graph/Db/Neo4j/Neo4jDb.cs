@@ -1,6 +1,4 @@
-﻿using BC2G.Graph.Db.Neo4j.BitcoinMappers;
-
-namespace BC2G.Graph.Db.Neo4j;
+﻿namespace BC2G.Graph.Db.Neo4j;
 
 public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
 {
@@ -45,24 +43,6 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
         }
     }
 
-
-
-
-
-    public Neo4jDb()
-    {
-        switch (typeof(T))
-        {
-            case Type t when t == typeof(BlockGraph):
-                _mapperFactory = new MapperFactory();
-                break;
-
-            default:
-                throw new NotImplementedException(
-                    $"A mapper factory of the given type {typeof(T)} is not implemented.");
-        }
-    }
-
     public async void Serialize(T g)
     {
         var batchInfo = GetBatch();
@@ -93,12 +73,12 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
     }
 
     private BatchInfo GetBatch()
-            {
+    {
         if (_batches.Count == 0 || _batches[^1].GetTotalCount() >= _maxEntitiesPerBatch)
             _batches.Add(new BatchInfo(Options.Neo4j.ImportDirectory));
 
         return _batches[^1];
-            }
+    }
 
     public void Dispose()
     {
