@@ -18,44 +18,42 @@ public class BatchInfo
 
     public ImmutableDictionary<string, TypeInfo> TypesInfo
     {
-        get
-        {
-            return _data.ToImmutableDictionary(
-                x => x.Key.FullName ?? x.Key.Name,
-                x => x.Value);
-        }
+        set { _typesInfo = new Dictionary<string, TypeInfo>(value); }
+        get { return _typesInfo.ToImmutableDictionary(); }
     }
+    private Dictionary<string, TypeInfo> _typesInfo = new();
 
-    private readonly string _dir;
-    private readonly Dictionary<Type, TypeInfo> _data = new();
+    public BatchInfo() { }
 
-    public BatchInfo(string directory)
+    public void AddType(Type type, int count, string directory)
     {
-        _dir = directory;
-    }
-
-    public void AddType(Type type, int count)
-    {
-        if (!_data.ContainsKey(type))
+        var key = GetKey(type);
+        if (!_typesInfo.ContainsKey(key))
         {
-            _data.Add(type, new TypeInfo(
-                Path.Join(_dir, $"{type.GUID:N}_{DateTime.Now:yyyyMMddHHmmssffff}.csv"),
+            _typesInfo.Add(key, new TypeInfo(
+                Path.Join(directory, $"{type.GUID:N}_{DateTime.Now:yyyyMMddHHmmssffff}.csv"),
                 0));
         }
 
-        _data[type].Count += count;
+        _typesInfo[key].Count += count;
     }
 
     public string GetFilename(Type type)
     {
-        if (!_data.ContainsKey(type))
+        var key = GetKey(type);
+        if (!_typesInfo.ContainsKey(key))
             return string.Empty;
         else
-            return _data[type].Filename;
+            return _typesInfo[key].Filename;
     }
 
     public int GetTotalCount()
     {
-        return (from x in _data.Values select x.Count).Sum();
+        return (from x in _typesInfo.Values select x.Count).Sum();
+    }
+
+    private static string GetKey(Type type)
+    {
+        return type.FullName ?? $"{type.Namespace ?? string.Empty}.{type.Name}";
     }
 }
