@@ -16,7 +16,7 @@ public class BatchInfo
         }
     }
 
-    public ImmutableDictionary<string, TypeInfo> TypeInfos
+    public ImmutableDictionary<string, TypeInfo> TypesInfo
     {
         get
         {
