@@ -40,7 +40,7 @@ public class C2SEdgeMapper : S2SEdgeMapper
 
     public override string GetQuery(string csvFilename)
     {
-        string l = Property.lineVarName, s = "coinbase", t = "target";
+        string l = Property.lineVarName, s = "coinbase", t = "target", b="block";
         //var unknown = nameof(ScriptType.Unknown);
 
         return
@@ -65,9 +65,12 @@ public class C2SEdgeMapper : S2SEdgeMapper
             //$"SET target.{Props.EdgeTargetType.GetLoadExp("=")} " +
 
             $"WITH {s}, {t}, {l} " +
+            GetBlockQuery(b) +
+            " "+
+            /*
             $"MERGE (block:{BlockMapper.label} {{" +
             $"{Props.Height.GetLoadExp(":")}" +
-            $"}}) " +
+            $"}}) " +*/
 
             // Create edge between the script and its corresponding block
             CreatesEdgeQuery +
@@ -76,6 +79,7 @@ public class C2SEdgeMapper : S2SEdgeMapper
             // Create edge between the coinbase node and the script
 
             GetEdgeQuery(new List<Property>() { Props.EdgeValue, Props.Height }, s, t) +
+            " " +
             /*
             $"CALL apoc.merge.relationship(" +
             $"coinbase, " + // source

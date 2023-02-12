@@ -68,7 +68,7 @@ public class S2SEdgeMapper : BitcoinEdgeMapper
 
         //var x = GetNodeQuery("source", labels, Props.EdgeSourceAddress, Props.EdgeSourceType);
 
-        string l = Property.lineVarName, s = "source", t = "target";
+        string l = Property.lineVarName, s = "source", t = "target", b="block";
 
 
         return
@@ -100,9 +100,13 @@ public class S2SEdgeMapper : BitcoinEdgeMapper
 
             $"WITH {s}, {t}, {l} " +
             // Find the block
+            GetBlockQuery(b) + 
+            " " +
+            /*
             $"MERGE (block:{BlockMapper.label} {{" +
             $"{Props.Height.GetLoadExp(":")}" +
-            "}) " +
+            "}) " +*/
+
             // Create relationship between the block node and the scripts nodes. 
             RedeemsEdgeQuery +
             CreatesEdgeQuery +
@@ -111,6 +115,7 @@ public class S2SEdgeMapper : BitcoinEdgeMapper
             // where the type of the relationship is read from the CSV file.
 
             GetEdgeQuery(new List<Property>() { Props.EdgeValue, Props.Height }, s, t) +
+            " " +
             /*
             "CALL apoc.merge.relationship(" +
             "source, " + // source
