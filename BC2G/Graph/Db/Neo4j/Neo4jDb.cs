@@ -115,7 +115,7 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
             Options.Neo4j.ImportDirectory))
         {
             localFilename = Path.Join(Options.Neo4j.ImportDirectory, Path.GetFileName(filename));
-            File.Copy(filename, localFilename);
+            File.Copy(filename, localFilename, true);
             fileLocalized = true;
         }
 
