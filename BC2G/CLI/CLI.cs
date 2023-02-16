@@ -1,4 +1,9 @@
-﻿using SecurityException = System.Security.SecurityException;
+﻿using Spectre.Console;
+
+using System.CommandLine.Help;
+
+using Color = Spectre.Console.Color;
+using SecurityException = System.Security.SecurityException;
 
 namespace BC2G.CommandLineInterface;
 
@@ -97,7 +102,19 @@ internal class CLI
             {
                 exceptionHandler(e, context);
             }, 1)
-            .UseHelp()
+            .UseHelp(context =>
+            {
+                context.HelpBuilder.CustomizeLayout(
+                    x =>
+                    {
+                        if (x.ParseResult.Errors.Any())
+                            return new List<HelpSectionDelegate>();
+
+                        return HelpBuilder.Default.GetLayout().Prepend(
+                       _ => AnsiConsole.Write(
+                           new FigletText("BC2G").Color(Color.Purple_1)));
+                    });
+            })
             .UseEnvironmentVariableDirective()
             .UseParseDirective()
             .UseSuggestDirective()
