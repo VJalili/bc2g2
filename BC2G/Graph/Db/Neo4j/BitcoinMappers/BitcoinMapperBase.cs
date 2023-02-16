@@ -131,7 +131,9 @@ public abstract class BitcoinEdgeMapper : IEdgeMapper
     public abstract string GetCsv(IEdge<INode, INode> edge);
     public abstract string GetQuery(string filename);
 
-    public virtual void ToCsv(IEnumerable<IEdge<INode, INode>> edges, string filename)
+    public virtual void ToCsv(
+        IEnumerable<IEdge<INode, INode>> edges, 
+        string filename)
     {
         using var writer = new StreamWriter(filename, append: true);
         if (new FileInfo(filename).Length == 0)
