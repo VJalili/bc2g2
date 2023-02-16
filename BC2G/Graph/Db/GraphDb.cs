@@ -1,5 +1,4 @@
-﻿using BC2G.Blockchains.Bitcoin.Graph;
-using BC2G.Graph.Db.Neo4j.BitcoinMappers;
+﻿using BC2G.Graph.Db.Neo4j.BitcoinMappers;
 
 namespace BC2G.Graph.Db;
 
@@ -715,11 +714,5 @@ static class GraphBaseExte
         /*
         source.AddOutgoingEdges(edge2);
         target.AddIncomingEdges(edge2);*/
-    }
-
-    public static void AddEdges(this GraphBase g, IEnumerable<IRelationship> edges)
-    {
-        foreach (var edge in edges)
-            g.GetOrAddEdge(edge);
     }
 }
