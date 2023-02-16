@@ -31,7 +31,7 @@ public class PersistentGraphBuffer : PersistentObjectBase<BitcoinBlockGraph>, ID
         _pGraphStats.Enqueue(obj.Stats.ToString());
 
         _logger.LogInformation(
-            "Finished processing block {height} in {runtime}.",
+            "Finished processing block {height:n0} in {runtime}.",
             obj.Height, obj.Stats.Runtime);
     }
 
