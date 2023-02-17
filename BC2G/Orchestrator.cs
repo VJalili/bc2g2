@@ -12,7 +12,7 @@ public class Orchestrator : IDisposable
     private readonly ILogger _logger;
     private readonly CancellationToken _cT;
 
-    private bool _disposed = false;    
+    private bool _disposed = false;
 
     public Orchestrator(IHost host, Options options, CancellationToken cancelationToken)
     {
@@ -51,18 +51,17 @@ public class Orchestrator : IDisposable
 
         var graphDb = _host.Services.GetRequiredService<IGraphDb<BlockGraph>>();
         await graphDb.ImportAsync();
-
-        var graphDbOld = _host.Services.GetRequiredService<GraphDb>();
-        graphDbOld.BulkImport(_options.WorkingDir);
     }
 
     private async Task SampleGraphAsync()
     {
         await JsonSerializer<Options>.SerializeAsync(_options, _options.StatusFile, _cT);
-        var graphDb = _host.Services.GetRequiredService<GraphDb>();
+        var graphDb = _host.Services.GetRequiredService<IGraphDb<BlockGraph>>();
         var successfull = await graphDb.TrySampleAsync();
         if (successfull)
             _logger.LogInformation("Successfully completed sampling graphs.");
+        else
+            _logger.LogError("Faild sampling graphs with the given parameters.");
     }
 
     public void Dispose()

@@ -1,4 +1,4 @@
-﻿using BC2G.Graph.Db.Neo4j;
+﻿using BC2G.Graph.Db.Neo4jDb;
 
 namespace BC2G.Infrastructure.StartupSolutions;
 

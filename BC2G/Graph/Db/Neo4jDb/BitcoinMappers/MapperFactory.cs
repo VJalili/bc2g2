@@ -1,6 +1,6 @@
 ﻿using BC2G.Exceptions;
 
-namespace BC2G.Graph.Db.Neo4j.BitcoinMappers;
+namespace BC2G.Graph.Db.Neo4jDb.BitcoinMappers;
 
 public class MapperFactory : IMapperFactory
 {

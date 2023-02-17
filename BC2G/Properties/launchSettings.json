@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "bitcoin traverse --from 120000 --to 120001 --skip-graph-load"
+      "commandLineArgs": "bitcoin sample --count 10 --hops 3"
     },
     "Docker": {
       "commandName": "Docker"
