@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "bitcoin import"
+      "commandLineArgs": "bitcoin traverse --from 120000 --to 120001 --skip-graph-load"
     },
     "Docker": {
       "commandName": "Docker"
