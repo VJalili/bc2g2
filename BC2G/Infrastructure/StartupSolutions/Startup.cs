@@ -82,7 +82,7 @@ public class Startup
     {
         services.AddSingleton(options);
         services.AddSingleton<GraphDb>();
-        services.AddSingleton<IGraphDb<BitcoinBlockGraph>, BitcoinNeo4jDb>();
+        services.AddSingleton<IGraphDb<BlockGraph>, BitcoinNeo4jDb>();
         services.AddSingleton<BitcoinOrchestrator>();
 
         // Passing BitcoinAgent type as the generic argument

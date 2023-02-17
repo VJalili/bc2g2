@@ -49,7 +49,7 @@ public class Orchestrator : IDisposable
     {
         await JsonSerializer<Options>.SerializeAsync(_options, _options.StatusFile, _cT);
 
-        var graphDb = _host.Services.GetRequiredService<IGraphDb<BitcoinBlockGraph>>();
+        var graphDb = _host.Services.GetRequiredService<IGraphDb<BlockGraph>>();
         await graphDb.ImportAsync();
 
         var graphDbOld = _host.Services.GetRequiredService<GraphDb>();

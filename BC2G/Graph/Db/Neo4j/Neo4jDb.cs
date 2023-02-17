@@ -129,16 +129,8 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
         using var session = Driver.AsyncSession(x => x.WithDefaultAccessMode(AccessMode.Write));
         var queryResult = await session.ExecuteWriteAsync(async x =>
         {
-            try
-            {
-                IResultCursor cursor = await x.RunAsync(mapper.GetQuery(filename4Query));
-                return await cursor.ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Error running Neo4j query. {msg}", ex.Message);
-                return null;
-            }
+            IResultCursor cursor = await x.RunAsync(mapper.GetQuery(filename4Query));
+            return await cursor.ToListAsync();
         });
 
         // Delocalization.

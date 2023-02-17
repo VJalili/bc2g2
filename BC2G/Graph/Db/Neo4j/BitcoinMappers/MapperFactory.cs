@@ -37,7 +37,7 @@ public class MapperFactory : IMapperFactory
 
         return type switch
         {
-            string x when x == Utilities.TypeToString<BitcoinBlockGraph>() => new BitcoinBlockGraphMapper(),
+            string x when x == Utilities.TypeToString<BlockGraph>() => new BlockGraphMapper(),
             _ => throw new MapperNotImplementedException(type)
         };
     }
