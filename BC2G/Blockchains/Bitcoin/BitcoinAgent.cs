@@ -126,9 +126,11 @@ public class BitcoinAgent : IDisposable
         }
         catch (Exception e)
         {
+            _logger.LogError(
+                "Failed getting block hash for block {h:n0}; " +
+                "this exception can happen when the given block height is invalid. {e}", 
+                height, e.Message);
             throw;
-            // The exception can happen when the given block height 
-            // is invalid throw new Exception($"Invalid height {height}");
         }
     }
 
