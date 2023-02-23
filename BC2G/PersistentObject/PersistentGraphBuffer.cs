@@ -5,6 +5,7 @@ public class PersistentGraphBuffer : PersistentObjectBase<BlockGraph>, IDisposab
     private readonly IGraphDb<BlockGraph> _graphDb;
     private readonly ILogger<PersistentGraphBuffer> _logger;
     private readonly PersistentGraphStatistics _pGraphStats;
+    private bool _disposed = false;
 
     public ReadOnlyCollection<long> BlocksHeightInBuffer
     {
@@ -55,5 +56,25 @@ public class PersistentGraphBuffer : PersistentObjectBase<BlockGraph>, IDisposab
         _logger.LogInformation(
             "Finished processing block {height:n0} in {runtime}.",
             obj.Height, obj.Stats.Runtime);
+    }
+
+    public new void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    protected virtual new void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+                _pGraphStats.Dispose();
+            }
+
+            _disposed = true;
+        }
     }
 }
