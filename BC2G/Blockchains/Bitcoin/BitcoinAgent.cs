@@ -1,9 +1,4 @@
-﻿// BitcoinAgent and all similar agents must implement co-operative cancellation semantics:
-// https://learn.microsoft.com/en-us/dotnet/standard/threading/cancellation-in-managed-threads?redirectedfrom=MSDN
-
-using BC2G.Blockchains.Bitcoin.Graph;
-
-namespace BC2G.Blockchains.Bitcoin;
+﻿namespace BC2G.Blockchains.Bitcoin;
 
 public class BitcoinAgent : IDisposable
 {
