@@ -90,6 +90,10 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
 
         var c = 0;
         var counter = string.Empty;
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
         foreach (var batch in batches)
         {
             _logger.LogInformation("Processing batch {b} {c}.", batch.Name, $"({++c:n0}/{batches.Count():n0})");
@@ -101,6 +105,9 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
                 _logger.LogInformation("Importing type {t} finished.", type.Key);
             }
         }
+
+        stopwatch.Stop();
+        _logger.LogInformation("Successfully finished import in {et}.", stopwatch.Elapsed);
     }
 
     public async Task<bool> TrySampleAsync()
