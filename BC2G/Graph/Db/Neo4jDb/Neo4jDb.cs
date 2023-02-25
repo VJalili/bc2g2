@@ -1,9 +1,5 @@
 ﻿using BC2G.Graph.Db.Neo4jDb.BitcoinMappers;
 
-using Microsoft.Extensions.Logging;
-
-using Neo4j.Driver;
-
 namespace BC2G.Graph.Db.Neo4jDb;
 
 public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
@@ -92,14 +88,17 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
             "Processing {n:n0} batch(es) found in {f}.", 
             batches.Count(), Options.Neo4j.BatchesFilename);
 
+        var c = 0;
+        var counter = string.Empty;
         foreach (var batch in batches)
         {
+            _logger.LogInformation("Processing batch {b} {c}.", batch.Name, $"({++c:n0}/{batches.Count():n0})");
             foreach (var type in batch.TypesInfo)
             {
-                _logger.LogInformation("Importing type `{t}` of batch `{b}`.", type.Key, batch.Name);
+                _logger.LogInformation("Importing type {t}.", type.Key);
                 var mapper = _mapperFactory.GetMapperBase(type.Key);
                 await ExecuteQueryAsync(mapper, type.Value.Filename);
-                _logger.LogInformation("Importing type `{t}` of batch `{b}` finished.", type.Key, batch.Name);
+                _logger.LogInformation("Importing type {t} finished.", type.Key);
             }
         }
     }
