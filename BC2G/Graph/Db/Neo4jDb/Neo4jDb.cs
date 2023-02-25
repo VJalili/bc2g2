@@ -57,7 +57,7 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
     public async Task ImportAsync(string batchName = "")
     {
         if (Driver is null)
-            await SetupDriver(Options.Neo4j);
+            await Setup(Options.Neo4j);
 
         _batches = await DeserializeBatchesAsync();
         IEnumerable<BatchInfo> batches;
@@ -112,6 +112,9 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
 
     public async Task<bool> TrySampleAsync()
     {
+        if (Driver is null)
+            await Setup(Options.Neo4j);
+
         var sampledGraphsCounter = 0;
         var attempts = 0;
         var baseOutputDir = Path.Join(Options.WorkingDir, $"sampled_graphs_{Utilities.GetTimestamp()}");
@@ -169,7 +172,7 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
         }
     }
 
-    private async Task SetupDriver(Neo4jOptions options)
+    public virtual async Task Setup(Neo4jOptions options)
     {
         Driver = GraphDatabase.Driver(
             options.Uri,
@@ -183,11 +186,7 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
         {
             throw;
         }
-
-        await SetupAsync(Driver);
     }
-
-    public virtual async Task SetupAsync(IDriver driver) { }
 
     private async Task ExecuteQueryAsync(IMapperBase mapper, string filename)
     {
@@ -246,6 +245,9 @@ public class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
     private async Task<List<ScriptNode>> GetRandomNodes(
         int nodesCount, double rootNodesSelectProb = 0.1)
     {
+        if(Driver is null)
+            throw new ArgumentNullException(nameof(Driver));
+
         using var session = Driver.AsyncSession(
             x => x.WithDefaultAccessMode(AccessMode.Read));
 
