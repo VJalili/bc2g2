@@ -13,12 +13,12 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
     private const int _maxEntitiesPerBatch = 80000;
     private List<BatchInfo> _batches = new();
 
-    private readonly IMapperFactory _mapperFactory;
+    private readonly IStrategyFactory _mapperFactory;
 
     private readonly ILogger<Neo4jDb<T>> _logger;
     private bool _disposed = false;
 
-    public Neo4jDb(Options options, ILogger<Neo4jDb<T>> logger, IMapperFactory mapperFactory)
+    public Neo4jDb(Options options, ILogger<Neo4jDb<T>> logger, IStrategyFactory mapperFactory)
     {
         Options = options;
         _logger = logger;
@@ -34,14 +34,14 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
         var graphType = Utilities.TypeToString(g.GetType());
         var batchInfo = await GetBatchAsync(edgeTypes.Keys.Append(graphType).ToList());
 
-        var gMapper = _mapperFactory.GetGraphMapper(graphType);
+        var gMapper = _mapperFactory.GetGraphStrategy(graphType);
         batchInfo.AddOrUpdate(graphType, 1);
         gMapper.ToCsv(g, batchInfo.GetFilename(graphType));
 
         foreach (var type in edgeTypes)
         {
             batchInfo.AddOrUpdate(type.Key, type.Value.Count);
-            var eMapper = _mapperFactory.GetEdgeMapper(type.Key);
+            var eMapper = _mapperFactory.GetEdgeStrategy(type.Key);
             eMapper.ToCsv(type.Value, batchInfo.GetFilename(type.Key));
         }
 
@@ -96,7 +96,7 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
             foreach (var type in batch.TypesInfo)
             {
                 _logger.LogInformation("Importing type {t}.", type.Key);
-                var mapper = _mapperFactory.GetMapperBase(type.Key);
+                var mapper = _mapperFactory.GetStrategyBase(type.Key);
                 await ExecuteLoadQueryAsync(driver, mapper, type.Value.Filename);
                 _logger.LogInformation("Importing type {t} finished.", type.Key);
             }

@@ -2,20 +2,20 @@
 
 namespace BC2G.Graph.Db.Neo4jDb.BitcoinMappers;
 
-public class MapperFactory : IMapperFactory
+public class MapperFactory : IStrategyFactory
 {
-    public IMapperBase GetMapperBase(string type)
+    public IMapperBase GetStrategyBase(string type)
     {
-        try { return GetEdgeMapper(type); }
+        try { return GetEdgeStrategy(type); }
         catch (MapperNotImplementedException) { }
 
-        try { return GetGraphMapper(type); }
+        try { return GetGraphStrategy(type); }
         catch (MapperNotImplementedException) { }
 
         throw new MapperNotImplementedException(type);
     }
 
-    public IEdgeMapper GetEdgeMapper(string type)
+    public IEdgeMapper GetEdgeStrategy(string type)
     {
         if (type == null)
             throw new ArgumentNullException(nameof(type));
@@ -30,7 +30,7 @@ public class MapperFactory : IMapperFactory
         };
     }
 
-    public IGraphMapper GetGraphMapper(string type)
+    public IGraphMapper GetGraphStrategy(string type)
     {
         if (type == null)
             throw new ArgumentNullException(nameof(type));
