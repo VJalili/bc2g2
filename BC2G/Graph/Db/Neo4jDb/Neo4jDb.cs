@@ -13,16 +13,16 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
     private const int _maxEntitiesPerBatch = 80000;
     private List<BatchInfo> _batches = new();
 
-    private readonly IStrategyFactory _mapperFactory;
+    private readonly IStrategyFactory _strategyFactory;
 
     private readonly ILogger<Neo4jDb<T>> _logger;
     private bool _disposed = false;
 
-    public Neo4jDb(Options options, ILogger<Neo4jDb<T>> logger, IStrategyFactory mapperFactory)
+    public Neo4jDb(Options options, ILogger<Neo4jDb<T>> logger, IStrategyFactory strategyFactory)
     {
         Options = options;
         _logger = logger;
-        _mapperFactory = mapperFactory;
+        _strategyFactory = strategyFactory;
     }
 
     /// <summary>
@@ -34,14 +34,14 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
         var graphType = Utilities.TypeToString(g.GetType());
         var batchInfo = await GetBatchAsync(edgeTypes.Keys.Append(graphType).ToList());
 
-        var gMapper = _mapperFactory.GetGraphStrategy(graphType);
+        var gMapper = _strategyFactory.GetGraphStrategy(graphType);
         batchInfo.AddOrUpdate(graphType, 1);
         gMapper.ToCsv(g, batchInfo.GetFilename(graphType));
 
         foreach (var type in edgeTypes)
         {
             batchInfo.AddOrUpdate(type.Key, type.Value.Count);
-            var eMapper = _mapperFactory.GetEdgeStrategy(type.Key);
+            var eMapper = _strategyFactory.GetEdgeStrategy(type.Key);
             eMapper.ToCsv(type.Value, batchInfo.GetFilename(type.Key));
         }
 
@@ -96,7 +96,7 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
             foreach (var type in batch.TypesInfo)
             {
                 _logger.LogInformation("Importing type {t}.", type.Key);
-                var mapper = _mapperFactory.GetStrategyBase(type.Key);
+                var mapper = _strategyFactory.GetStrategyBase(type.Key);
                 await ExecuteLoadQueryAsync(driver, mapper, type.Value.Filename);
                 _logger.LogInformation("Importing type {t} finished.", type.Key);
             }
