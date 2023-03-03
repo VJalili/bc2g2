@@ -7,9 +7,14 @@ public class Batch
     public string Name { get; }
     public string DefaultDirectory { get; }
 
-    public ImmutableDictionary<string, TypeInfo> TypesInfo
+    public ImmutableSortedDictionary<string, TypeInfo> TypesInfo
     {
-        get { return _typesInfo.ToImmutableDictionary(); }
+        get
+        {
+            return
+                (from x in _typesInfo orderby x.Value.Order select x)
+                .ToImmutableSortedDictionary();
+        }
     }
     private readonly Dictionary<string, TypeInfo> _typesInfo;
 
@@ -18,14 +23,14 @@ public class Batch
     public Batch(
         string name,
         string defaultDirectory,
-        ImmutableDictionary<string, TypeInfo> typesInfo)
+        ImmutableSortedDictionary<string, TypeInfo> typesInfo)
     {
         Name = name;
         DefaultDirectory = defaultDirectory;
         _typesInfo = new Dictionary<string, TypeInfo>(typesInfo);
     }
 
-    public Batch(string name, string defaultDirectory, List<string> types)
+    public Batch(string name, string defaultDirectory, List<(string name, int order)> types)
     {
         Name = name;
         DefaultDirectory = defaultDirectory;
@@ -33,8 +38,8 @@ public class Batch
 
         _typesInfo = new();
         foreach (var type in types)
-            _typesInfo.Add(type, new TypeInfo(
-                CreateFilename(type, timestamp, DefaultDirectory), 0));
+            _typesInfo.Add(type.name, new TypeInfo(
+                CreateFilename(type.name, timestamp, DefaultDirectory), 0, type.order));
     }
 
     public void AddOrUpdate(string type, int count)
