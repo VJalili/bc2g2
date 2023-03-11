@@ -35,9 +35,20 @@ public class ScriptNodeStrategy : NodeStrategyBase
         //
         // LOAD CSV WITH HEADERS FROM 'file:///filename.csv' AS line
         // FIELDTERMINATOR '	'
+        //
         // MERGE (node:Script {Address:line.Address})
-        // SET
-        //  node.ScriptType=line.ScriptType
+        // ON CREATE
+        //   SET
+        //     node.ScriptType=line.ScriptType
+        // ON MATCH
+        //   SET
+        //     node.ScriptType =
+        //       CASE line.ScriptType
+        //         WHEN 'Unknown'
+        //         THEN node.ScriptType
+        //         ELSE line.ScriptType
+        //       END
+        //
 
         string l = Property.lineVarName, node = "node";
 
@@ -47,10 +58,16 @@ public class ScriptNodeStrategy : NodeStrategyBase
             $"FIELDTERMINATOR '{csvDelimiter}' " +
             $"MERGE ({node}:{labels} {{{Props.ScriptAddress.GetSetter()}}}) ");
 
-        builder.Append("SET ");
+        builder.Append("ON CREATE SET ");
         builder.Append(string.Join(
             ", ",
             from x in _properties where x != Props.ScriptAddress select $"{x.GetSetter(node)}"));
+        builder.Append(
+            $" ON MATCH SET {node}.{Props.ScriptType.Name} = " +
+            $"CASE {l}.{Props.ScriptType.CsvHeader} " +
+            $"WHEN '{nameof(ScriptType.Unknown)}' THEN {node}.{Props.ScriptType.Name} " +
+            $"ELSE {l}.{Props.ScriptType.CsvHeader} " +
+            $"END");
 
         return builder.ToString();
     }
