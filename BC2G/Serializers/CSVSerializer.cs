@@ -1,6 +1,4 @@
-﻿using BC2G.Blockchains.Bitcoin.Graph;
-
-namespace BC2G.Serializers;
+﻿namespace BC2G.Serializers;
 
 public class CSVSerializer : SerializerBase, IDisposable
 {
@@ -9,12 +7,9 @@ public class CSVSerializer : SerializerBase, IDisposable
     private bool disposed = false;
 
     private readonly List<string> _createdFiles = new();
-    //private readonly AddressToIdMapper _mapper;
 
-    public CSVSerializer()//AddressToIdMapper mapper)
-    {
-        //_mapper = mapper;
-    }
+    public CSVSerializer()
+    { }
 
     public override void Serialize(BlockGraph g, string baseFilename)
     {
