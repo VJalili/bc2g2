@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "bitcoin import --batch-filename D:\\bitcoin_data\\BC2G\\bin\\Debug\\net7.0\\session_1677810427\\batches.json"
+      "commandLineArgs": "bitcoin import --batch-filename E:\\publish\\session_1679247745\\batches.json"
     },
     "Docker": {
       "commandName": "Docker"
