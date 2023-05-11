@@ -16,7 +16,7 @@ public class Neo4jOptions
 
     public string ImportDirectory { init; get; } =
         Environment.GetEnvironmentVariable("NEO4J_IMPORTDIRECTORY") ??
-        @"E:\neo4j\relate-data\dbmss\dbms-dfca261d-2476-4d4e-ac5e-ead99120ab3e\import";
+        @"E:\neo4j\relate-data\dbmss\dbms-6e7d8509-ccd6-4124-a28d-d17f254854df\import";
 
     public string BatchesFilename { init; get; } = "batches.json";
 
