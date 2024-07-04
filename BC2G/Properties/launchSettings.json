@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "bitcoin traverse --from 134863"
+      "commandLineArgs": "bitcoin traverse --from 257715"
     },
     "Docker": {
       "commandName": "Docker"
