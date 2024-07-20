@@ -245,12 +245,12 @@ public class BitcoinOrchestrator : IBlockchainOrchestrator
     {
         cT.ThrowIfCancellationRequested();
 
-        _logger.LogInformation("Started processing block {height:n0}.", height);
+        _logger.LogInformation("{state}  processing block {height:n0}.", "Started", height);
 
         var strategy = ResilienceStrategyFactory.Bitcoin.GetGraphStrategy(
             options.Bitcoin.BitcoinAgentResilienceStrategy);
 
-        _logger.LogInformation("Trying processing block {height:n0}.", height);
+        _logger.LogInformation("{state}   processing block {height:n0}.", "Trying", height);
         var agent = _host.Services.GetRequiredService<BitcoinAgent>();
         var blockGraph = await agent.GetGraph(height, utxos, dbContextLock, strategy, cT);
 
