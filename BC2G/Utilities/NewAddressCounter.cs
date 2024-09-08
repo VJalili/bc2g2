@@ -19,14 +19,14 @@ internal class NewAddressCounter(ILogger logger)
         {
             return string.Join(
                 _delimiter,
-                "Block", "#AddressesInBlock", "#UniqueAddressesInBlock", "#UniqueAddresses");
+                "Block", "AddressesInBlockCount", "UniqueAddressesInBlockCount", "UniqueAddressesCount");
         }
 
         public static string ToStringHeaderWithoutHeight()
         {
             return string.Join(
                 _delimiter,
-                "#AddressesInBlock", "#UniqueAddressesInBlock", "#UniqueAddresses");
+                "AddressesInBlockCount", "UniqueAddressesInBlockCount", "UniqueAddressesCount");
         }
 
         public static Stats Parse(string line)
