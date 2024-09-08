@@ -186,6 +186,8 @@ internal class NewAddressCounter(ILogger logger)
 
         while ((line = statsStreamReader.ReadLine()) != null)
         {
+            line = line.TrimEnd('\r', '\n', '\t');
+
             var blockHeight = int.Parse(line.Split('\t')[0]);
             var stat = stats[blockHeight];
             streamWriter.WriteLine($"{line}\t{stat.ToStringWithoutHeight()}");
