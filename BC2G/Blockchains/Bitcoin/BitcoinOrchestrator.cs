@@ -229,6 +229,10 @@ public class BitcoinOrchestrator : IBlockchainOrchestrator
 
     private void CommitInMemUtxo(ConcurrentDictionary<string, Utxo> utxos, object dbLock, Options options)
     {
+        _logger.LogInformation(
+            "Reached in-memory UTXO buffer size, {max:n0}; running memory usage reduction strategy.", 
+            options.Bitcoin.DbCommitAtUtxoBufferSize);
+
         var retainInMemoryTxCount = options.Bitcoin.MaxInMemoryUtxosAfterDbCommit;
 
         _logger.LogInformation("Selecting in-memory utxo to commit in database.");
@@ -242,9 +246,14 @@ public class BitcoinOrchestrator : IBlockchainOrchestrator
             if (value != null)
                 utxoToKeep.TryAdd(id, value);
         }
+
         _logger.LogInformation(
-            "Selected {toKeep:n0} utxo to keep in-memory, and {toCommit:n0} txo to commit to database ({spent:n0}/{toCommit:n0} are utxo).",
-            utxoToKeep.Count, utxos.Count, utxoCount - retainInMemoryTxCount, utxos.Count);
+            "Selected {toKeep:n0} utxo to keep in-memory, and {toCommit:n0} txo to {commitOrRemove} ({spent:n0}/{toCommit:n0} are utxo).",
+            utxoToKeep.Count,
+            utxos.Count,
+            options.Bitcoin.UseTxDatabase ? "commit to database" : "remove from buffer",
+            retainInMemoryTxCount > utxoCount ? 0 : utxoCount - retainInMemoryTxCount,
+            utxos.Count);
 
         if (options.Bitcoin.UseTxDatabase)
         {
