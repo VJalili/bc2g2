@@ -224,6 +224,8 @@ public class BitcoinOrchestrator : IBlockchainOrchestrator
 
             if (needFinalDbCommit)
                 CommitInMemUtxo(utxos, dbLock, options);
+            // TODO: this should call a variation of this method where it saves every 
+            // in-memory utxo, not just a subset and continue retaining the other subset in memory (which is as implemented).
         }
     }
 
