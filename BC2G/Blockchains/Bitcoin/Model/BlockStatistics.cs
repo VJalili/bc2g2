@@ -164,7 +164,7 @@ public class BlockStatistics(Block block)
                 "OutputsValuesMedian",
                 "OutputsValuesVariance",
 
-                string.Join(_delimiter,((ScriptType[])Enum.GetValues(typeof(ScriptType))).Select(x => $"ScriptType{x}")),
+                string.Join(_delimiter,((ScriptType[])Enum.GetValues(typeof(ScriptType))).Select(x => $"ScriptType_{x}")),
 
                 string.Join(
                     _delimiter,
