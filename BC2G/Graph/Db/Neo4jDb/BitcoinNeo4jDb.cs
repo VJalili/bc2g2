@@ -88,7 +88,7 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
             var strategy = StrategyFactory.GetStrategy(gcType);
             var filename = Path.Join(Options.WorkingDir, $"cypher_query_{gcType}.txt");
             using var writer = new StreamWriter(filename);
-            writer.WriteLine(strategy.GetQuery("FILENAME"));
+            writer.WriteLine(strategy.GetQuery("file:///filename_under_dbms_directories_import"));
 
             Logger.LogInformation("Serialized cypher query for {gcType} to {filename}.", gcType.ToString(), filename);
         }
