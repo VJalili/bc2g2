@@ -27,13 +27,13 @@ public class C2SEdgeStrategy : S2SEdgeStrategy
     {
         /// Note that the ordre of the items in this array should 
         /// match those in the `_properties`. 
-        return string.Join(Neo4jDb.csvDelimiter, new string[]
-        {
+        return string.Join(Neo4jDb.csvDelimiter,
+        [
             edge.Target.Address,
             edge.Type.ToString(),
             edge.Value.ToString(),
             edge.BlockHeight.ToString()
-        });
+        ]);
     }
 
     public override string GetQuery(string csvFilename)
