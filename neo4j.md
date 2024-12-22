@@ -79,6 +79,14 @@ optimal.
     rm .\data\transactions\neo4j\ 
     ```
 
+11. Sample neighbors of a given node, example, neighbors at 3-hop distance from the given script node :
+
+    ```
+    MATCH path = (p: Script { Address: "1FaTEzuCnHVfkDD2NwboLXZj31oTcBUqsx"}) -[* 1..3]->(p2)
+    WITH p, [n in nodes(path) where n <> p | n] as nodes, relationships(path) as relationships 
+    WITH collect(distinct p) as root, size(nodes) as cnt, collect(nodes[-1]) as nodes, collect(distinct relationships[-1]) as relationships
+    RETURN root, nodes, relationships
+    ```
 
 ### Neo4j test data
 
