@@ -119,63 +119,74 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
 
         // creating a script node like the following just to ask for coinbase node is not ideal
         // TODO: find a better solution.
-        var coinbaseDir = Path.Join(baseOutputDir, BitcoinAgent.Coinbase);
-        var tmpSolutionCoinbase = new ScriptNode(BitcoinAgent.Coinbase, BitcoinAgent.Coinbase, ScriptType.Coinbase);
-        if (await TrySampleNeighborsAsync(driver, tmpSolutionCoinbase, baseOutputDir, coinbaseDir))
+        // TODO: this is a bitcoin-specific logic and should not be here.
+        if (Options.GraphSample.CoinbaseMode != CoinbaseSelectionMode.ExcludeCoinbase)
         {
-            sampledGraphsCounter++;
-            Logger.LogInformation(
-                "Finished writting sampled graph of coinbase neighbors to {a}.",
-                coinbaseDir);
-        }
-
-        while (
-            sampledGraphsCounter < Options.GraphSample.Count &&
-            ++attempts <= Options.GraphSample.MaxAttempts)
-        {
-            Logger.LogInformation(
-                "Sampling {n} graphs; remaining {r}; attempt {a}/{m}.",
-                Options.GraphSample.Count,
-                Options.GraphSample.Count - sampledGraphsCounter,
-                attempts, Options.GraphSample.MaxAttempts);
-
-            var rndRootNodes = await GetRandomNodes(
-                driver,
-                Options.GraphSample.Count - sampledGraphsCounter,
-                Options.GraphSample.RootNodeSelectProb);
-
-            foreach (var rootNode in rndRootNodes)
+            var coinbaseDir = Path.Join(baseOutputDir, BitcoinAgent.Coinbase);
+            var tmpSolutionCoinbase = new ScriptNode(BitcoinAgent.Coinbase, BitcoinAgent.Coinbase, ScriptType.Coinbase);
+            if (await TrySampleNeighborsAsync(driver, tmpSolutionCoinbase, baseOutputDir, coinbaseDir))
             {
-                var baseDir = Path.Join(baseOutputDir, sampledGraphsCounter.ToString());
-                if (await TrySampleNeighborsAsync(driver, rootNode, baseOutputDir, baseDir))
-                {
-                    sampledGraphsCounter++;
-                    Logger.LogInformation(
-                        "Finished writting sampled graph {n}/{t} features to {b}.",
-                        sampledGraphsCounter,
-                        Options.GraphSample.Count,
-                        baseDir);
-                }
+                sampledGraphsCounter++;
+                Logger.LogInformation(
+                    "Finished writting sampled graph of coinbase neighbors to {a}.",
+                    coinbaseDir);
             }
         }
 
-        if (attempts > Options.GraphSample.MaxAttempts)
+        if (Options.GraphSample.CoinbaseMode != CoinbaseSelectionMode.CoinbaseOnly)
         {
-            Logger.LogError(
-                "Failed creating {g} {g_msg} after {a} {a_msg}; created {c} {c_msg}. " +
-                "You may retry, and if the error persists, try adjusting the values of " +
-                "{minN}={minNV}, {maxN}={maxNV}, {minE}={minEV}, and {maxE}={maxEV}.",
-                Options.GraphSample.Count,
-                Options.GraphSample.Count > 1 ? "graphs" : "graph",
-                attempts - 1,
-                attempts > 1 ? "attempts" : "attempt",
-                sampledGraphsCounter,
-                sampledGraphsCounter > 1 ? "graphs" : "graph",
-                nameof(Options.GraphSample.MinNodeCount), Options.GraphSample.MinNodeCount,
-                nameof(Options.GraphSample.MaxNodeCount), Options.GraphSample.MaxNodeCount,
-                nameof(Options.GraphSample.MinEdgeCount), Options.GraphSample.MinEdgeCount,
-                nameof(Options.GraphSample.MaxEdgeCount), Options.GraphSample.MaxEdgeCount);
-            return false;
+            while (
+                sampledGraphsCounter < Options.GraphSample.Count &&
+                ++attempts <= Options.GraphSample.MaxAttempts)
+            {
+                Logger.LogInformation(
+                    "Sampling {n} graphs; remaining {r}; attempt {a}/{m}.",
+                    Options.GraphSample.Count,
+                    Options.GraphSample.Count - sampledGraphsCounter,
+                    attempts, Options.GraphSample.MaxAttempts);
+
+                var rndRootNodes = await GetRandomNodes(
+                    driver,
+                    Options.GraphSample.Count - sampledGraphsCounter,
+                    Options.GraphSample.RootNodeSelectProb);
+
+                foreach (var rootNode in rndRootNodes)
+                {
+                    var baseDir = Path.Join(baseOutputDir, sampledGraphsCounter.ToString());
+                    if (await TrySampleNeighborsAsync(driver, rootNode, baseOutputDir, baseDir))
+                    {
+                        sampledGraphsCounter++;
+                        Logger.LogInformation(
+                            "Finished writting sampled graph {n}/{t} features to {b}.",
+                            sampledGraphsCounter,
+                            Options.GraphSample.Count,
+                            baseDir);
+                    }
+                }
+            }
+
+            if (attempts > Options.GraphSample.MaxAttempts)
+            {
+                Logger.LogError(
+                    "Failed creating {g} {g_msg} after {a} {a_msg}; created {c} {c_msg}. " +
+                    "You may retry, and if the error persists, try adjusting the values of " +
+                    "{minN}={minNV}, {maxN}={maxNV}, {minE}={minEV}, and {maxE}={maxEV}.",
+                    Options.GraphSample.Count,
+                    Options.GraphSample.Count > 1 ? "graphs" : "graph",
+                    attempts - 1,
+                    attempts > 1 ? "attempts" : "attempt",
+                    sampledGraphsCounter,
+                    sampledGraphsCounter > 1 ? "graphs" : "graph",
+                    nameof(Options.GraphSample.MinNodeCount), Options.GraphSample.MinNodeCount,
+                    nameof(Options.GraphSample.MaxNodeCount), Options.GraphSample.MaxNodeCount,
+                    nameof(Options.GraphSample.MinEdgeCount), Options.GraphSample.MinEdgeCount,
+                    nameof(Options.GraphSample.MaxEdgeCount), Options.GraphSample.MaxEdgeCount);
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
         else
         {
@@ -287,10 +298,10 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
         // multiply matrixes of very large size 2**32 or even
         // larger. There should be much better workarounds at
         // Tensorflow level, but for now, we limit the size of graphs.
-        if (g.NodeCount <= minNodeCount - (minNodeCount * tolerance) ||
-            g.NodeCount >= maxNodeCount + (maxNodeCount * tolerance) ||
-            g.EdgeCount <= minEdgeCount - (minEdgeCount * tolerance) ||
-            g.EdgeCount >= maxEdgeCount + (maxEdgeCount * tolerance))
+        if (g.NodeCount < minNodeCount - (minNodeCount * tolerance) ||
+            g.NodeCount > maxNodeCount + (maxNodeCount * tolerance) ||
+            g.EdgeCount < minEdgeCount - (minEdgeCount * tolerance) ||
+            g.EdgeCount > maxEdgeCount + (maxEdgeCount * tolerance))
             return false;
 
         /*

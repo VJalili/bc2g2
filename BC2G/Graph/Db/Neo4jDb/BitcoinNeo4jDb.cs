@@ -187,7 +187,12 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
         qBuilder.Append($"CALL apoc.path.spanningTree(root, {{");
         qBuilder.Append($"maxLevel: {maxHops}, ");
         qBuilder.Append($"limit: {Options.GraphSample.MaxEdgesFetchFromNeighbor}, ");
-        qBuilder.Append($"bfs: false, ");
+        
+        if (Options.GraphSample.PathSearchAlgorith == PathSearchAlgorith.BFS)
+            qBuilder.Append($"bfs: true, ");
+        else
+            qBuilder.Append($"bfs: false, ");
+
         qBuilder.Append($"labelFilter: '{ScriptNodeStrategy.Labels}'");
         //$"    relationshipFilter: \">{EdgeType.Transfers}\"" +
         qBuilder.Append($"}}) ");

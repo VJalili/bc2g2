@@ -6,11 +6,29 @@ public enum GraphSampleMode
     GraphRndEdgePair
 }
 
+public enum CoinbaseSelectionMode
+{
+    CoinbaseOnly,
+    IncludeCoinbase,
+    ExcludeCoinbase
+}
+
+public enum PathSearchAlgorith
+{
+    // Breadth-first Search
+    BFS,
+
+    // Depth-first Search
+    DFS
+}
+
 public class GraphSampleOptions
 {
     public int Count { init; get; }
     public int Hops { init; get; }
     public GraphSampleMode Mode { init; get; } = GraphSampleMode.SubGraphOnly;
+    public CoinbaseSelectionMode CoinbaseMode { init; get; } = CoinbaseSelectionMode.CoinbaseOnly;
+    public PathSearchAlgorith PathSearchAlgorith { init; get; } = PathSearchAlgorith.DFS;
     public int MinNodeCount { init; get; } = 3;
     public int MaxNodeCount { init; get; } = 500;
     public int MinEdgeCount { init; get; } = 3;
@@ -18,6 +36,7 @@ public class GraphSampleOptions
     public int MaxAttempts { init; get; } = 5;
     public int MaxNodeFetchFromNeighbor { init; get; } = 500;
     public int MaxEdgesFetchFromNeighbor { init; get; } = 10000;
+
 
     public double RootNodeSelectProb
     {
