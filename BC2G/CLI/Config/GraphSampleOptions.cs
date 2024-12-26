@@ -12,10 +12,13 @@ public class GraphSampleOptions
     public int Hops { init; get; }
     public GraphSampleMode Mode { init; get; } = GraphSampleMode.SubGraphOnly;
     public int MinNodeCount { init; get; } = 3;
-    public int MaxNodeCount { init; get; } = 200;
+    public int MaxNodeCount { init; get; } = 500;
     public int MinEdgeCount { init; get; } = 3;
-    public int MaxEdgeCount { init; get; } = 200;
-    public int MaxAttempts { init; get; } = 3;
+    public int MaxEdgeCount { init; get; } = 10000;
+    public int MaxAttempts { init; get; } = 5;
+    public int MaxNodeFetchFromNeighbor { init; get; } = 500;
+    public int MaxEdgesFetchFromNeighbor { init; get; } = 10000;
+
     public double RootNodeSelectProb
     {
         init

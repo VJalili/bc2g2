@@ -117,6 +117,18 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
         var attempts = 0;
         var baseOutputDir = Path.Join(Options.WorkingDir, $"sampled_graphs_{Helpers.GetTimestamp()}");
 
+        // creating a script node like the following just to ask for coinbase node is not ideal
+        // TODO: find a better solution.
+        var coinbaseDir = Path.Join(baseOutputDir, BitcoinAgent.Coinbase);
+        var tmpSolutionCoinbase = new ScriptNode(BitcoinAgent.Coinbase, BitcoinAgent.Coinbase, ScriptType.Coinbase);
+        if (await TrySampleNeighborsAsync(driver, tmpSolutionCoinbase, baseOutputDir, coinbaseDir))
+        {
+            sampledGraphsCounter++;
+            Logger.LogInformation(
+                "Finished writting sampled graph of coinbase neighbors to {a}.",
+                coinbaseDir);
+        }
+
         while (
             sampledGraphsCounter < Options.GraphSample.Count &&
             ++attempts <= Options.GraphSample.MaxAttempts)
@@ -280,6 +292,10 @@ public abstract class Neo4jDb<T> : IGraphDb<T> where T : GraphBase
             g.EdgeCount <= minEdgeCount - (minEdgeCount * tolerance) ||
             g.EdgeCount >= maxEdgeCount + (maxEdgeCount * tolerance))
             return false;
+
+        /*
+        if (g.NodeCount > maxNodeCount || g.EdgeCount > maxEdgeCount)
+            g.Downsample(maxNodeCount, maxEdgeCount);*/
 
         return true;
     }
