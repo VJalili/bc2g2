@@ -298,11 +298,11 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
     {
         // TODO: this method is experimental, need a thorough re-write.
 
-        var nodeSamplingCountAtRoot = 15;
+        var nodeSamplingCountAtRoot = 100;
         var rnd = new Random(31);
         var g = new BitcoinGraph();
         var maxHops = 4;
-        var queryLimit = 10000;
+        var queryLimit = 1000;
         var nodeCountReductionFactorByHop = 4.0;
         var allNodesAddedToGraph = new HashSet<string>();
         var allEdgesAddedToGraph = new HashSet<string>();
