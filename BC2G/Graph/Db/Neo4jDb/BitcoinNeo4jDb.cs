@@ -182,6 +182,8 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
     public override async Task<GraphBase> GetNeighborsAsync(
         IDriver driver, string rootScriptAddress, GraphSampleOptions options)
     {
+        // TODO: both of the following methods need a rewrite, they could be merged with simpler interface.
+
         // BFS or DFS algorithms
         return await GetNeighborsUsingGraphTraversalAlgorithmAsync(driver, rootScriptAddress, options);
 
@@ -222,7 +224,32 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
         qBuilder.Append($"relationships(path) AS pathRels ");
         //qBuilder.Append($"WHERE size(pathNodes) <= {options.MaxNodeCount} AND size(pathRels) <= {options.MaxEdgeCount} ");
         qBuilder.Append($"LIMIT {Options.GraphSample.MaxNodeFetchFromNeighbor} ");
-        qBuilder.Append($"RETURN [root] AS root, [n IN pathNodes WHERE n <> root] AS nodes, pathRels AS relationships");
+
+        // ******** 
+        //qBuilder.Append($"RETURN [root] AS root, [n IN pathNodes WHERE n <> root] AS nodes, pathRels AS relationships");
+
+        // The following part is to get the inDegree and outDegree of each node in the original graph, NOT the sampled graph.
+        // It basically iterates over the nodes and fetches their in and out degree from the graph. 
+        // This is an expensive operation, and if these degrees are not needed, replace all the following with the
+        // above line marked with ******** and make sure the marked lines in the following are also updated.
+        //
+        qBuilder.Append($"RETURN ");
+        qBuilder.Append($"[ {{");
+        qBuilder.Append($"node: root, ");
+        qBuilder.Append($"inDegree: COUNT {{ (root)<--() }}, ");
+        qBuilder.Append($"outDegree: COUNT {{ (root)-->() }} ");
+        qBuilder.Append($"}}] AS root, ");
+        qBuilder.Append($"[ ");
+        qBuilder.Append($"n IN pathNodes WHERE n <> root ");
+        qBuilder.Append($"| ");
+        qBuilder.Append($"{{ ");
+        qBuilder.Append($"node: n, ");
+        qBuilder.Append($"inDegree: COUNT {{ (n)<--() }}, ");
+        qBuilder.Append($"outDegree: COUNT {{ (n)-->() }} ");
+        qBuilder.Append($"}} ");
+        qBuilder.Append($"] AS nodes, ");
+        qBuilder.Append($"pathRels AS relationships");
+
 
         var q = qBuilder.ToString();
 
@@ -253,6 +280,14 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
         Logger.LogInformation("Retrieved neighbors.");
         Logger.LogInformation("Building a graph from the neighbors.");
 
+        static (Neo4j.Driver.INode, double, double) UnpackDict(IDictionary<string, object> dict)
+        {
+            var node = dict["node"].As<Neo4j.Driver.INode>();
+            var inDegree = Convert.ToDouble(dict["inDegree"]);
+            var outDegree = Convert.ToDouble(dict["outDegree"]);
+            return (node, inDegree, outDegree);
+        }
+
         var g = new BitcoinGraph();
 
         foreach (var hop in samplingResult)
@@ -260,8 +295,11 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
             Node root;
             if (rootScriptAddress == BitcoinAgent.Coinbase)
             {
-                root = new CoinbaseNode(hop.Values["root"].As<List<Neo4j.Driver.INode>>()[0]);
-
+                // ********
+                //root = new CoinbaseNode(hop.Values["root"].As<List<Neo4j.Driver.INode>>()[0]);
+                var rootList = hop["root"].As<List<object>>();
+                (Neo4j.Driver.INode rootNode, double inDegree, double outDegree) = UnpackDict(rootList[0].As<IDictionary<string, object>>());
+                root = new CoinbaseNode(rootNode, originalOutdegree: outDegree);
                 if (root is null)
                     continue;
 
@@ -269,8 +307,11 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
             }
             else
             {
-                root = new ScriptNode(hop.Values["root"].As<List<Neo4j.Driver.INode>>()[0]);
-
+                // ********
+                //root = new ScriptNode(hop.Values["root"].As<List<Neo4j.Driver.INode>>()[0]);
+                var rootList = hop["root"].As<List<object>>();
+                (Neo4j.Driver.INode rootNode, double inDegree, double outDegree) = UnpackDict(rootList[0].As<IDictionary<string, object>>());
+                root = new ScriptNode(rootNode, originalIndegree: inDegree, originalOutdegree: outDegree);
                 if (root is null)
                     continue;
 
@@ -280,8 +321,14 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
             // It is better to add nodes like this, and not just as part of 
             // adding edge, because `nodes` has all the node properties for each 
             // node, but `relationships` only contain their IDs.
-            foreach (var node in hop.Values["nodes"].As<List<Neo4j.Driver.INode>>())
-                g.GetOrAddNode(node);
+            // ********
+            //foreach (var node in hop.Values["nodes"].As<List<Neo4j.Driver.INode>>())
+            //    g.GetOrAddNode(node);
+            foreach (var nodeObject in hop["nodes"].As<List<object>>())
+            {
+                (Neo4j.Driver.INode node, double inDegree, double outDegree) = UnpackDict(nodeObject.As<IDictionary<string, object>>());
+                g.GetOrAddNode(node, originalIndegree: inDegree, originalOutdegree: outDegree);
+            }
 
             foreach (var relationship in hop.Values["relationships"].As<List<IRelationship>>())
                 g.GetOrAddEdge(relationship);
