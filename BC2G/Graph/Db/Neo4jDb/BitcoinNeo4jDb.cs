@@ -184,10 +184,8 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
     {
         // TODO: both of the following methods need a rewrite, they could be merged with simpler interface.
 
-        // BFS or DFS algorithms
-        return await GetNeighborsUsingGraphTraversalAlgorithmAsync(driver, rootScriptAddress, options);
-
-        // forest fire sampling.
+        if (options.Algorithm == SamplingAlgorithm.BFS || options.Algorithm == SamplingAlgorithm.DFS)
+            return await GetNeighborsUsingGraphTraversalAlgorithmAsync(driver, rootScriptAddress, options);
         return await GetNeighborsUsingForestFireSamplingAlgorithmAsync(driver, rootScriptAddress, options);
     }
 
@@ -346,10 +344,18 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
     {
         // TODO: this method is experimental, need a thorough re-write.
 
+        static (Neo4j.Driver.INode, double, double) UnpackDict(IDictionary<string, object> dict)
+        {
+            var node = dict["node"].As<Neo4j.Driver.INode>();
+            var inDegree = Convert.ToDouble(dict["inDegree"]);
+            var outDegree = Convert.ToDouble(dict["outDegree"]);
+            return (node, inDegree, outDegree);
+        }
+
         var nodeSamplingCountAtRoot = 100;
         var rnd = new Random(31);
         var g = new BitcoinGraph();
-        var maxHops = 4;
+        var maxHops = 2;
         var queryLimit = 1000;
         var nodeCountReductionFactorByHop = 4.0;
         var allNodesAddedToGraph = new HashSet<string>();
@@ -365,7 +371,7 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
             qBuilder.Append($"maxLevel: 1, ");
             qBuilder.Append($"limit: {queryLimit}, ");
             qBuilder.Append($"bfs: true, ");
-            qBuilder.Append($"labelFilter: '{ScriptNodeStrategy.Labels}'");
+            qBuilder.Append($"labelFilter: '{options.LabelFilters}'");
             //$"    relationshipFilter: \">{EdgeType.Transfers}\"" +
             qBuilder.Append($"}}) ");
             qBuilder.Append($"YIELD path ");
@@ -373,7 +379,24 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
             qBuilder.Append($"nodes(path) AS pathNodes, ");
             qBuilder.Append($"relationships(path) AS pathRels ");
             qBuilder.Append($"LIMIT {queryLimit} ");
-            qBuilder.Append($"RETURN [root] AS root, [n IN pathNodes WHERE n <> root] AS nodes, pathRels AS relationships");
+            //qBuilder.Append($"RETURN [root] AS root, [n IN pathNodes WHERE n <> root] AS nodes, pathRels AS relationships");
+            // ******** 
+            qBuilder.Append($"RETURN ");
+            qBuilder.Append($"[ {{");
+            qBuilder.Append($"node: root, ");
+            qBuilder.Append($"inDegree: COUNT {{ (root)<--() }}, ");
+            qBuilder.Append($"outDegree: COUNT {{ (root)-->() }} ");
+            qBuilder.Append($"}}] AS root, ");
+            qBuilder.Append($"[ ");
+            qBuilder.Append($"n IN pathNodes WHERE n <> root ");
+            qBuilder.Append($"| ");
+            qBuilder.Append($"{{ ");
+            qBuilder.Append($"node: n, ");
+            qBuilder.Append($"inDegree: COUNT {{ (n)<--() }}, ");
+            qBuilder.Append($"outDegree: COUNT {{ (n)-->() }} ");
+            qBuilder.Append($"}} ");
+            qBuilder.Append($"] AS nodes, ");
+            qBuilder.Append($"pathRels AS relationships");
 
             return qBuilder.ToString();
         }
@@ -381,7 +404,7 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
         List<Model.INode> ProcessSamplingResult(List<IRecord> samplingResult, int hop)
         {
             Node root;
-            var nodes = new Dictionary<string, Neo4j.Driver.INode>();
+            var nodes = new Dictionary<string, (Neo4j.Driver.INode, double, double)>();
             var edges = new Dictionary<string, IRelationship>();
 
             // TODO: this iteration needs to be improved, maybe I have a list like this because of the query?!
@@ -389,7 +412,11 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
             {
                 if (rootScriptAddress == BitcoinAgent.Coinbase)
                 {
-                    root = new CoinbaseNode(r.Values["root"].As<List<Neo4j.Driver.INode>>()[0]);
+                    // ********
+                    //root = new CoinbaseNode(r.Values["root"].As<List<Neo4j.Driver.INode>>()[0]);
+                    var rootList = r["root"].As<List<object>>();
+                    (Neo4j.Driver.INode rootNode, double inDegree, double outDegree) = UnpackDict(rootList[0].As<IDictionary<string, object>>());
+                    root = new ScriptNode(rootNode, originalIndegree: inDegree, originalOutdegree: outDegree);
 
                     if (root is null)
                         continue;
@@ -402,7 +429,10 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
                 }
                 else
                 {
-                    var rootB = r.Values["root"].As<List<Neo4j.Driver.INode>>()[0];
+                    // ********
+                    //var rootB = r.Values["root"].As<List<Neo4j.Driver.INode>>()[0];
+                    var rootList = r["root"].As<List<object>>();
+                    (Neo4j.Driver.INode rootB, double inDegree, double outDegree) = UnpackDict(rootList[0].As<IDictionary<string, object>>());
 
                     if (rootB is null)
                         continue;
@@ -414,9 +444,20 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
                     }
                 }
 
+                // ********
+                /*
                 foreach (var node in r.Values["nodes"].As<List<Neo4j.Driver.INode>>())
                     if (!allNodesAddedToGraph.Contains(node.ElementId))
-                        nodes.TryAdd(node.ElementId, node);
+                        nodes.TryAdd(node.ElementId, node);*/
+
+                foreach (var nodeObject in r["nodes"].As<List<object>>())
+                {
+                    (Neo4j.Driver.INode node, double inDegree, double outDegree) = UnpackDict(nodeObject.As<IDictionary<string, object>>());
+                    //g.GetOrAddNode(node, originalIndegree: inDegree, originalOutdegree: outDegree);
+
+                    if (!allNodesAddedToGraph.Contains(node.ElementId))
+                        nodes.TryAdd(node.ElementId, (node, inDegree, outDegree));
+                }
 
                 foreach (var edge in r.Values["relationships"].As<List<IRelationship>>())
                     if (!allEdgesAddedToGraph.Contains(edge.ElementId))
@@ -438,7 +479,8 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
                 {
                     // so only the "connected" nodes are added.
                     // also, this order is important where 1st the node is added, then the edge.
-                    addedNodes.Add(g.GetOrAddNode(nodes[targetNodeId]));
+                    (var ccNode, var indegree, var outdegree) = nodes[targetNodeId];
+                    addedNodes.Add(g.GetOrAddNode(ccNode, originalIndegree: indegree, originalOutdegree: outdegree));
                     allNodesAddedToGraph.Add(targetNodeId);
 
                     g.GetOrAddEdge(edge.Value);
