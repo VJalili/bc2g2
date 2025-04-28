@@ -2,7 +2,7 @@
   "profiles": {
     "BC2G": {
       "commandName": "Project",
-      "commandLineArgs": "bitcoin sample -c 10 -h 3"
+      "commandLineArgs": "bitcoin sample -c 1000 -h 2"
     },
     "Docker": {
       "commandName": "Docker"
