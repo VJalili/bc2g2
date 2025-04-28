@@ -2,6 +2,8 @@
 
 using Microsoft.Extensions.Primitives;
 
+using System.Diagnostics.Tracing;
+
 
 namespace BC2G.Graph.Db.Neo4jDb;
 
@@ -126,7 +128,7 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
 
     public override async Task<bool> TrySampleNeighborsAsync(
         IDriver driver, ScriptNode rootNode, string workingDir)
-    {
+   {
         var graph = await GetNeighborsAsync(driver, rootNode.Address, Options.GraphSample);
         var perBatchLabelsFilename = Path.Join(workingDir, "Labels.tsv");
 
@@ -450,7 +452,7 @@ public class BitcoinNeo4jDb : Neo4jDb<BitcoinGraph>
 
                     if (!allNodesAddedToGraph.Contains(rootB.ElementId))
                     {
-                        g.GetOrAddNode(rootB);
+                        g.GetOrAddNode(GraphComponentType.BitcoinScriptNode, root);
                         allNodesAddedToGraph.Add(rootB.ElementId);
                     }
                 }
