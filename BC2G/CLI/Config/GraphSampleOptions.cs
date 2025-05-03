@@ -56,7 +56,7 @@ public class GraphSampleOptions
     public int Hops { init; get; }
     public GraphSampleMode Mode { init; get; } = GraphSampleMode.ConnectedGraphAndForest;
     public CoinbaseSelectionMode CoinbaseMode { init; get; } = CoinbaseSelectionMode.ExcludeCoinbase;
-    public SamplingAlgorithm Algorithm { init; get; } = SamplingAlgorithm.DFS;
+    public SamplingAlgorithm Algorithm { init; get; } = SamplingAlgorithm.FFS;
     public EdgeTypes[] IncludeEdgeTypes { init; get; } = [EdgeTypes.S2S];
     public int MinNodeCount { init; get; } = 500;
     public int MaxNodeCount { init; get; } = 1000;
@@ -76,10 +76,10 @@ public class GraphSampleOptions
     public bool SerializeEdges { init; get; } = false;
     public bool SerializeFeatureVectors { init; get; } = true;
 
-    public int ForestFireNodeSamplingCountAtRoot { init; get; } = 100;
-    public int ForestFireMaxHops { init; get; } = 4;
+    public int ForestFireNodeSamplingCountAtRoot { init; get; } = 50;
+    public int ForestFireMaxHops { init; get; } = 3;
     public int ForestFireQueryLimit { init; get; } = 1000;
-    public double ForestFireNodeCountReductionFactorByHop { init; get; } = 4.0;
+    public double ForestFireNodeCountReductionFactorByHop { init; get; } = 8.0;
 
 
     public double RootNodeSelectProb
